@@ -1,57 +1,87 @@
 # gemiclaw 🐾
 
-gemiclawは、[`openclaw`](https://github.com/openclaw/openclaw) や [`nanoclaw`](https://github.com/qwibitai/nanoclaw) の設計思想を汲んだ、Google Gemini APIとDiscordを連携させるための最小構成AIエージェントです。
-
-最大の特徴として、「自分自身でコードを書いて、自分自身で安全に（Dockerコンテナ内で）実行・テストする」サンドボックス機能を備えています。
+gemiclawは、[`nanoclaw`](https://github.com/qwibitai/nanoclaw) の設計思想を汲んだ、Google Gemini API と Discord を連携させる最小構成AIエージェントです。
 
 ## 特徴
-- **極小・軽量**: TypeScript (`tsx`使用)＋極力少ない外部依存で構成されています。
-- **ファイルベースのシステムプロンプト**: `AGENTS.md`や`SOUL.md`を変更するだけで、AIの性格や動作ルールを簡単に変更できます。
-- **自動メモリ記録機能**: 会話からの学びや重要なコンテキストを自動で `memory/` ディレクトリに保存・読み込みします。
-- **安全なコード実行機能 (`Sandbox`)**: Python, Node, bashのスクリプトを、一時的なDockerコンテナ内で実行して結果をチャットに返します。ホスト環境を汚しません。
+
+- **SQLite + ポーリング型アーキテクチャ**: nanoclaw と同様に、受信メッセージをまず SQLite に永続化し、ポーリングループ（2秒間隔）が未処理のメンションを拾って処理します。クラッシュしても再起動時に未処理メッセージを取りこぼしません。
+- **会話履歴コンテキスト**: 直近24時間のチャンネル履歴を毎回 Gemini に渡すため、前の会話を踏まえた返答ができます。
+- **安全なコード実行（Sandbox）**: Python / Node.js / bash のコードを一時 Docker コンテナで実行します。ホスト環境には影響しません。
+- **ファイルベースのシステムプロンプト**: `.md` ファイルを編集するだけでキャラクターや動作ルールを変更できます。リビルド不要です。
 
 ---
 
-## セットアップ手順
+## ディレクトリ構成
+
+```
+gemiclaw/
+├── src/
+│   ├── index.ts        # Discord接続・メッセージ受信・ポーリングループ
+│   ├── db.ts           # SQLite層（メッセージ永続化・履歴取得）
+│   ├── agent.ts        # Gemini API呼び出し・レスポンス生成
+│   ├── memory.ts       # エージェントの手動メモ書き込み
+│   ├── sandbox.ts      # Dockerサンドボックス実行
+│   └── skills/         # ツール定義（Gemini Function Calling用）
+├── memory/             # 実行時データ（Dockerボリューム）
+│   ├── messages.db     # SQLite: 全メッセージ履歴・状態管理
+│   └── YYYY-MM-DD.txt  # エージェントが書き込む手動メモ
+├── workspace/          # エージェントがファイルを読み書きする領域
+├── knowledge/          # エージェントが参照する外部ドキュメント
+├── AGENTS.md           # 基本指示・ルール
+├── SOUL.md             # キャラクター・口調
+├── USER.md             # ユーザー情報
+├── TOOLS.md            # ツール利用ガイド
+├── IDENTITY.md         # 名前・プロフィール
+├── Dockerfile
+└── docker-compose.yml
+```
+
+---
+
+## セットアップ
 
 ### 前提条件
-以下のソフトウェアがインストールされている必要があります。
-- Node.js (v18以降を推奨)
-- Docker Engine (Docker Desktopなど。サンドボックス機能に必須です)
-- Gemini API キー
-- Discord Bot トークン（[Discord Developer Portal](https://discord.com/developers/applications)から取得）
 
-### 1. インストール
-リポジトリをクローンまたはダウンロードし、依存関係をインストールします。
+- Docker Engine（Docker Desktop 等）
+- Gemini API キー
+- Discord Bot トークン（[Discord Developer Portal](https://discord.com/developers/applications) から取得）
+
+### 1. 環境変数の設定
+
+`.env.example` をコピーして `.env` を作成し、キーを設定します。
 
 ```bash
-npm install
+cp .env.example .env
 ```
-
-### 2. 環境変数の設定
-プロジェクトルート直下にある `.env` ファイルに、必要なAPIキーを設定します。（`.env` ファイルがない場合は作成してください）
 
 ```env
-DISCORD_TOKEN=あなたの_Discord_Botのトークン
-GEMINI_API_KEY=あなたの_Gemini_APIのキー
-GEMINI_MODEL=gemini-2.5-flash # （オプション）希望のモデルがあれば
+DISCORD_TOKEN=あなたのDiscord Botトークン
+GEMINI_API_KEY=あなたのGemini APIキー
+GEMINI_MODEL=gemini-2.5-flash   # 省略可能（デフォルト: gemini-2.5-flash）
 ```
 
-### 3. Discord BotのPrivileged Intentsを有効化（必須）
-このbotはメッセージ内容を読み取るために **Message Content Intent（Privileged Gateway Intent）** を必要とします。
-[Discord Developer Portal](https://discord.com/developers/applications) の対象Appの **Bot** ページを開き、
-「Privileged Gateway Intents」セクションで以下の **3つをすべてON** にして **Save Changes** を押してください。
+### 2. Discord Bot の Privileged Intents を有効化
 
-- ✅ PRESENCE INTENT
+[Discord Developer Portal](https://discord.com/developers/applications) の対象アプリ → **Bot** ページ → **Privileged Gateway Intents** で以下をすべて ON にしてください。
+
 - ✅ SERVER MEMBERS INTENT
-- ✅ **MESSAGE CONTENT INTENT**（特に重要）
+- ✅ MESSAGE CONTENT INTENT（必須）
 
-> **注意**: この設定をしないとbotは起動直後にクラッシュします。
+### 3. 起動
 
----
+```bash
+docker-compose up -d --build
+```
 
-### 5. 初期イメージのPull（推奨）
-Dockerサンドボックスが素早く起動できるように、使用するベースイメージをあらかじめローカルに保存（Pull）しておきます。
+ログの確認：
+
+```bash
+docker-compose logs -f
+```
+
+### 4. サンドボックス用イメージの事前取得（推奨）
+
+初回実行を速くするため、サンドボックスで使用するイメージをあらかじめ pull しておきます。
 
 ```bash
 docker pull python:3.11-slim
@@ -59,32 +89,52 @@ docker pull node:20-slim
 docker pull ubuntu:22.04
 ```
 
-### 6. 起動
-以下のコマンドで、Docker Composeを使用してエージェント（gemiclaw本体）が起動します。
-
-```bash
-docker-compose up -d
-```
-
-このコマンドにより、gemiclaw自体が隔離された軽量なコンテナとして実行され、ホストのDocker Socketを通じて安全なサンドボックス（テスト用一時コンテナ）を生成できるようになります。
-
-ログを確認する場合は以下のコマンドを使用します：
-```bash
-docker-compose logs -f
-```
-
 ---
 
 ## 使い方
 
-Discordサーバーに招待したbotに対して、**メンション**をつけて話しかけてください。
-（例: `@gemiclaw こんにちは！今の時間を教えるPythonスクリプトを書いて実行してみて！`）
+Discord サーバー内でボットを**メンション**して話しかけます。
 
-### カスタマイズ（プロンプトの調整）
-以下のMarkdownファイルを編集することで、エージェントの挙動を直接制御できます。
+```
+@gemiclaw 今日の天気を調べて
+@gemiclaw 現在時刻を表示するPythonスクリプトを実行して
+```
 
-- `AGENTS.md` : 基本的な指示事項、ルール
-- `SOUL.md` : キャラクター性、口調、振る舞い
-- `USER.md` : あなた（ユーザー）自身の情報
-- `TOOLS.md` : ツールに関する事前知識
-- `IDENTITY.md` : 名前やプロフィール設定
+### プロンプトのカスタマイズ
+
+プロジェクトルートの `.md` ファイルを編集するだけで反映されます。リビルドは不要です。
+
+| ファイル | 内容 |
+|---|---|
+| `AGENTS.md` | 基本指示・行動ルール |
+| `SOUL.md` | キャラクター・口調・振る舞い |
+| `USER.md` | ユーザー自身の情報 |
+| `TOOLS.md` | ツールの利用ガイド |
+| `IDENTITY.md` | 名前・プロフィール |
+
+---
+
+## アーキテクチャ概要
+
+```
+Discord
+  │
+  │ messageCreate イベント
+  ▼
+[index.ts] ─── storeMessage() ──▶ messages.db（SQLite）
+  │
+  │ setInterval(2000ms)
+  ▼
+[ポーリングループ]
+  │ getNewMentions()
+  ▼
+[チャンネルごとの処理キュー]
+  │ getChannelHistory() + processMessage()
+  ▼
+[agent.ts] ──▶ Gemini API
+  │
+  ▼
+Discord へ返信 + storeMessage()（ボット発言も保存）
+```
+
+メッセージの受信と処理を分離しているため、処理中に届いたメッセージは次のポーリングで確実に処理されます。
