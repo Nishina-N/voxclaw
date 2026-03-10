@@ -1,0 +1,21 @@
+# Environment / Secrets
+.env
+
+# Dependencies
+node_modules/
+
+# Runtime data (mounted volumes - not part of source code)
+memory/
+workspace/
+knowledge/
+
+# TypeScript build output
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
