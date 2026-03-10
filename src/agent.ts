@@ -2,6 +2,8 @@ import { GoogleGenAI } from '@google/genai';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+
+import { type Message } from './db.js';
 import { runInSandbox } from './sandbox.js';
 import { readMemory, writeMemory } from './memory.js';
 
@@ -18,33 +20,40 @@ async function loadSystemInstructions(): Promise<string> {
         try {
             const content = await fs.readFile(path.join(__dirname, '..', file), 'utf-8');
             instructions += content + '\n\n';
-        } catch (error) {
-            console.warn(`Could not read ${file}:`, error);
+        } catch {
+            // File is optional — skip if missing
         }
     }
     return instructions;
 }
 
-export async function processMessage(userMessage: string): Promise<string> {
+function formatHistory(history: Message[]): string {
+    if (history.length === 0) return '';
+    const lines = history.map((m) =>
+        m.is_bot ? `gemiclaw: ${m.content}` : `${m.sender_name}: ${m.content}`
+    );
+    return `[Recent conversation]\n${lines.join('\n')}\n\n`;
+}
+
+export async function processMessage(
+    userMessage: string,
+    history: Message[] = [],
+    senderName = 'User',
+): Promise<string> {
     const systemInstruction = await loadSystemInstructions();
-    
-    // Minimal Gemini setup using GoogleGenAI. 
-    // In a real app, you'd maintain a chat session or array of messages.
-    // For nanoclaw/gemiclaw minimalism, we'll do a one-shot or short-history approach.
+
+    // Prepend formatted history so the model has conversational context
+    const fullMessage = formatHistory(history) + `${senderName}: ${userMessage}`;
+
     try {
         const response = await ai.models.generateContent({
-            model: model,
-            contents: userMessage,
-            config: {
-                systemInstruction: systemInstruction,
-                // A complete implementation would define tools here and handle tool calls.
-                // For this minimal scaffold, we will demonstrate the setup.
-            }
+            model,
+            contents: fullMessage,
+            config: { systemInstruction },
         });
-        
-        return response.text || "No response generated.";
+        return response.text || 'No response generated.';
     } catch (e: any) {
-        console.error("Agent error:", e);
+        console.error('[agent] error:', e);
         return `Error: ${e.message}`;
     }
 }

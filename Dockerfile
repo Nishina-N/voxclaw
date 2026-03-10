@@ -1,8 +1,8 @@
 FROM node:20-slim
 
-# Install docker CLI so that dockerode can use the socket efficiently and for nested commands if needed
+# Install docker CLI and native module build tools (required by better-sqlite3)
 RUN apt-get update && \
-    apt-get install -y docker.io && \
+    apt-get install -y docker.io python3 make g++ && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
