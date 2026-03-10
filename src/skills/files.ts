@@ -1,6 +1,9 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Type } from '@google/genai';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const readFileDef = {
     name: 'read_file',
@@ -47,19 +50,55 @@ export async function executeReadFile(args: any): Promise<string> {
 
 export async function executeWriteFile(args: any): Promise<string> {
     try {
-        // Basic security check to prevent writing outside allowed directories 
-        // (though docker-compose also mitigates impact)
         if (!args.filePath.startsWith('/app/workspace/')) {
-            return `Error: You are only allowed to write files to the /app/workspace/ directory.`;
+            return `Error: Write is only allowed under /app/workspace/.`;
         }
-
-        // Ensure directory exists
         const dir = path.dirname(args.filePath);
         await fs.mkdir(dir, { recursive: true });
-
         await fs.writeFile(args.filePath, args.content, 'utf-8');
         return `Successfully wrote to ${args.filePath}`;
     } catch (e: any) {
         return `Failed to write file at ${args.filePath}: ${e.message}`;
     }
+}
+
+export const listDirectoryDef = {
+    name: 'list_directory',
+    description: 'Lists files and subdirectories at a given path. Use /app/workspace or /app/knowledge as the base path.',
+    parameters: {
+        type: Type.OBJECT,
+        properties: {
+            dirPath: {
+                type: Type.STRING,
+                description: 'The absolute directory path to list (e.g., /app/workspace or /app/knowledge/docs)',
+            },
+            recursive: {
+                type: Type.BOOLEAN,
+                description: 'If true, list all files recursively. Defaults to false.',
+            },
+        },
+        required: ['dirPath'],
+    },
+} as const;
+
+export async function executeListDirectory(args: any): Promise<string> {
+    try {
+        const entries = await listEntries(args.dirPath, args.recursive ?? false);
+        return entries.length > 0 ? entries.join('\n') : '(empty directory)';
+    } catch (e: any) {
+        return `Failed to list directory at ${args.dirPath}: ${e.message}`;
+    }
+}
+
+async function listEntries(dirPath: string, recursive: boolean, prefix = ''): Promise<string[]> {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    const results: string[] = [];
+    for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        results.push(prefix + (entry.isDirectory() ? `[dir]  ${entry.name}` : `[file] ${entry.name}`));
+        if (recursive && entry.isDirectory()) {
+            results.push(...await listEntries(fullPath, true, prefix + '  '));
+        }
+    }
+    return results;
 }

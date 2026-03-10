@@ -6,15 +6,13 @@ services:
     env_file:
       - .env
     volumes:
-      # Bind the host's Docker socket so gemiclaw can spawn sibling sandbox containers
-      - /var/run/docker.sock:/var/run/docker.sock
-      # Mount memory for persistent logs
+      # Persistent storage: SQLite DB and memory logs
       - ./memory:/app/memory
-      # Mount workspace for creating files and reading local projects
+      # Agent workspace: read/write by the agent
       - ./workspace:/app/workspace
-      # Mount knowledge directory for reading specific external knowledge or documents
-      - ./knowledge:/app/knowledge
-      # Mount prompts so they can be edited without rebuilding the container
+      # Knowledge base: read-only reference documents
+      - ./knowledge:/app/knowledge:ro
+      # Prompt files: editable without rebuilding the image
       - ./AGENTS.md:/app/AGENTS.md:ro
       - ./SOUL.md:/app/SOUL.md:ro
       - ./USER.md:/app/USER.md:ro

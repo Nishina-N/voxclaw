@@ -118,8 +118,15 @@ async function processChannel(channelId: string, mentions: Message[]): Promise<v
 
             if ('sendTyping' in discordChannel) await (discordChannel as any).sendTyping();
 
-            const reply = await processMessage(content, history, msg.sender_name);
-            const replyText = reply.length > 1990 ? reply.slice(0, 1990) + '…' : reply;
+            let replyText: string;
+            try {
+                const reply = await processMessage(content, history, msg.sender_name);
+                replyText = reply.length > 1990 ? reply.slice(0, 1990) + '…' : reply;
+            } catch (err: any) {
+                console.error(`[processChannel] error for msg ${msg.id}:`, err);
+                const code = err.status ?? err.code ?? 'unknown';
+                replyText = `⚠️ エラーが発生しました（${code}）。しばらく経ってから再度お試しください。`;
+            }
 
             const sent = await (discordChannel as any).send(`<@${msg.sender_id}> ${replyText}`);
 

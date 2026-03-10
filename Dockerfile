@@ -1,8 +1,8 @@
 FROM node:20-slim
 
-# Install docker CLI and native module build tools (required by better-sqlite3)
+# Install build tools required by better-sqlite3 native module
 RUN apt-get update && \
-    apt-get install -y docker.io python3 make g++ && \
+    apt-get install -y python3 make g++ && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

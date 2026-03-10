@@ -16,13 +16,11 @@
     "@google/genai": "^1.44.0",
     "@types/node": "^25.4.0",
     "discord.js": "^14.25.1",
-    "dockerode": "^4.0.9",
     "dotenv": "^17.3.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
-    "@types/dockerode": "^4.0.1"
+    "@types/better-sqlite3": "^7.6.13"
   }
 }
