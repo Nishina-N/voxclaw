@@ -22,7 +22,7 @@ export const readFileDef = {
 
 export const writeFileDef = {
     name: 'write_file',
-    description: 'Writes content to a file. Overwrites if it exists. MUST use /app/workspace/ as the base path. Do not write to /app/knowledge/.',
+    description: 'Writes content to a file. Overwrites if it exists. Use /app/workspace/ for work output or /app/config/ for bot configuration. Do not write to /app/knowledge/.',
     parameters: {
         type: Type.OBJECT,
         properties: {
@@ -50,8 +50,8 @@ export async function executeReadFile(args: any): Promise<string> {
 
 export async function executeWriteFile(args: any): Promise<string> {
     try {
-        if (!args.filePath.startsWith('/app/workspace/')) {
-            return `Error: Write is only allowed under /app/workspace/.`;
+        if (!args.filePath.startsWith('/app/workspace/') && !args.filePath.startsWith('/app/config/')) {
+            return `Error: Write is only allowed under /app/workspace/ or /app/config/.`;
         }
         const dir = path.dirname(args.filePath);
         await fs.mkdir(dir, { recursive: true });

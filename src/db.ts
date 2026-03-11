@@ -50,14 +50,13 @@ export function storeMessage(msg: Message): void {
 }
 
 /**
- * Returns unprocessed bot-mention messages across the given channels, newer than `since`.
- * Results are ordered chronologically.
+ * Returns new messages that mention the bot across the given channels, newer than `since`.
  */
 export function getNewMentions(
     channelIds: string[],
     since: string,
     botId: string,
-    limit = 50,
+    limit = 100,
 ): { messages: Message[]; newTimestamp: string } {
     if (channelIds.length === 0) return { messages: [], newTimestamp: since };
 
@@ -70,6 +69,29 @@ export function getNewMentions(
             ORDER BY timestamp DESC LIMIT ?
         ) ORDER BY timestamp
     `).all(since, ...channelIds, `%<@${botId}>%`, limit) as Message[];
+
+    const newTimestamp = rows.length > 0 ? rows[rows.length - 1].timestamp : since;
+    return { messages: rows, newTimestamp };
+}
+
+/**
+ * Returns all new non-bot messages across the given channels, newer than `since`.
+ */
+export function getNewMessages(
+    channelIds: string[],
+    since: string,
+    limit = 100,
+): { messages: Message[]; newTimestamp: string } {
+    if (channelIds.length === 0) return { messages: [], newTimestamp: since };
+
+    const placeholders = channelIds.map(() => '?').join(',');
+    const rows = db.prepare(`
+        SELECT * FROM (
+            SELECT * FROM messages
+            WHERE timestamp > ? AND channel_id IN (${placeholders}) AND is_bot = 0
+            ORDER BY timestamp DESC LIMIT ?
+        ) ORDER BY timestamp
+    `).all(since, ...channelIds, limit) as Message[];
 
     const newTimestamp = rows.length > 0 ? rows[rows.length - 1].timestamp : since;
     return { messages: rows, newTimestamp };

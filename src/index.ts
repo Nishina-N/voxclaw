@@ -1,13 +1,16 @@
-import { Client, GatewayIntentBits } from 'discord.js';
 import * as dotenv from 'dotenv';
+import * as fs from 'fs';
 
 import { processMessage } from './agent.js';
+import { DiscordChannel } from './channels/discord.js';
+import { type Channel } from './channels/types.js';
 import {
     getChannelHistory,
     getNewMentions,
+    getNewMessages,
     getRouterState,
     initDatabase,
-    Message,
+    type Message,
     setRouterState,
     storeMessage,
 } from './db.js';
@@ -15,108 +18,52 @@ import {
 dotenv.config();
 
 const POLL_INTERVAL = 2000;
-const HISTORY_WINDOW_MS = 24 * 60 * 60 * 1000; // look back 24h for context
+const HISTORY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const CHANNELS_CONFIG_PATH = '/app/config/channels.json';
 
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-    ],
-});
-
-// Channels we've seen messages in (persisted across restarts via router_state)
-let monitoredChannelIds: string[] = [];
-
-// Per-channel lock: prevents processing the same channel concurrently
-const processingChannels = new Set<string>();
-
-// Cursor: last message timestamp we've processed mentions up to
-let lastTimestamp = '';
-
-// --- Discord event handlers ---
-
-client.once('ready', () => {
-    console.log(`🐾 gemiclaw is online as ${client.user?.tag}`);
-
-    // Restore state from DB
-    const savedChannels = getRouterState('monitored_channels');
-    monitoredChannelIds = savedChannels ? JSON.parse(savedChannels) : [];
-    lastTimestamp = getRouterState('last_timestamp')
-        ?? new Date(Date.now() - HISTORY_WINDOW_MS).toISOString();
-
-    startPollingLoop();
-});
-
-// Store every incoming message; don't process yet
-client.on('messageCreate', (message) => {
-    if (message.author.bot) return;
-
-    if (!monitoredChannelIds.includes(message.channelId)) {
-        monitoredChannelIds.push(message.channelId);
-        setRouterState('monitored_channels', JSON.stringify(monitoredChannelIds));
-    }
-
-    storeMessage({
-        id: message.id,
-        channel_id: message.channelId,
-        sender_id: message.author.id,
-        sender_name: message.author.displayName ?? message.author.username,
-        content: message.content,
-        timestamp: message.createdAt.toISOString(),
-        is_bot: 0,
-    });
-});
-
-// --- Polling loop ---
-
-function startPollingLoop(): void {
-    setInterval(async () => {
-        try {
-            const { messages, newTimestamp } = getNewMentions(
-                monitoredChannelIds,
-                lastTimestamp,
-                client.user!.id,
-            );
-            if (messages.length === 0) return;
-
-            // Advance cursor immediately so a crash doesn't re-process the same messages
-            lastTimestamp = newTimestamp;
-            setRouterState('last_timestamp', lastTimestamp);
-
-            // Group by channel, then process each (respecting per-channel lock)
-            const byChannel = new Map<string, Message[]>();
-            for (const msg of messages) {
-                const list = byChannel.get(msg.channel_id) ?? [];
-                list.push(msg);
-                byChannel.set(msg.channel_id, list);
-            }
-
-            for (const [channelId, mentions] of byChannel) {
-                processChannel(channelId, mentions).catch(console.error);
-            }
-        } catch (err) {
-            console.error('[poll] error:', err);
-        }
-    }, POLL_INTERVAL);
+// Per-channel config written by the agent via write_file
+interface ChannelConfig {
+    name?: string;
+    requireMention: boolean; // default: true
 }
 
-async function processChannel(channelId: string, mentions: Message[]): Promise<void> {
+function loadChannelsConfig(): Record<string, ChannelConfig> {
+    try {
+        return JSON.parse(fs.readFileSync(CHANNELS_CONFIG_PATH, 'utf-8'));
+    } catch {
+        return {};
+    }
+}
+
+const OPEN_CHANNEL_DEBOUNCE_MS = 1000; // wait after last message before responding in requireMention:false channels
+
+let monitoredChannelIds: string[] = [];
+let lastTimestamp = '';
+const processingChannels = new Set<string>();
+const lastMessageTime = new Map<string, number>(); // channelId → epoch ms of last received message
+
+// --- Message processing ---
+
+async function processChannel(
+    channel: Channel,
+    channelId: string,
+    messages: Message[],
+    requireMention: boolean,
+): Promise<void> {
     if (processingChannels.has(channelId)) return;
     processingChannels.add(channelId);
 
     try {
-        const discordChannel = client.channels.cache.get(channelId);
-        if (!discordChannel?.isTextBased()) return;
-
-        // Shared history window for all mentions in this batch
         const historySince = new Date(Date.now() - HISTORY_WINDOW_MS).toISOString();
         const history = getChannelHistory(channelId, historySince);
 
-        for (const msg of mentions) {
-            const content = msg.content.replace(`<@${client.user!.id}>`, '').trim();
+        for (const msg of messages) {
+            // Strip mention from content if present
+            const content = msg.content
+                .replace(`<@${channel.getBotId()}>`, '')
+                .trim();
 
-            if ('sendTyping' in discordChannel) await (discordChannel as any).sendTyping();
+            await channel.setTyping?.(channelId, true);
 
             let replyText: string;
             try {
@@ -128,16 +75,20 @@ async function processChannel(channelId: string, mentions: Message[]): Promise<v
                 replyText = `⚠️ エラーが発生しました（${code}）。しばらく経ってから再度お試しください。`;
             }
 
-            const sent = await (discordChannel as any).send(`<@${msg.sender_id}> ${replyText}`);
+            // Mention the sender only in mention-required channels
+            const sendText = requireMention
+                ? `<@${msg.sender_id}> ${replyText}`
+                : replyText;
 
-            // Store bot reply so it appears in future history
+            await channel.sendMessage(channelId, sendText);
+
             storeMessage({
-                id: sent.id,
+                id: `bot-${Date.now()}-${Math.random().toString(36).slice(2)}`,
                 channel_id: channelId,
-                sender_id: client.user!.id,
-                sender_name: client.user!.username,
-                content: sent.content,
-                timestamp: sent.createdAt.toISOString(),
+                sender_id: channel.getBotId(),
+                sender_name: 'gemiclaw',
+                content: sendText,
+                timestamp: new Date().toISOString(),
                 is_bot: 1,
             });
         }
@@ -146,12 +97,91 @@ async function processChannel(channelId: string, mentions: Message[]): Promise<v
     }
 }
 
-// --- Start ---
+// --- Polling loop ---
 
-if (!process.env.DISCORD_TOKEN) {
-    console.error('DISCORD_TOKEN is missing in .env');
-    process.exit(1);
+function startPollingLoop(channel: Channel): void {
+    setInterval(async () => {
+        try {
+            const config = loadChannelsConfig();
+
+            // Split monitored channels by requireMention setting
+            const mentionChannels = monitoredChannelIds.filter(
+                (id) => (config[id]?.requireMention ?? true) === true,
+            );
+            const openChannels = monitoredChannelIds.filter(
+                (id) => (config[id]?.requireMention ?? true) === false,
+            );
+
+            // Query DB: two separate queries with appropriate filters
+            const { messages: mentionMsgs, newTimestamp: t1 } =
+                getNewMentions(mentionChannels, lastTimestamp, channel.getBotId());
+
+            // For open channels, only query those that have been quiet for at least DEBOUNCE_MS
+            const debounced = openChannels.filter((id) => {
+                const last = lastMessageTime.get(id) ?? 0;
+                return Date.now() - last >= OPEN_CHANNEL_DEBOUNCE_MS;
+            });
+
+            const { messages: openMsgs, newTimestamp: t2 } =
+                getNewMessages(debounced, lastTimestamp);
+
+            // Advance cursor to the latest timestamp across both queries
+            const newTimestamp = t1 > t2 ? t1 : t2;
+            if (newTimestamp === lastTimestamp) return;
+            lastTimestamp = newTimestamp;
+            setRouterState('last_timestamp', lastTimestamp);
+
+            // Group and dispatch
+            const grouped = new Map<string, { msgs: Message[]; requireMention: boolean }>();
+            for (const msg of mentionMsgs) {
+                grouped.set(msg.channel_id, { msgs: [...(grouped.get(msg.channel_id)?.msgs ?? []), msg], requireMention: true });
+            }
+            for (const msg of openMsgs) {
+                grouped.set(msg.channel_id, { msgs: [...(grouped.get(msg.channel_id)?.msgs ?? []), msg], requireMention: false });
+            }
+
+            for (const [channelId, { msgs, requireMention }] of grouped) {
+                processChannel(channel, channelId, msgs, requireMention).catch(console.error);
+            }
+        } catch (err) {
+            console.error('[poll] error:', err);
+        }
+    }, POLL_INTERVAL);
 }
 
-initDatabase();
-client.login(process.env.DISCORD_TOKEN);
+// --- Entry point ---
+
+async function main(): Promise<void> {
+    initDatabase();
+
+    const savedChannels = getRouterState('monitored_channels');
+    monitoredChannelIds = savedChannels ? JSON.parse(savedChannels) : [];
+    lastTimestamp = getRouterState('last_timestamp')
+        ?? new Date(Date.now() - HISTORY_WINDOW_MS).toISOString();
+
+    const channel: Channel = new DiscordChannel();
+
+    await channel.connect((msg) => {
+        if (!monitoredChannelIds.includes(msg.channel_id)) {
+            monitoredChannelIds.push(msg.channel_id);
+            setRouterState('monitored_channels', JSON.stringify(monitoredChannelIds));
+        }
+        lastMessageTime.set(msg.channel_id, Date.now());
+        storeMessage(msg);
+    });
+
+    const shutdown = async (signal: string) => {
+        console.log(`[${signal}] Shutting down...`);
+        await channel.disconnect();
+        process.exit(0);
+    };
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+
+    startPollingLoop(channel);
+}
+
+main().catch((err) => {
+    console.error('Failed to start gemiclaw:', err);
+    process.exit(1);
+});

@@ -1,13 +1,14 @@
 # gemiclaw 🐾
 
-gemiclawは、[`nanoclaw`](https://github.com/qwibitai/nanoclaw) の設計思想を汲んだ、Google Gemini API と Discord を連携させる最小構成AIエージェントです。
+[`nanoclaw`](https://github.com/qwibitai/nanoclaw) の設計思想を汲んだ、Google Gemini API と Discord を連携させる最小構成AIエージェントです。
 
 ## 特徴
 
-- **SQLite + ポーリング型アーキテクチャ**: nanoclaw と同様に、受信メッセージをまず SQLite に永続化し、ポーリングループ（2秒間隔）が未処理のメンションを拾って処理します。クラッシュしても再起動時に未処理メッセージを取りこぼしません。
-- **会話履歴コンテキスト**: 直近24時間のチャンネル履歴を毎回 Gemini に渡すため、前の会話を踏まえた返答ができます。
-- **安全なコード実行（Sandbox）**: Python / Node.js / bash のコードを一時 Docker コンテナで実行します。ホスト環境には影響しません。
-- **ファイルベースのシステムプロンプト**: `.md` ファイルを編集するだけでキャラクターや動作ルールを変更できます。リビルド不要です。
+- **SQLite + ポーリング型アーキテクチャ**: 受信メッセージをまず SQLite に永続化し、ポーリングループ（2秒間隔）が処理します。クラッシュしても再起動時にメッセージを取りこぼしません。
+- **会話履歴コンテキスト**: 直近24時間のチャンネル履歴を Gemini に渡すため、前の会話を踏まえた返答ができます。
+- **Function Calling エージェントループ**: ファイル読み書き・ディレクトリ探索・メモ記録をツールとして実行します。テキストで描写するだけでなく、実際に動作します。
+- **チャンネル別の応答設定**: `config/channels.json` を編集するだけで、チャンネルごとにメンション必須/不要を切り替えられます。リビルド不要です。
+- **拡張可能なチャンネル抽象**: `Channel` インターフェースで Discord を抽象化しており、将来的に Telegram 等への対応が容易です。
 
 ---
 
@@ -16,22 +17,32 @@ gemiclawは、[`nanoclaw`](https://github.com/qwibitai/nanoclaw) の設計思想
 ```
 gemiclaw/
 ├── src/
-│   ├── index.ts        # Discord接続・メッセージ受信・ポーリングループ
-│   ├── db.ts           # SQLite層（メッセージ永続化・履歴取得）
-│   ├── agent.ts        # Gemini API呼び出し・レスポンス生成
-│   ├── memory.ts       # エージェントの手動メモ書き込み
-│   ├── sandbox.ts      # Dockerサンドボックス実行
-│   └── skills/         # ツール定義（Gemini Function Calling用）
-├── memory/             # 実行時データ（Dockerボリューム）
-│   ├── messages.db     # SQLite: 全メッセージ履歴・状態管理
-│   └── YYYY-MM-DD.txt  # エージェントが書き込む手動メモ
-├── workspace/          # エージェントがファイルを読み書きする領域
-├── knowledge/          # エージェントが参照する外部ドキュメント
-├── AGENTS.md           # 基本指示・ルール
-├── SOUL.md             # キャラクター・口調
-├── USER.md             # ユーザー情報
-├── TOOLS.md            # ツール利用ガイド
-├── IDENTITY.md         # 名前・プロフィール
+│   ├── index.ts          # エントリーポイント・ポーリングループ
+│   ├── db.ts             # SQLite層（メッセージ永続化・履歴取得）
+│   ├── agent.ts          # Gemini API呼び出し・エージェントループ
+│   ├── memory.ts         # 日次メモの読み書き
+│   ├── channels/
+│   │   ├── types.ts      # Channel インターフェース定義
+│   │   └── discord.ts    # Discord実装
+│   └── skills/           # Function Calling ツール定義と実装
+│       ├── files.ts      # read_file / write_file / list_directory
+│       └── memory.ts     # read_memory / write_memory
+│
+├── config/               # ボットの挙動設定（エージェントが読み書き可）
+│   └── channels.json     # チャンネル別設定（requireMention 等）
+│
+├── memory/               # 永続データ（Dockerボリューム）
+│   ├── messages.db       # SQLite: 全メッセージ履歴・状態管理
+│   └── YYYY-MM-DD.txt    # エージェントが書き込む日次メモ
+│
+├── workspace/            # エージェントの作業出力領域
+├── knowledge/            # 参照ドキュメント（読み取り専用）
+│
+├── AGENTS.md             # エージェントへの行動ルール
+├── SOUL.md               # キャラクター・口調
+├── USER.md               # ユーザー情報
+├── TOOLS.md              # ツール仕様・可変/非可変の定義
+├── IDENTITY.md           # 名前・プロフィール
 ├── Dockerfile
 └── docker-compose.yml
 ```
@@ -48,8 +59,6 @@ gemiclaw/
 
 ### 1. 環境変数の設定
 
-`.env.example` をコピーして `.env` を作成し、キーを設定します。
-
 ```bash
 cp .env.example .env
 ```
@@ -62,7 +71,7 @@ GEMINI_MODEL=gemini-2.5-flash   # 省略可能（デフォルト: gemini-2.5-fla
 
 ### 2. Discord Bot の Privileged Intents を有効化
 
-[Discord Developer Portal](https://discord.com/developers/applications) の対象アプリ → **Bot** ページ → **Privileged Gateway Intents** で以下をすべて ON にしてください。
+[Discord Developer Portal](https://discord.com/developers/applications) の対象アプリ → **Bot** → **Privileged Gateway Intents** で以下を ON にしてください。
 
 - ✅ SERVER MEMBERS INTENT
 - ✅ MESSAGE CONTENT INTENT（必須）
@@ -73,68 +82,84 @@ GEMINI_MODEL=gemini-2.5-flash   # 省略可能（デフォルト: gemini-2.5-fla
 docker-compose up -d --build
 ```
 
-ログの確認：
-
 ```bash
-docker-compose logs -f
-```
-
-### 4. サンドボックス用イメージの事前取得（推奨）
-
-初回実行を速くするため、サンドボックスで使用するイメージをあらかじめ pull しておきます。
-
-```bash
-docker pull python:3.11-slim
-docker pull node:20-slim
-docker pull ubuntu:22.04
+docker-compose logs -f  # ログ確認
 ```
 
 ---
 
 ## 使い方
 
-Discord サーバー内でボットを**メンション**して話しかけます。
+### メンションして話しかける（デフォルト）
 
 ```
-@gemiclaw 今日の天気を調べて
-@gemiclaw 現在時刻を表示するPythonスクリプトを実行して
+@gemiclaw /app/workspace の中身を見て
+@gemiclaw 今日の作業メモを書いて
 ```
 
-### プロンプトのカスタマイズ
+### メンションなしで返信するチャンネルを設定する
 
-プロジェクトルートの `.md` ファイルを編集するだけで反映されます。リビルドは不要です。
+`config/channels.json` にチャンネルIDを追加するだけです。リビルド不要です。
+
+```json
+{
+  "チャンネルID": {
+    "name": "talk",
+    "requireMention": false
+  }
+}
+```
+
+エージェント自身に `write_file` ツールで設定させることもできます。
+
+---
+
+## プロンプトのカスタマイズ
+
+プロジェクトルートの `.md` ファイルを編集するだけで反映されます。リビルド不要です。
 
 | ファイル | 内容 |
 |---|---|
-| `AGENTS.md` | 基本指示・行動ルール |
+| `AGENTS.md` | 行動ルール・ファイルシステムの制約 |
 | `SOUL.md` | キャラクター・口調・振る舞い |
 | `USER.md` | ユーザー自身の情報 |
-| `TOOLS.md` | ツールの利用ガイド |
+| `TOOLS.md` | ツール仕様・可変/非可変の定義 |
 | `IDENTITY.md` | 名前・プロフィール |
 
 ---
 
-## アーキテクチャ概要
+## アーキテクチャ
 
 ```
 Discord
   │
-  │ messageCreate イベント
+  │ messageCreate → storeMessage()
   ▼
-[index.ts] ─── storeMessage() ──▶ messages.db（SQLite）
-  │
+messages.db（SQLite）
+  ▲
+  │ getNewMentions() または getNewMessages()
   │ setInterval(2000ms)
-  ▼
-[ポーリングループ]
-  │ getNewMentions()
-  ▼
-[チャンネルごとの処理キュー]
-  │ getChannelHistory() + processMessage()
-  ▼
-[agent.ts] ──▶ Gemini API
   │
+[ポーリングループ / index.ts]
+  │
+  │ channels.json で requireMention を判定
   ▼
-Discord へ返信 + storeMessage()（ボット発言も保存）
+[processChannel()]
+  │ getChannelHistory() → Gemini へ履歴付きで投げる
+  ▼
+[agent.ts — エージェントループ]
+  │
+  ├─ functionCall あり → executeTool() → 結果を Gemini へ返す → 繰り返す
+  └─ テキスト応答 → Discord へ送信 + storeMessage()
 ```
 
-メッセージの受信と処理を分離しているため、処理中に届いたメッセージは次のポーリングで確実に処理されます。
+### 可変部と非可変部
+
+| 領域 | 可変 | 説明 |
+|---|---|---|
+| `src/` | ❌ | ポーリング・接続・ツールエンジン（コンテナに焼き込み） |
+| `config/` | ✅ | チャンネル設定（エージェントが読み書き可） |
+| `workspace/` | ✅ | エージェントの作業出力 |
+| `memory/` | ✅ | 日次メモ・SQLite DB |
+| `knowledge/` | 読み取り専用 | 参照ドキュメント |
+| `*.md` プロンプト | ✅ | キャラクター・ルール（リビルド不要） |

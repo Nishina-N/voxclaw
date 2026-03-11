@@ -8,6 +8,8 @@ services:
     volumes:
       # Persistent storage: SQLite DB and memory logs
       - ./memory:/app/memory
+      # Bot behavior config (channels.json etc.): read/write by the agent
+      - ./config:/app/config
       # Agent workspace: read/write by the agent
       - ./workspace:/app/workspace
       # Knowledge base: read-only reference documents
