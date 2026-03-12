@@ -1,0 +1,14 @@
+{
+  "name": "get_location",
+  "description": "場所や住所から緯度経度を取得する",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "query": {
+        "type": "STRING",
+        "description": "場所の名称または住所"
+      }
+    },
+    "required": ["query"]
+  }
+}

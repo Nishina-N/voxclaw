@@ -1,5 +1,7 @@
 # Environment / Secrets
 .env
+config/mapbox_config.json
+config/skills/**/secrets.json
 
 # Dependencies
 node_modules/
@@ -8,6 +10,9 @@ node_modules/
 memory/
 workspace/
 knowledge/
+
+# pip packages installed at runtime (platform-specific, can be large)
+config/pip_packages/
 
 # TypeScript build output
 dist/

@@ -1,0 +1,14 @@
+{
+  "name": "run_python_code",
+  "description": "提供されたPythonコード文字列を実行し、その標準出力を返します。複雑な処理のテストやデータ処理に適しています。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "code": {
+        "type": "STRING",
+        "description": "実行するPythonコード本体。"
+      }
+    },
+    "required": ["code"]
+  }
+}

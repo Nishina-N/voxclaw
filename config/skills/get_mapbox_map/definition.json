@@ -1,0 +1,14 @@
+{
+  "name": "get_mapbox_map",
+  "description": "Mapbox APIを使用して、指定した中心点とマーカーを含む地図画像を取得します。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "lat": { "type": "NUMBER", "description": "中心点の緯度" },
+      "lon": { "type": "NUMBER", "description": "中心点の経度" },
+      "zoom": { "type": "NUMBER", "description": "ズームレベル" },
+      "markers": { "type": "STRING", "description": "Mapboxのマーカー形式の文字列（例: pin-l+red(lon,lat)）" }
+    },
+    "required": ["lat", "lon", "zoom"]
+  }
+}

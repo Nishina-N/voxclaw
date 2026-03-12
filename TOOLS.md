@@ -11,6 +11,7 @@ You have access to the following tools as Gemini function calls.
 | `list_directory` | List files and subdirectories at a path |
 | `read_memory` | Read a daily memory log from `/app/memory/` |
 | `write_memory` | Append a note to today's memory log in `/app/memory/` |
+| `pip_install` | Install a Python package persistently to `/app/config/pip_packages/` |
 
 ---
 
@@ -112,6 +113,23 @@ print(f"Result: {args['param1']}")
 - Write output to **stdout** — that becomes the tool's return value.
 - Exit code non-zero is treated as an error.
 - Timeout: 30 seconds.
+- `PYTHONPATH` is automatically set to `/app/config/pip_packages/`, so packages installed via `pip_install` are importable with no extra setup.
+
+### Using pip packages in a skill
+
+If your skill requires a third-party Python library, first call `pip_install` to install it, then reference it in your script:
+
+```python
+#!/usr/bin/env python3
+# PYTHONPATH=/app/config/pip_packages is already set — just import
+import json, os, requests
+
+args = json.loads(os.environ['SKILL_ARGS'])
+response = requests.get(f"https://api.example.com?q={args['query']}")
+print(response.text)
+```
+
+Installed packages persist across restarts in `/app/config/pip_packages/` (volume-mounted).
 
 ### Example: weather skill
 
@@ -145,5 +163,5 @@ The following are **non-variable** and cannot be modified by you:
 
 - **Source code** (`/app/src/`) — defines the polling loop, Discord connection, tool engine
 - **Polling interval** — fixed at 2 seconds
-- **Security boundaries** — write access is restricted to `/app/workspace/` and `/app/config/`
-- **Prompt files** (`AGENTS.md`, `SOUL.md`, `USER.md`, `IDENTITY.md`) — read-only mounts
+- **Security boundaries** — write access is restricted to `/app/workspace/`, `/app/config/`, `/app/SOUL.md`, `/app/USER.md`, `/app/IDENTITY.md`
+- **System prompt files** (`AGENTS.md`, `TOOLS.md`) — read-only mounts, cannot be overwritten

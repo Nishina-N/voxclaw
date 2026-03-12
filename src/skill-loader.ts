@@ -6,6 +6,7 @@ import { promisify } from 'util';
 const execFileAsync = promisify(execFile);
 
 const SKILLS_DIR = '/app/config/skills';
+const PIP_PACKAGES_DIR = '/app/config/pip_packages';
 const SKILL_TIMEOUT_MS = 30_000;
 
 // Supported run scripts, tried in order
@@ -75,11 +76,18 @@ export async function executeDynamicSkill(
     await fs.chmod(scriptPath, 0o755);
 
     try {
+        // Prepend pip_packages dir so installed libraries are importable
+        const existingPythonPath = process.env.PYTHONPATH ?? '';
+        const pythonPath = existingPythonPath
+            ? `${PIP_PACKAGES_DIR}:${existingPythonPath}`
+            : PIP_PACKAGES_DIR;
+
         const { stdout, stderr } = await execFileAsync(runner.cmd, [scriptPath], {
             timeout: SKILL_TIMEOUT_MS,
             env: {
                 ...process.env,
                 SKILL_ARGS: JSON.stringify(args),
+                PYTHONPATH: pythonPath,
             },
         });
         return stdout.trim() || stderr.trim() || '(no output)';

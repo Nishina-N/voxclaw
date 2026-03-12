@@ -1,0 +1,18 @@
+{
+  "name": "send_image_to_discord",
+  "description": "Discordの指定チャンネルに画像を送信する",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "file_path": {
+        "type": "STRING",
+        "description": "送信する画像の絶対パス"
+      },
+      "channel_id": {
+        "type": "STRING",
+        "description": "送信先のチャンネルID"
+      }
+    },
+    "required": ["file_path", "channel_id"]
+  }
+}

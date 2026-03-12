@@ -1,0 +1,14 @@
+{
+  "name": "run_python",
+  "description": "指定されたパスのPythonファイルを実行するスキル",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "file_path": {
+        "type": "STRING",
+        "description": "実行するPythonファイルの絶対パス"
+      }
+    },
+    "required": ["file_path"]
+  }
+}

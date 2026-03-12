@@ -7,6 +7,7 @@ import { type Message } from './db.js';
 import { loadDynamicSkills, executeDynamicSkill } from './skill-loader.js';
 import { executeReadFile, executeWriteFile, executeListDirectory, readFileDef, writeFileDef, listDirectoryDef } from './skills/files.js';
 import { executeReadMemory, executeWriteMemory, readMemoryDef, writeMemoryDef } from './skills/memory.js';
+import { executePipInstall, pipInstallDef } from './skills/pip.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,7 +15,7 @@ const __dirname = path.dirname(__filename);
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-const MAX_TOOL_ROUNDS = 10;
+const MAX_TOOL_ROUNDS = 20;
 const MAX_RETRIES = 3;
 const RETRY_BASE_MS = 5000;
 
@@ -25,6 +26,7 @@ const BUILTIN_DECLARATIONS = [
     listDirectoryDef,
     readMemoryDef,
     writeMemoryDef,
+    pipInstallDef,
 ];
 
 const BUILTIN_EXECUTORS: Record<string, (args: any) => Promise<string>> = {
@@ -33,6 +35,7 @@ const BUILTIN_EXECUTORS: Record<string, (args: any) => Promise<string>> = {
     list_directory:  executeListDirectory,
     read_memory:     executeReadMemory,
     write_memory:    executeWriteMemory,
+    pip_install:     executePipInstall,
 };
 
 async function callWithRetry<T>(fn: () => Promise<T>): Promise<T> {
