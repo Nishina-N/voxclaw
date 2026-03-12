@@ -4,6 +4,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 
 import { type Message } from './db.js';
+import { loadDynamicSkills, executeDynamicSkill } from './skill-loader.js';
 import { executeReadFile, executeWriteFile, executeListDirectory, readFileDef, writeFileDef, listDirectoryDef } from './skills/files.js';
 import { executeReadMemory, executeWriteMemory, readMemoryDef, writeMemoryDef } from './skills/memory.js';
 
@@ -13,12 +14,26 @@ const __dirname = path.dirname(__filename);
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-// Hard limit to prevent infinite tool-call loops
 const MAX_TOOL_ROUNDS = 10;
-
-// Retry config for transient API errors (e.g. 503 high demand)
 const MAX_RETRIES = 3;
 const RETRY_BASE_MS = 5000;
+
+// Built-in tools (compiled into the image)
+const BUILTIN_DECLARATIONS = [
+    readFileDef,
+    writeFileDef,
+    listDirectoryDef,
+    readMemoryDef,
+    writeMemoryDef,
+];
+
+const BUILTIN_EXECUTORS: Record<string, (args: any) => Promise<string>> = {
+    read_file:       executeReadFile,
+    write_file:      executeWriteFile,
+    list_directory:  executeListDirectory,
+    read_memory:     executeReadMemory,
+    write_memory:    executeWriteMemory,
+};
 
 async function callWithRetry<T>(fn: () => Promise<T>): Promise<T> {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -36,28 +51,6 @@ async function callWithRetry<T>(fn: () => Promise<T>): Promise<T> {
         }
     }
     throw new Error('Unreachable');
-}
-
-// All available tool definitions (passed to Gemini on every call)
-const TOOL_DECLARATIONS = [
-    readFileDef,
-    writeFileDef,
-    listDirectoryDef,
-    readMemoryDef,
-    writeMemoryDef,
-];
-
-// Dispatch a Gemini function call to the matching skill executor
-async function executeTool(name: string, args: Record<string, any>): Promise<string> {
-    console.log(`[tool] ${name}`, args);
-    switch (name) {
-        case 'read_file':       return executeReadFile(args);
-        case 'write_file':      return executeWriteFile(args);
-        case 'list_directory':  return executeListDirectory(args);
-        case 'read_memory':     return executeReadMemory(args);
-        case 'write_memory':    return executeWriteMemory(args);
-        default:                return `Unknown tool: ${name}`;
-    }
 }
 
 async function loadSystemInstructions(): Promise<string> {
@@ -89,6 +82,17 @@ export async function processMessage(
 ): Promise<string> {
     const systemInstruction = await loadSystemInstructions();
 
+    // Load dynamic skills on every call so newly created skills are picked up immediately
+    const dynamicSkills = await loadDynamicSkills();
+    const dynamicDeclarations = dynamicSkills.map((s) => s.definition);
+
+    // Map tool name → skill dir for dispatch
+    const dynamicSkillDirs = new Map<string, string>(
+        dynamicSkills.map((s) => [s.definition.name, s.dir])
+    );
+
+    const allDeclarations = [...BUILTIN_DECLARATIONS, ...dynamicDeclarations];
+
     const initialText = formatHistory(history) + `${senderName}: ${userMessage}`;
     const contents: any[] = [
         { role: 'user', parts: [{ text: initialText }] },
@@ -96,35 +100,43 @@ export async function processMessage(
 
     const config = {
         systemInstruction,
-        tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
+        tools: [{ functionDeclarations: allDeclarations }],
     };
 
-    // Agent loop: keep calling Gemini until it returns a plain text response
+    // Agent loop
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-        const response = await callWithRetry(() => ai.models.generateContent({ model, contents, config }));
+        const response = await callWithRetry(() =>
+            ai.models.generateContent({ model, contents, config })
+        );
 
         const parts: any[] = response.candidates?.[0]?.content?.parts ?? [];
         const functionCalls = parts.filter((p) => p.functionCall);
 
-        // No function calls → final answer
         if (functionCalls.length === 0) {
             return response.text || 'No response generated.';
         }
 
-        // Append model's function-call turn to the conversation
         contents.push({ role: 'model', parts });
 
-        // Execute each requested tool and collect responses
         const responseParts: any[] = [];
         for (const part of functionCalls) {
             const { name, args } = part.functionCall;
-            const output = await executeTool(name, args ?? {});
+            console.log(`[tool] ${name}`, args);
+
+            let output: string;
+            if (BUILTIN_EXECUTORS[name]) {
+                output = await BUILTIN_EXECUTORS[name](args ?? {});
+            } else if (dynamicSkillDirs.has(name)) {
+                output = await executeDynamicSkill(dynamicSkillDirs.get(name)!, args ?? {});
+            } else {
+                output = `Unknown tool: ${name}`;
+            }
+
             responseParts.push({
                 functionResponse: { name, response: { output } },
             });
         }
 
-        // Feed results back as the next user turn
         contents.push({ role: 'user', parts: responseParts });
     }
 

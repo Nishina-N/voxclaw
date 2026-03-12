@@ -1,0 +1,11 @@
+{
+  "name": "web_search",
+  "description": "Brave Search APIを使用してWeb検索を行い、検索結果を返します。エラー時には詳細を出力します。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "query": { "type": "STRING", "description": "検索キーワード" }
+    },
+    "required": ["query"]
+  }
+}

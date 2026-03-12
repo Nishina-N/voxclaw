@@ -55,6 +55,90 @@ Use `write_file` with path `/app/config/channels.json` to apply changes. No rest
 
 ---
 
+---
+
+## Creating New Skills（自己拡張）
+
+You can create new tools by adding a skill directory to `/app/config/skills/`. The new tool is available **immediately** on the next message — no restart required.
+
+### Directory structure
+
+```
+/app/config/skills/
+  <skill-name>/
+    definition.json   ← Gemini FunctionDeclaration (name, description, parameters)
+    run.sh            ← Execution script (run.py or run.js are also supported)
+```
+
+### `definition.json` format
+
+```json
+{
+  "name": "skill_name",
+  "description": "What this skill does. Be specific so Gemini knows when to use it.",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "param1": {
+        "type": "STRING",
+        "description": "Description of this parameter"
+      }
+    },
+    "required": ["param1"]
+  }
+}
+```
+
+Parameter types: `STRING`, `NUMBER`, `BOOLEAN`, `ARRAY`, `OBJECT`.
+
+### `run.sh` — receiving arguments
+
+All arguments are passed as a JSON string in the `SKILL_ARGS` environment variable.
+
+```bash
+#!/bin/bash
+# Parse a specific argument with python3
+VALUE=$(python3 -c "import sys,json,os; print(json.loads(os.environ['SKILL_ARGS'])['param1'])")
+echo "Result: $VALUE"
+```
+
+```python
+#!/usr/bin/env python3
+import json, os
+args = json.loads(os.environ['SKILL_ARGS'])
+print(f"Result: {args['param1']}")
+```
+
+- Write output to **stdout** — that becomes the tool's return value.
+- Exit code non-zero is treated as an error.
+- Timeout: 30 seconds.
+
+### Example: weather skill
+
+`/app/config/skills/get_weather/definition.json`
+```json
+{
+  "name": "get_weather",
+  "description": "Get the current weather for a city.",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "city": { "type": "STRING", "description": "City name" }
+    },
+    "required": ["city"]
+  }
+}
+```
+
+`/app/config/skills/get_weather/run.sh`
+```bash
+#!/bin/bash
+CITY=$(python3 -c "import json,os; print(json.loads(os.environ['SKILL_ARGS'])['city'])")
+curl -s "wttr.in/${CITY}?format=3"
+```
+
+---
+
 ## What You Cannot Change
 
 The following are **non-variable** and cannot be modified by you:

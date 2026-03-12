@@ -14,9 +14,10 @@ services:
       - ./workspace:/app/workspace
       # Knowledge base: read-only reference documents
       - ./knowledge:/app/knowledge:ro
-      # Prompt files: editable without rebuilding the image
+      # Prompt files (system rules — read-only)
       - ./AGENTS.md:/app/AGENTS.md:ro
-      - ./SOUL.md:/app/SOUL.md:ro
-      - ./USER.md:/app/USER.md:ro
       - ./TOOLS.md:/app/TOOLS.md:ro
-      - ./IDENTITY.md:/app/IDENTITY.md:ro
+      # Prompt files (personality/user info — writable by the agent)
+      - ./SOUL.md:/app/SOUL.md
+      - ./USER.md:/app/USER.md
+      - ./IDENTITY.md:/app/IDENTITY.md
