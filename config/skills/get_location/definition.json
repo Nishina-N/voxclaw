@@ -1,6 +1,6 @@
 {
   "name": "get_location",
-  "description": "場所や住所から緯度経度を取得する",
+  "description": "場所名や住所から緯度と経度を取得するツール。実行: 指定された文字列をGeocoding APIで検索。成功時: 緯度経度のデータオブジェクトを返却。失敗時: 理由を含んだエラーメッセージを出力。このツールはステートレスであり、正常終了時は再実行不要。",
   "parameters": {
     "type": "OBJECT",
     "properties": {

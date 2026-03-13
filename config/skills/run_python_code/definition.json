@@ -1,12 +1,12 @@
 {
   "name": "run_python_code",
-  "description": "提供されたPythonコード文字列を実行し、その標準出力を返します。複雑な処理のテストやデータ処理に適しています。",
+  "description": "メモリ上でPythonコード断片を即時実行する。前提: 外部ファイル不要。動作: 渡された文字列をPythonコードとして実行し、標準出力を返す。成功時: 実行結果を文字列として返す。エラー時: 例外内容を報告。用途: データ加工、一時的な計算、ロジックテスト。",
   "parameters": {
     "type": "OBJECT",
     "properties": {
       "code": {
         "type": "STRING",
-        "description": "実行するPythonコード本体。"
+        "description": "実行するPythonコード文字列"
       }
     },
     "required": ["code"]

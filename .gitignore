@@ -1,7 +1,6 @@
 # Environment / Secrets
 .env
-config/mapbox_config.json
-config/skills/**/secrets.json
+config/secrets_for_skills.json
 
 # Dependencies
 node_modules/

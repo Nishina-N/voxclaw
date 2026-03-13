@@ -82,6 +82,7 @@ export async function processMessage(
     userMessage: string,
     history: Message[] = [],
     senderName = 'User',
+    channelId = '',
 ): Promise<string> {
     const systemInstruction = await loadSystemInstructions();
 
@@ -96,7 +97,8 @@ export async function processMessage(
 
     const allDeclarations = [...BUILTIN_DECLARATIONS, ...dynamicDeclarations];
 
-    const initialText = formatHistory(history) + `${senderName}: ${userMessage}`;
+    const channelContext = channelId ? `[Channel ID: ${channelId}]\n` : '';
+    const initialText = channelContext + formatHistory(history) + `${senderName}: ${userMessage}`;
     const contents: any[] = [
         { role: 'user', parts: [{ text: initialText }] },
     ];

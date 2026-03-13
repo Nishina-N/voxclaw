@@ -1,0 +1,9 @@
+{
+  "name": "get_channel_id",
+  "description": "現在Botが会話しているDiscordのチャンネルIDを取得する。前提: なし。成功時: チャンネルIDの文字列を返す。このツールはステートレスであり、正常終了時は再実行不要。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {},
+    "required": []
+  }
+}

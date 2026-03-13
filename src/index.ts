@@ -67,7 +67,7 @@ async function processChannel(
 
             let replyText: string;
             try {
-                const reply = await processMessage(content, history, msg.sender_name);
+                const reply = await processMessage(content, history, msg.sender_name, channelId);
                 replyText = reply.length > 1990 ? reply.slice(0, 1990) + '…' : reply;
             } catch (err: any) {
                 console.error(`[processChannel] error for msg ${msg.id}:`, err);

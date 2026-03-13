@@ -8,16 +8,13 @@ def get_mapbox_map():
     zoom = args.get('zoom', 14)
     markers = args.get('markers', '')
     
-    with open('/app/config/mapbox_config.json', 'r') as f:
-        token = json.load(f)['access_token']
+    with open('/app/config/secrets_for_skills.json', 'r') as f:
+        token = json.load(f)['mapbox']['access_token']
 
     # Mapbox API: markersがあれば /markers/ ... なしなら直接座標
     base_url = "https://api.mapbox.com/styles/v1/mapbox/streets-v11/static"
-    if markers:
-        # 正しいURL構成: /markers/pin.../lon,lat,zoom/600x400?access_token=...
-        url = f"{base_url}/{markers}/{lon},{lat},{zoom}/600x400?access_token={token}"
-    else:
-        url = f"{base_url}/{lon},{lat},{zoom}/600x400?access_token={token}"
+    # URL構成: /markers/pin.../lon,lat,zoom/600x400?access_token=...
+    url = f"{base_url}/{f'{markers}/' if markers else ''}{lon},{lat},{zoom}/600x400?access_token={token}"
     
     # 簡易リトライ
     for i in range(3):
@@ -26,7 +23,7 @@ def get_mapbox_map():
             if response.status_code == 200:
                 with open("/app/workspace/mapbox_map.png", 'wb') as f:
                     f.write(response.content)
-                print("Successfully saved /app/workspace/mapbox_map.png")
+                print("/app/workspace/mapbox_map.png")
                 return
             elif response.status_code == 429:
                 print(f"Rate limited, retrying... (attempt {i+1})")

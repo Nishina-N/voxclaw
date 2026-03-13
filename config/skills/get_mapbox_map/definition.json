@@ -1,13 +1,25 @@
 {
   "name": "get_mapbox_map",
-  "description": "Mapbox APIを使用して、指定した中心点とマーカーを含む地図画像を取得します。",
+  "description": "Mapbox APIを使用して地図画像を取得する。前提: 緯度、経度、ズームレベル、必要に応じてマーカーを指定。成功時: 画像をローカルの絶対パス(文字列)に保存し、パスを返却。APIエラー時は422等の原因を含めてレポート。正常終了時は画像が指定パスに保存されている。再実行は不要。",
   "parameters": {
     "type": "OBJECT",
     "properties": {
-      "lat": { "type": "NUMBER", "description": "中心点の緯度" },
-      "lon": { "type": "NUMBER", "description": "中心点の経度" },
-      "zoom": { "type": "NUMBER", "description": "ズームレベル" },
-      "markers": { "type": "STRING", "description": "Mapboxのマーカー形式の文字列（例: pin-l+red(lon,lat)）" }
+      "lat": {
+        "type": "NUMBER",
+        "description": "中心点の緯度"
+      },
+      "lon": {
+        "type": "NUMBER",
+        "description": "中心点の経度"
+      },
+      "zoom": {
+        "type": "NUMBER",
+        "description": "ズームレベル"
+      },
+      "markers": {
+        "type": "STRING",
+        "description": "Mapboxのマーカー形式（例: pin-l+red(lon,lat)）"
+      }
     },
     "required": ["lat", "lon", "zoom"]
   }
