@@ -2,8 +2,7 @@
 
 [Openclaw](https://github.com/openclawai/openclaw) と [Nanoclaw](https://github.com/qwibitai/nanoclaw) にインスパイアされた、**Google Gemini API × Discord の自律エージェント**です。Docker上で動作し、エージェントが自分でスキルを作り・マニュアルを育て・cronで自律動作する三層構造が特徴です。
 
->  制作背景や設計思想は Zenn 記事で詳しく書いています （記事投稿したらURL追記します。）
-
+>  制作背景や設計思想は [Zenn 記事] （https://zenn.dev/nishina__n/articles/69587684b36113)で詳しく書いています
 ---
 
 ## 特徴
