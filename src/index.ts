@@ -2,6 +2,7 @@ import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 
 import { processMessage } from './agent.js';
+import { startCronRunner } from './cron-runner.js';
 import { DiscordChannel } from './channels/discord.js';
 import { type Channel } from './channels/types.js';
 import {
@@ -169,6 +170,8 @@ async function main(): Promise<void> {
         lastMessageTime.set(msg.channel_id, Date.now());
         storeMessage(msg);
     });
+
+    startCronRunner(channel);
 
     const shutdown = async (signal: string) => {
         console.log(`[${signal}] Shutting down...`);

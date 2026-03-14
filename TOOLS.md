@@ -68,6 +68,43 @@ Use `write_file` with path `/app/config/channels.json` to apply changes. No rest
 
 ---
 
+## Scheduled Tasks (Cron)
+
+You can register recurring tasks by editing `/app/config/cron.json`. Changes take effect immediately — no restart needed.
+
+```json
+[
+  {
+    "id": "daily_summary",
+    "cron": "0 9 * * *",
+    "prompt": "今日の日次サマリーを作成してください",
+    "channelId": "CHANNEL_ID_HERE",
+    "enabled": true
+  }
+]
+```
+
+| Field | Description |
+|---|---|
+| `id` | Unique name for the task (used in logs) |
+| `cron` | 5-field cron expression in server local time |
+| `prompt` | The message sent to you when the task fires |
+| `channelId` | Channel to post the response (use `[Channel ID:]` from current context) |
+| `enabled` | `true` to activate, `false` to pause (default: `true`) |
+
+**Cron expression examples:**
+
+| Expression | Meaning |
+|---|---|
+| `0 9 * * *` | Every day at 9:00 AM |
+| `0 9 * * 1-5` | Weekdays at 9:00 AM |
+| `*/30 * * * *` | Every 30 minutes |
+| `0 0 1 * *` | First day of every month at midnight |
+
+Use `write_file` with path `/app/config/cron.json` to add, edit, or remove tasks.
+
+---
+
 ---
 
 ## Creating New Skills（自己拡張）
