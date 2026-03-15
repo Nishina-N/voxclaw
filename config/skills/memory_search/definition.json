@@ -1,0 +1,18 @@
+{
+  "name": "memory_search",
+  "description": "記憶ファイル（/app/memory/）をSQLite FTS5（BM25）で全文検索します。過去の会話・メモ・記録から関連情報を探す際に使用。特定のファイルをread_memoryで読む前に、まずこのツールで関連記憶を探してください。追加依存なし・即時起動。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "query": {
+        "type": "STRING",
+        "description": "検索クエリ（キーワード、スペース区切りでAND検索）"
+      },
+      "n": {
+        "type": "NUMBER",
+        "description": "返す結果数（デフォルト5）"
+      }
+    },
+    "required": ["query"]
+  }
+}
