@@ -2,7 +2,7 @@ FROM node:20-slim
 
 # Install build tools required by better-sqlite3 native module
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip make g++ curl && \
+    apt-get install -y python3 python3-pip make g++ curl ffmpeg && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
