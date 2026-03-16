@@ -68,7 +68,10 @@ const server = http.createServer(async (req, res) => {
       const z = zoom || '13';
       const w = width || '600';
       const h = height || '400';
-      const mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/${lon},${lat},${z}/${w}x${h}?access_token=${token}`;
+      const markers = query.markers as string | undefined;
+      // ピンがある場合: /markers/{lon},{lat},{zoom}/WxH  なければ /{lon},{lat},{zoom}/WxH
+      const overlay = markers ? `${markers}/` : '';
+      const mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/${overlay}${lon},${lat},${z}/${w}x${h}?access_token=${token}`;
 
       // 画像はバイナリのため base64 で返す
       const imageData = await new Promise<string>((resolve, reject) => {
