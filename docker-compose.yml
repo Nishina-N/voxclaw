@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    depends_on:
+      - keybinder
     volumes:
       # Persistent storage: SQLite DB and memory logs
       - ./memory:/app/memory
@@ -21,3 +23,11 @@ services:
       - ./SOUL.md:/app/SOUL.md
       - ./USER.md:/app/USER.md
       - ./IDENTITY.md:/app/IDENTITY.md
+
+  keybinder:
+    build: ./keybinder
+    container_name: gemiclaw_keybinder
+    restart: unless-stopped
+    volumes:
+      # secrets はこのコンテナにのみマウント — gemiclaw コンテナからはアクセス不可
+      - ./keybinder/secrets_for_skills.json:/secrets/keys.json:ro

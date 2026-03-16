@@ -8,21 +8,22 @@ def get_mapbox_map():
     zoom = args.get('zoom', 14)
     markers = args.get('markers', '')
     
-    with open('/app/config/secrets_for_skills.json', 'r') as f:
-        token = json.load(f)['mapbox']['access_token']
+    import urllib.request
+    # keybinder 経由で Mapbox 画像を取得（base64 で返る）
+    kb_url = f"http://keybinder:3001/mapbox/static?lat={lat}&lon={lon}&zoom={zoom}"
+    if markers:
+        kb_url += f"&markers={requests.utils.quote(markers)}"
 
-    # Mapbox API: markersがあれば /markers/ ... なしなら直接座標
-    base_url = "https://api.mapbox.com/styles/v1/mapbox/streets-v11/static"
-    # URL構成: /markers/pin.../lon,lat,zoom/600x400?access_token=...
-    url = f"{base_url}/{f'{markers}/' if markers else ''}{lon},{lat},{zoom}/600x400?access_token={token}"
-    
     # 簡易リトライ
     for i in range(3):
         try:
-            response = requests.get(url, timeout=10)
+            response = requests.get(kb_url, timeout=15)
             if response.status_code == 200:
+                import base64
+                data = response.json()
+                img_bytes = base64.b64decode(data['image_base64'])
                 with open("/app/workspace/mapbox_map.png", 'wb') as f:
-                    f.write(response.content)
+                    f.write(img_bytes)
                 print("/app/workspace/mapbox_map.png")
                 return
             elif response.status_code == 429:
