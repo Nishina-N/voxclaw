@@ -1,6 +1,7 @@
 # Environment / Secrets
 .env
 config/secrets_for_skills.json
+keybinder/secrets_for_skills.json
 
 # Dependencies
 node_modules/
