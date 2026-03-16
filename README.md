@@ -12,6 +12,7 @@
 - **スキル × マニュアル × cron の三層構造**: スキルは最小機能単位、マニュアルは組み合わせ手順書、cronがマニュアルを定時に起動するトリガーになります。
 - **SQLite + ポーリング**: メッセージをSQLiteに永続化し2秒間隔で処理。クラッシュ後も取りこぼしなし。
 - **可変部と非可変部の分離**: エージェントループ・接続部分はコンテナに焼き込み。設定・スキル・マニュアルはボリュームマウントで永続化。
+- **Key Binder によるAPIキー隔離**: サードパーティAPIキーを別コンテナで管理し、エージェントがキーに直接アクセスできない設計。
 
 ---
 
@@ -55,13 +56,20 @@ gemiclaw/
 │       ├── memory.ts         # read_memory / write_memory
 │       └── pip.ts            # pip_install
 │
+├── keybinder/                # 🔑 APIキー隔離コンテナ（エージェントからアクセス不可）
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── server.ts             # APIプロキシサーバー（:3001）
+│   ├── secrets_for_skills.json       # 実際のAPIキー ※gitignore
+│   └── secrets_for_skills.example.json
+│
 ├── config/                   # ✅ 可変（エージェント・人間が読み書き可）
 │   ├── channels.json         # チャンネル別設定（requireMention 等）
 │   ├── cron.json             # 定期タスク定義
 │   ├── skills/               # エージェントが自作した動的スキル
 │   │   └── <skill-name>/
 │   │       ├── definition.json   # Gemini FunctionDeclaration
-│   │       └── run.sh            # 実行スクリプト
+│   │       └── run.sh            # 実行スクリプト（キーなし・keybinder呼び出し）
 │   ├── manuals/              # スキルの組み合わせ手順書
 │   │   └── <task>_recipe.md
 │   └── pip_packages/         # pip_install で永続化されたパッケージ
@@ -78,6 +86,34 @@ gemiclaw/
 ├── Dockerfile
 └── docker-compose.yml
 ```
+
+---
+
+## Key Binder：APIキー隔離の仕組み
+
+AIエージェントはスキルスクリプト（`config/skills/`）を自ら書き換えられます。もしAPIキーがエージェントの読める場所に存在すると、プロンプトインジェクション攻撃によってキーを書き換えたスクリプト経由で流出するリスクがあります。
+
+gemiclawはこのリスクに対して **Key Binder**（`keybinder/`）を導入しています。
+
+```
+【従来の構造】
+スキルスクリプト → secrets_for_skills.json（エージェントが読める）→ 外部API
+
+【Key Binder導入後】
+スキルスクリプト → http://keybinder:3001/brave?q=... → keybinder（キーを保持）→ 外部API
+                   ↑ 結果だけ返す。キーはエージェントに渡らない
+```
+
+keybinderコンテナは `secrets_for_skills.json` を**自コンテナのみにマウント**しているため、gemiclaw コンテナからはファイルとして読めず、Python の `os.environ` にも存在しません。スキルスクリプトを書き換えても、keybinderへのリクエスト結果しか得られません。
+
+**Key Binderのセットアップ：**
+
+```bash
+cp keybinder/secrets_for_skills.example.json keybinder/secrets_for_skills.json
+# keybinder/secrets_for_skills.json にAPIキーを記入
+```
+
+新しいAPIを使うスキルをエージェントが自作する場合、`keybinder/server.ts` に対応エンドポイントを人間が追加してリビルドする必要があります。これはセキュリティ上意図した制約です（エージェントが未知のAPIを勝手に使い始めることを防ぎます）。
 
 ---
 
@@ -110,7 +146,22 @@ GEMINI_API_KEY=取得したGemini APIキー
 GEMINI_MODEL=gemini-3.1-flash-lite-preview  # 省略可能（デフォルト: gemini-3.1-flash-lite-preview）
 ```
 
-### 3. 起動
+### 3. Key Binder のAPIキーを設定
+
+```bash
+cp keybinder/secrets_for_skills.example.json keybinder/secrets_for_skills.json
+```
+
+`keybinder/secrets_for_skills.json` を開いて、使用するAPIのキーを記入します。
+
+```json
+{
+  "brave": { "api_key": "YOUR_BRAVE_API_KEY" },
+  "mapbox": { "access_token": "YOUR_MAPBOX_TOKEN" }
+}
+```
+
+### 4. 起動
 
 ```bash
 docker-compose up -d --build
