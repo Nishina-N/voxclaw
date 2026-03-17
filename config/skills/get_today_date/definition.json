@@ -1,0 +1,9 @@
+{
+  "name": "get_today_date",
+  "description": "現在の日付（UTC基準、YYYY年MM月DD日）を取得する。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {},
+    "required": []
+  }
+}
