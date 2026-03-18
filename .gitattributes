@@ -1,0 +1,11 @@
+# Force LF for all shell scripts and Python files (prevents CRLF issues on Linux containers)
+*.sh    text eol=lf
+*.py    text eol=lf
+*.ts    text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+
+# Binary files
+*.png   binary
+*.jpg   binary
+*.gif   binary
