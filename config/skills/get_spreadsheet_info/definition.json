@@ -1,0 +1,14 @@
+{
+  "name": "get_spreadsheet_info",
+  "description": "Google スプレッドシートのタイトルとシート名一覧を取得します。spreadsheet_idはURLに含まれる文字列です（例: docs.google.com/spreadsheets/d/<spreadsheet_id>/）。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "spreadsheet_id": {
+        "type": "STRING",
+        "description": "スプレッドシートのID（URLの /d/ 以降の文字列）"
+      }
+    },
+    "required": ["spreadsheet_id"]
+  }
+}

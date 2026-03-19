@@ -1,0 +1,30 @@
+{
+  "name": "append_spreadsheet",
+  "description": "Google スプレッドシートのデータが入っている最終行の後に新しい行を追加します。ログや記録の蓄積に適しています。valuesは2次元配列で指定します。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "spreadsheet_id": {
+        "type": "STRING",
+        "description": "スプレッドシートのID（URLの /d/ 以降の文字列）"
+      },
+      "range": {
+        "type": "STRING",
+        "description": "追記対象のシートまたは範囲（例: 'Sheet1'、'Sheet1!A:C'）"
+      },
+      "values": {
+        "type": "ARRAY",
+        "description": "追加するデータ（2次元配列: 例 [[\"2026-03-20\", \"完了\", \"メモ\"]]）",
+        "items": {
+          "type": "ARRAY",
+          "items": { "type": "STRING" }
+        }
+      },
+      "value_input_option": {
+        "type": "STRING",
+        "description": "'USER_ENTERED'（数式・日付を解釈、デフォルト）または 'RAW'（テキストそのまま）"
+      }
+    },
+    "required": ["spreadsheet_id", "range", "values"]
+  }
+}

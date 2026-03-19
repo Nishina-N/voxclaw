@@ -1,0 +1,9 @@
+{
+  "name": "update_skills_list",
+  "description": "スキルのディレクトリから一覧を取得し、/app/config/skills_list.md を更新する",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {},
+    "required": []
+  }
+}

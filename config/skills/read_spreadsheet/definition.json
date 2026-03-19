@@ -1,0 +1,18 @@
+{
+  "name": "read_spreadsheet",
+  "description": "Google スプレッドシートの指定範囲のセル値を取得します。rangeはA1記法で指定します（例: 'Sheet1!A1:C10'、'A1:B5'）。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "spreadsheet_id": {
+        "type": "STRING",
+        "description": "スプレッドシートのID（URLの /d/ 以降の文字列）"
+      },
+      "range": {
+        "type": "STRING",
+        "description": "読み取る範囲（A1記法: 例 'Sheet1!A1:C10'、'A1:B5'）"
+      }
+    },
+    "required": ["spreadsheet_id", "range"]
+  }
+}

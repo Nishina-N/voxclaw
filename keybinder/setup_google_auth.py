@@ -47,7 +47,7 @@ def main():
         print("How to get it:")
         print("  1. Go to https://console.cloud.google.com/")
         print("  2. Select your project (or create one)")
-        print("  3. APIs & Services → Enabled APIs → enable Drive API and Calendar API")
+        print("  3. APIs & Services → Enabled APIs → enable Drive API, Calendar API, Sheets API, Tasks API")
         print("  4. APIs & Services → Credentials → Create credentials → OAuth client ID")
         print("  5. Application type: Desktop app")
         print("  6. Download the JSON file → save as keybinder/client_secret.json")

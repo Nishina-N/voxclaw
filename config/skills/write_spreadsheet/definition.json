@@ -1,0 +1,30 @@
+{
+  "name": "write_spreadsheet",
+  "description": "Google スプレッドシートの指定範囲にデータを書き込みます（既存のデータを上書き）。valuesは2次元配列で指定します。数式や日付を自動解釈したい場合はvalue_input_optionを'USER_ENTERED'に設定してください（デフォルト）。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "spreadsheet_id": {
+        "type": "STRING",
+        "description": "スプレッドシートのID（URLの /d/ 以降の文字列）"
+      },
+      "range": {
+        "type": "STRING",
+        "description": "書き込む範囲（A1記法: 例 'Sheet1!A1'、'A1:C3'）"
+      },
+      "values": {
+        "type": "ARRAY",
+        "description": "書き込むデータ（2次元配列: 例 [[\"名前\", \"点数\"], [\"Alice\", 90]]）",
+        "items": {
+          "type": "ARRAY",
+          "items": { "type": "STRING" }
+        }
+      },
+      "value_input_option": {
+        "type": "STRING",
+        "description": "'USER_ENTERED'（数式・日付を解釈、デフォルト）または 'RAW'（テキストそのまま）"
+      }
+    },
+    "required": ["spreadsheet_id", "range", "values"]
+  }
+}

@@ -345,6 +345,30 @@ const server = http.createServer(async (req, res) => {
     // Google Sheets
     // ────────────────────────────────────────────
 
+    // POST /google/sheets/create  body: { title, sheets? }
+    //   sheets: array of sheet names e.g. ["Sheet1", "Sheet2"] (optional)
+    if (pathname === '/google/sheets/create' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { title, sheets } = JSON.parse(bodyStr);
+      if (!title) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing field: title' })); return; }
+
+      const body: Record<string, any> = {
+        properties: { title },
+      };
+      if (sheets && Array.isArray(sheets)) {
+        body.sheets = sheets.map((name: string) => ({ properties: { title: name } }));
+      }
+
+      const result = await googleRequest('POST',
+        'https://sheets.googleapis.com/v4/spreadsheets',
+        { 'Content-Type': 'application/json' },
+        JSON.stringify(body),
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
     // GET /google/sheets/info?spreadsheetId=<id>
     if (pathname === '/google/sheets/info' && method === 'GET') {
       const spreadsheetId = query.spreadsheetId as string;

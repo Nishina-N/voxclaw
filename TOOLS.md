@@ -293,6 +293,14 @@ curl -X POST http://keybinder:3001/google/calendar/events/delete \
 #### Google Sheets
 
 ```bash
+# Create a new spreadsheet
+# POST /google/sheets/create  body: { title, sheets? }
+#   sheets: optional array of sheet names
+curl -X POST http://keybinder:3001/google/sheets/create \
+  -H 'Content-Type: application/json' \
+  -d '{"title": "売上管理", "sheets": ["1月", "2月", "3月"]}'
+# Returns: { spreadsheetId, spreadsheetUrl, ... }
+
 # Get spreadsheet info (title, sheet names)
 # GET /google/sheets/info?spreadsheetId=<id>
 curl "http://keybinder:3001/google/sheets/info?spreadsheetId=abc123"
