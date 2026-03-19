@@ -4,6 +4,9 @@ import * as fs from 'fs';
 import * as url from 'url';
 
 const SECRETS_PATH = '/secrets/keys.json';
+const TOKEN_PATH = '/secrets/google_token.json';
+
+// ─── Secrets ─────────────────────────────────────────────────────────────────
 
 function loadSecrets(): Record<string, any> {
   try {
@@ -14,22 +17,122 @@ function loadSecrets(): Record<string, any> {
   }
 }
 
-function httpsGet(reqUrl: string, headers: Record<string, string> = {}): Promise<string> {
+// ─── HTTP helpers ─────────────────────────────────────────────────────────────
+
+function httpsRequest(
+  method: string,
+  reqUrl: string,
+  headers: Record<string, string> = {},
+  body?: string,
+): Promise<{ status: number; body: string }> {
   return new Promise((resolve, reject) => {
-    const req = https.get(reqUrl, { headers }, (res) => {
+    const parsed = new URL(reqUrl);
+    const options = {
+      hostname: parsed.hostname,
+      path: parsed.pathname + parsed.search,
+      method,
+      headers: {
+        ...headers,
+        ...(body != null ? { 'Content-Length': Buffer.byteLength(body) } : {}),
+      },
+    };
+    const req = https.request(options, (res) => {
       let data = '';
       res.on('data', (chunk) => data += chunk);
-      res.on('end', () => resolve(data));
+      res.on('end', () => resolve({ status: res.statusCode || 0, body: data }));
     });
     req.on('error', reject);
     req.setTimeout(15000, () => { req.destroy(); reject(new Error('Request timeout')); });
+    if (body != null) req.write(body);
+    req.end();
   });
 }
+
+function readBody(req: http.IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => body += chunk);
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
+}
+
+// ─── Google OAuth2 token management ──────────────────────────────────────────
+
+interface GoogleToken {
+  access_token: string;
+  refresh_token: string;
+  client_id: string;
+  client_secret: string;
+  token_uri: string;
+  expiry: string; // ISO 8601
+}
+
+function loadGoogleToken(): GoogleToken | null {
+  try {
+    return JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
+  } catch {
+    return null;
+  }
+}
+
+function saveGoogleToken(token: GoogleToken): void {
+  fs.writeFileSync(TOKEN_PATH, JSON.stringify(token, null, 2));
+}
+
+async function getAccessToken(): Promise<string> {
+  const token = loadGoogleToken();
+  if (!token) {
+    throw new Error('Google token not found. Run keybinder/setup_google_auth.py first.');
+  }
+
+  const BUFFER_MS = 5 * 60 * 1000; // refresh 5 minutes before expiry
+  if (Date.now() < new Date(token.expiry).getTime() - BUFFER_MS) {
+    return token.access_token;
+  }
+
+  // Refresh expired token
+  const body = new URLSearchParams({
+    client_id: token.client_id,
+    client_secret: token.client_secret,
+    refresh_token: token.refresh_token,
+    grant_type: 'refresh_token',
+  }).toString();
+
+  const result = await httpsRequest('POST', 'https://oauth2.googleapis.com/token', {
+    'Content-Type': 'application/x-www-form-urlencoded',
+  }, body);
+
+  const parsed = JSON.parse(result.body);
+  if (!parsed.access_token) throw new Error(`Token refresh failed: ${result.body}`);
+
+  token.access_token = parsed.access_token;
+  token.expiry = new Date(Date.now() + parsed.expires_in * 1000).toISOString();
+  saveGoogleToken(token);
+  console.log('[keybinder] Google token refreshed');
+  return token.access_token;
+}
+
+async function googleRequest(
+  method: string,
+  reqUrl: string,
+  headers: Record<string, string> = {},
+  body?: string,
+): Promise<{ status: number; body: string }> {
+  const accessToken = await getAccessToken();
+  return httpsRequest(method, reqUrl, {
+    'Authorization': `Bearer ${accessToken}`,
+    ...headers,
+  }, body);
+}
+
+// ─── HTTP server ──────────────────────────────────────────────────────────────
 
 const server = http.createServer(async (req, res) => {
   const parsed = url.parse(req.url || '', true);
   const pathname = parsed.pathname || '';
   const query = parsed.query;
+  const method = req.method || 'GET';
 
   res.setHeader('Content-Type', 'application/json');
 
@@ -39,26 +142,26 @@ const server = http.createServer(async (req, res) => {
     // ────────────────────────────────────────────
     // GET /brave?q=<query>
     // ────────────────────────────────────────────
-    if (pathname === '/brave') {
+    if (pathname === '/brave' && method === 'GET') {
       const q = query.q as string;
       if (!q) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing parameter: q' })); return; }
 
       const apiKey = secrets?.brave?.api_key;
       if (!apiKey) { res.writeHead(500); res.end(JSON.stringify({ error: 'Brave API key not configured' })); return; }
 
-      const result = await httpsGet(
+      const result = await httpsRequest('GET',
         `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(q)}`,
-        { 'Accept': 'application/json', 'X-Subscription-Token': apiKey }
+        { 'Accept': 'application/json', 'X-Subscription-Token': apiKey },
       );
-      res.writeHead(200);
-      res.end(result);
+      res.writeHead(result.status);
+      res.end(result.body);
       return;
     }
 
     // ────────────────────────────────────────────
     // GET /mapbox/static?lat=<lat>&lon=<lon>&zoom=<zoom>&width=<w>&height=<h>
     // ────────────────────────────────────────────
-    if (pathname === '/mapbox/static') {
+    if (pathname === '/mapbox/static' && method === 'GET') {
       const { lat, lon, zoom, width, height } = query as Record<string, string>;
       if (!lat || !lon) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing parameters: lat, lon' })); return; }
 
@@ -69,11 +172,9 @@ const server = http.createServer(async (req, res) => {
       const w = width || '600';
       const h = height || '400';
       const markers = query.markers as string | undefined;
-      // ピンがある場合: /markers/{lon},{lat},{zoom}/WxH  なければ /{lon},{lat},{zoom}/WxH
       const overlay = markers ? `${markers}/` : '';
       const mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/${overlay}${lon},${lat},${z}/${w}x${h}?access_token=${token}`;
 
-      // 画像はバイナリのため base64 で返す
       const imageData = await new Promise<string>((resolve, reject) => {
         https.get(mapUrl, (mapRes) => {
           const chunks: Buffer[] = [];
@@ -84,6 +185,300 @@ const server = http.createServer(async (req, res) => {
 
       res.writeHead(200);
       res.end(JSON.stringify({ image_base64: imageData, content_type: 'image/png' }));
+      return;
+    }
+
+    // ────────────────────────────────────────────
+    // Google Drive
+    // ────────────────────────────────────────────
+
+    // GET /google/drive/list?folderId=<id>&query=<q>&pageSize=<n>
+    if (pathname === '/google/drive/list' && method === 'GET') {
+      const params = new URLSearchParams();
+      params.set('fields', 'files(id,name,mimeType,size,modifiedTime)');
+      if (query.pageSize) params.set('pageSize', query.pageSize as string);
+      const qParts: string[] = ['trashed = false'];
+      if (query.folderId) qParts.push(`'${query.folderId}' in parents`);
+      if (query.query) qParts.push(query.query as string);
+      params.set('q', qParts.join(' and '));
+
+      const result = await googleRequest('GET',
+        `https://www.googleapis.com/drive/v3/files?${params}`
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // GET /google/drive/read?fileId=<id>
+    if (pathname === '/google/drive/read' && method === 'GET') {
+      const fileId = query.fileId as string;
+      if (!fileId) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing parameter: fileId' })); return; }
+
+      const result = await googleRequest('GET',
+        `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`
+      );
+      if (result.status === 200) {
+        res.writeHead(200);
+        res.end(JSON.stringify({ content: result.body }));
+      } else {
+        res.writeHead(result.status);
+        res.end(result.body);
+      }
+      return;
+    }
+
+    // POST /google/drive/create  body: { name, content, mimeType?, folderId? }
+    if (pathname === '/google/drive/create' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { name, content, mimeType = 'text/plain', folderId } = JSON.parse(bodyStr);
+      if (!name || content == null) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing fields: name, content' })); return; }
+
+      const boundary = 'gemiclaw_boundary';
+      const metadata: Record<string, any> = { name, mimeType };
+      if (folderId) metadata.parents = [folderId];
+
+      const multipart = [
+        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`,
+        JSON.stringify(metadata),
+        `\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
+        content,
+        `\r\n--${boundary}--`,
+      ].join('');
+
+      const result = await googleRequest('POST',
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+        { 'Content-Type': `multipart/related; boundary=${boundary}` },
+        multipart,
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // POST /google/drive/update  body: { fileId, content, mimeType? }
+    if (pathname === '/google/drive/update' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { fileId, content, mimeType = 'text/plain' } = JSON.parse(bodyStr);
+      if (!fileId || content == null) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing fields: fileId, content' })); return; }
+
+      const result = await googleRequest('PATCH',
+        `https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(fileId)}?uploadType=media`,
+        { 'Content-Type': mimeType },
+        content,
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // ────────────────────────────────────────────
+    // Google Calendar
+    // ────────────────────────────────────────────
+
+    // GET /google/calendar/events?calendarId=<>&timeMin=<>&timeMax=<>&maxResults=<>
+    if (pathname === '/google/calendar/events' && method === 'GET') {
+      const calendarId = (query.calendarId as string) || 'primary';
+      const params = new URLSearchParams();
+      params.set('orderBy', 'startTime');
+      params.set('singleEvents', 'true');
+      if (query.timeMin) params.set('timeMin', query.timeMin as string);
+      if (query.timeMax) params.set('timeMax', query.timeMax as string);
+      if (query.maxResults) params.set('maxResults', query.maxResults as string);
+
+      const result = await googleRequest('GET',
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // POST /google/calendar/events/create  body: { calendarId?, summary, start, end, description?, location? }
+    //   start / end: { dateTime: "2026-03-20T10:00:00+09:00", timeZone: "Asia/Tokyo" }
+    if (pathname === '/google/calendar/events/create' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { calendarId = 'primary', ...eventData } = JSON.parse(bodyStr);
+
+      const result = await googleRequest('POST',
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
+        { 'Content-Type': 'application/json' },
+        JSON.stringify(eventData),
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // POST /google/calendar/events/update  body: { calendarId?, eventId, ...fields }
+    if (pathname === '/google/calendar/events/update' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { calendarId = 'primary', eventId, ...eventData } = JSON.parse(bodyStr);
+      if (!eventId) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing field: eventId' })); return; }
+
+      const result = await googleRequest('PATCH',
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+        { 'Content-Type': 'application/json' },
+        JSON.stringify(eventData),
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // POST /google/calendar/events/delete  body: { calendarId?, eventId }
+    if (pathname === '/google/calendar/events/delete' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { calendarId = 'primary', eventId } = JSON.parse(bodyStr);
+      if (!eventId) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing field: eventId' })); return; }
+
+      const result = await googleRequest('DELETE',
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`
+      );
+      // Calendar DELETE returns 204 No Content on success
+      res.writeHead(result.status === 204 ? 200 : result.status);
+      res.end(JSON.stringify({ success: result.status === 204 }));
+      return;
+    }
+
+    // ────────────────────────────────────────────
+    // Google Sheets
+    // ────────────────────────────────────────────
+
+    // GET /google/sheets/info?spreadsheetId=<id>
+    if (pathname === '/google/sheets/info' && method === 'GET') {
+      const spreadsheetId = query.spreadsheetId as string;
+      if (!spreadsheetId) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing parameter: spreadsheetId' })); return; }
+
+      const result = await googleRequest('GET',
+        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}?fields=spreadsheetId,properties.title,sheets.properties`
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // GET /google/sheets/read?spreadsheetId=<id>&range=<A1notation>
+    if (pathname === '/google/sheets/read' && method === 'GET') {
+      const { spreadsheetId, range } = query as Record<string, string>;
+      if (!spreadsheetId || !range) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing parameters: spreadsheetId, range' })); return; }
+
+      const result = await googleRequest('GET',
+        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}`
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // POST /google/sheets/write  body: { spreadsheetId, range, values, valueInputOption? }
+    //   values: 2D array e.g. [["A", "B"], [1, 2]]
+    //   valueInputOption: "RAW" (default) or "USER_ENTERED" (parses formulas/dates)
+    if (pathname === '/google/sheets/write' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { spreadsheetId, range, values, valueInputOption = 'USER_ENTERED' } = JSON.parse(bodyStr);
+      if (!spreadsheetId || !range || !values) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing fields: spreadsheetId, range, values' })); return; }
+
+      const result = await googleRequest('PUT',
+        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}?valueInputOption=${valueInputOption}`,
+        { 'Content-Type': 'application/json' },
+        JSON.stringify({ range, majorDimension: 'ROWS', values }),
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // POST /google/sheets/append  body: { spreadsheetId, range, values, valueInputOption? }
+    //   Appends rows after the last row with data in the given range
+    if (pathname === '/google/sheets/append' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { spreadsheetId, range, values, valueInputOption = 'USER_ENTERED' } = JSON.parse(bodyStr);
+      if (!spreadsheetId || !range || !values) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing fields: spreadsheetId, range, values' })); return; }
+
+      const result = await googleRequest('POST',
+        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}:append?valueInputOption=${valueInputOption}&insertDataOption=INSERT_ROWS`,
+        { 'Content-Type': 'application/json' },
+        JSON.stringify({ majorDimension: 'ROWS', values }),
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // ────────────────────────────────────────────
+    // Google Tasks
+    // ────────────────────────────────────────────
+
+    // GET /google/tasks/lists
+    if (pathname === '/google/tasks/lists' && method === 'GET') {
+      const result = await googleRequest('GET',
+        'https://tasks.googleapis.com/tasks/v1/users/@me/lists'
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // GET /google/tasks/list?tasklistId=<id>&showCompleted=<bool>&maxResults=<n>
+    if (pathname === '/google/tasks/list' && method === 'GET') {
+      const tasklistId = (query.tasklistId as string) || '@default';
+      const params = new URLSearchParams();
+      if (query.showCompleted) params.set('showCompleted', query.showCompleted as string);
+      if (query.maxResults) params.set('maxResults', query.maxResults as string);
+
+      const result = await googleRequest('GET',
+        `https://tasks.googleapis.com/tasks/v1/lists/${encodeURIComponent(tasklistId)}/tasks?${params}`
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // POST /google/tasks/create  body: { tasklistId?, title, notes?, due? }
+    //   due: RFC 3339 timestamp e.g. "2026-03-20T00:00:00.000Z"
+    if (pathname === '/google/tasks/create' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { tasklistId = '@default', ...taskData } = JSON.parse(bodyStr);
+
+      const result = await googleRequest('POST',
+        `https://tasks.googleapis.com/tasks/v1/lists/${encodeURIComponent(tasklistId)}/tasks`,
+        { 'Content-Type': 'application/json' },
+        JSON.stringify(taskData),
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // POST /google/tasks/update  body: { tasklistId?, taskId, title?, notes?, due?, status? }
+    //   status: "needsAction" or "completed"
+    if (pathname === '/google/tasks/update' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { tasklistId = '@default', taskId, ...taskData } = JSON.parse(bodyStr);
+      if (!taskId) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing field: taskId' })); return; }
+
+      const result = await googleRequest('PATCH',
+        `https://tasks.googleapis.com/tasks/v1/lists/${encodeURIComponent(tasklistId)}/tasks/${encodeURIComponent(taskId)}`,
+        { 'Content-Type': 'application/json' },
+        JSON.stringify(taskData),
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
+    // POST /google/tasks/delete  body: { tasklistId?, taskId }
+    if (pathname === '/google/tasks/delete' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { tasklistId = '@default', taskId } = JSON.parse(bodyStr);
+      if (!taskId) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing field: taskId' })); return; }
+
+      const result = await googleRequest('DELETE',
+        `https://tasks.googleapis.com/tasks/v1/lists/${encodeURIComponent(tasklistId)}/tasks/${encodeURIComponent(taskId)}`
+      );
+      res.writeHead(result.status === 204 ? 200 : result.status);
+      res.end(JSON.stringify({ success: result.status === 204 }));
       return;
     }
 

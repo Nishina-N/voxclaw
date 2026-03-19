@@ -206,6 +206,160 @@ curl -s "wttr.in/${CITY}?format=3"
 
 ---
 
+## Key Binder — External API Proxy
+
+Skills that need external APIs must call the **Key Binder** (`http://keybinder:3001`) instead of holding API keys directly. The keybinder holds all credentials; your skill only receives the result.
+
+> Never put API keys in skill scripts. Always route through keybinder.
+
+### Available endpoints
+
+#### Web Search
+
+```bash
+# GET /brave?q=<query>
+curl "http://keybinder:3001/brave?q=today+news"
+# Returns: Brave Search API JSON
+```
+
+#### Maps
+
+```bash
+# GET /mapbox/static?lat=<lat>&lon=<lon>&zoom=<zoom>&width=<w>&height=<h>
+curl "http://keybinder:3001/mapbox/static?lat=35.68&lon=139.69&zoom=13"
+# Returns: { "image_base64": "...", "content_type": "image/png" }
+```
+
+#### Google Drive
+
+```bash
+# List files
+# GET /google/drive/list?folderId=<id>&query=<q>&pageSize=<n>
+curl "http://keybinder:3001/google/drive/list?pageSize=10"
+# Returns: { "files": [ { id, name, mimeType, size, modifiedTime }, ... ] }
+
+# Read file content (text files)
+# GET /google/drive/read?fileId=<id>
+curl "http://keybinder:3001/google/drive/read?fileId=abc123"
+# Returns: { "content": "file text content here" }
+
+# Create a new file
+# POST /google/drive/create  body: { name, content, mimeType?, folderId? }
+curl -X POST http://keybinder:3001/google/drive/create \
+  -H 'Content-Type: application/json' \
+  -d '{"name": "memo.txt", "content": "Hello!"}'
+# Returns: Drive file metadata JSON
+
+# Update an existing file
+# POST /google/drive/update  body: { fileId, content, mimeType? }
+curl -X POST http://keybinder:3001/google/drive/update \
+  -H 'Content-Type: application/json' \
+  -d '{"fileId": "abc123", "content": "Updated content"}'
+# Returns: Drive file metadata JSON
+```
+
+#### Google Calendar
+
+```bash
+# List events
+# GET /google/calendar/events?calendarId=<>&timeMin=<ISO>&timeMax=<ISO>&maxResults=<n>
+# calendarId defaults to "primary"
+curl "http://keybinder:3001/google/calendar/events?timeMin=2026-03-01T00:00:00Z&maxResults=10"
+# Returns: Calendar events list JSON
+
+# Create an event
+# POST /google/calendar/events/create  body: { calendarId?, summary, start, end, description?, location? }
+# start / end: { "dateTime": "2026-03-20T10:00:00+09:00", "timeZone": "Asia/Tokyo" }
+curl -X POST http://keybinder:3001/google/calendar/events/create \
+  -H 'Content-Type: application/json' \
+  -d '{"summary": "MTG", "start": {"dateTime": "2026-03-20T10:00:00+09:00", "timeZone": "Asia/Tokyo"}, "end": {"dateTime": "2026-03-20T11:00:00+09:00", "timeZone": "Asia/Tokyo"}}'
+# Returns: Created event JSON
+
+# Update an event
+# POST /google/calendar/events/update  body: { calendarId?, eventId, ...fields }
+curl -X POST http://keybinder:3001/google/calendar/events/update \
+  -H 'Content-Type: application/json' \
+  -d '{"eventId": "evt123", "summary": "Updated MTG"}'
+# Returns: Updated event JSON
+
+# Delete an event
+# POST /google/calendar/events/delete  body: { calendarId?, eventId }
+curl -X POST http://keybinder:3001/google/calendar/events/delete \
+  -H 'Content-Type: application/json' \
+  -d '{"eventId": "evt123"}'
+# Returns: { "success": true }
+```
+
+#### Google Sheets
+
+```bash
+# Get spreadsheet info (title, sheet names)
+# GET /google/sheets/info?spreadsheetId=<id>
+curl "http://keybinder:3001/google/sheets/info?spreadsheetId=abc123"
+# Returns: { spreadsheetId, properties: { title }, sheets: [ { properties: { sheetId, title, ... } } ] }
+
+# Read cell values (A1 notation)
+# GET /google/sheets/read?spreadsheetId=<id>&range=<A1notation>
+curl "http://keybinder:3001/google/sheets/read?spreadsheetId=abc123&range=Sheet1!A1:C10"
+# Returns: { range, majorDimension, values: [[...], [...]] }
+
+# Write values to a range (overwrites)
+# POST /google/sheets/write  body: { spreadsheetId, range, values, valueInputOption? }
+#   values: 2D array e.g. [["Name", "Score"], ["Alice", 90]]
+#   valueInputOption: "USER_ENTERED" (default, parses formulas/dates) or "RAW"
+curl -X POST http://keybinder:3001/google/sheets/write \
+  -H 'Content-Type: application/json' \
+  -d '{"spreadsheetId": "abc123", "range": "Sheet1!A1", "values": [["Name", "Score"], ["Alice", 90]]}'
+# Returns: updated range info JSON
+
+# Append rows after the last row with data
+# POST /google/sheets/append  body: { spreadsheetId, range, values, valueInputOption? }
+curl -X POST http://keybinder:3001/google/sheets/append \
+  -H 'Content-Type: application/json' \
+  -d '{"spreadsheetId": "abc123", "range": "Sheet1", "values": [["Bob", 85]]}'
+# Returns: appended range info JSON
+```
+
+#### Google Tasks
+
+```bash
+# List all task lists ("マイタスク" etc.)
+# GET /google/tasks/lists
+curl "http://keybinder:3001/google/tasks/lists"
+# Returns: { items: [ { id, title, ... } ] }
+
+# List tasks in a task list
+# GET /google/tasks/list?tasklistId=<id>&showCompleted=<bool>&maxResults=<n>
+# tasklistId defaults to "@default" (primary task list)
+curl "http://keybinder:3001/google/tasks/list?showCompleted=false&maxResults=20"
+# Returns: { items: [ { id, title, notes, due, status, ... } ] }
+
+# Create a task
+# POST /google/tasks/create  body: { tasklistId?, title, notes?, due? }
+#   due: RFC 3339 e.g. "2026-03-20T00:00:00.000Z"
+curl -X POST http://keybinder:3001/google/tasks/create \
+  -H 'Content-Type: application/json' \
+  -d '{"title": "レポートを提出する", "due": "2026-03-20T00:00:00.000Z"}'
+# Returns: created task JSON
+
+# Update a task (rename, change due date, mark complete, etc.)
+# POST /google/tasks/update  body: { tasklistId?, taskId, title?, notes?, due?, status? }
+#   status: "needsAction" (未完了) or "completed" (完了)
+curl -X POST http://keybinder:3001/google/tasks/update \
+  -H 'Content-Type: application/json' \
+  -d '{"taskId": "abc123", "status": "completed"}'
+# Returns: updated task JSON
+
+# Delete a task
+# POST /google/tasks/delete  body: { tasklistId?, taskId }
+curl -X POST http://keybinder:3001/google/tasks/delete \
+  -H 'Content-Type: application/json' \
+  -d '{"taskId": "abc123"}'
+# Returns: { "success": true }
+```
+
+---
+
 ## What You Cannot Change
 
 The following are **non-variable** and cannot be modified by you:

@@ -164,7 +164,20 @@ Open `keybinder/secrets_for_skills.json` and fill in the keys for the APIs you u
 }
 ```
 
-### 4. Start
+### 4. Set up Google APIs (optional)
+
+Only required if you want to use Drive, Calendar, Tasks, or Sheets integration. Skip if you don't need it.
+
+```bash
+pip install google-auth-oauthlib
+cd keybinder
+python3 setup_google_auth.py
+```
+
+A browser window will open — sign in with your Google account and grant access. When done, `keybinder/token.json` is generated automatically.
+See [Setting up Google APIs](#setting-up-google-apis-drive-calendar-tasks-sheets) for full details.
+
+### 5. Start
 
 ```bash
 docker-compose up -d --build
@@ -319,3 +332,62 @@ For use in `config/channels.json` and `config/cron.json`:
 2. Right-click the target channel → select **"Copy ID"**.
 
 You now have everything you need for `.env` and `config/channels.json`.
+
+---
+
+### Setting up Google APIs (Drive, Calendar, Tasks, Sheets)
+
+The keybinder includes built-in endpoints for Google Drive, Calendar, Tasks, and Sheets. Follow these steps to set them up.
+
+#### 1. Configure your Google Cloud project
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/) and sign in with your Google account.
+2. Select a project (or create a new one).
+3. Go to **APIs & Services → Library** and enable the following APIs:
+   - Google Drive API
+   - Google Calendar API
+   - Google Tasks API
+   - Google Sheets API
+
+#### 2. Create an OAuth2 Client ID
+
+1. Go to **APIs & Services → Credentials**.
+2. Click **Create credentials → OAuth client ID**.
+3. Select **Desktop app** as the application type.
+4. Enter a name (e.g. `gemiclaw`) and click **Create**.
+5. Download the generated JSON file and save it as `keybinder/client_secret.json`.
+
+> One `client_secret.json` covers all APIs — it represents your app, not any specific API. Which APIs you can access is controlled by scopes.
+
+#### 3. Add yourself as a test user
+
+While the app is in testing mode (the default for personal use), only registered test users can authenticate.
+
+1. Go to **APIs & Services → OAuth consent screen**.
+2. Under the "Test users" section, click **+ ADD USERS**.
+3. Add your Google account email address and save.
+
+> Skipping this step will result in `Error 403: access_denied` during authentication.
+
+#### 4. Run the authentication script
+
+```bash
+pip install google-auth-oauthlib
+cd keybinder
+python3 setup_google_auth.py
+```
+
+A browser window will open. Sign in with your Google account and grant access. When complete, `keybinder/token.json` is saved automatically.
+
+> `token.json` contains an `access_token` (expires in 1 hour) and a `refresh_token` (long-lived). The keybinder refreshes the token automatically — no need to re-run the script.
+
+#### 5. Adding new API scopes later
+
+Add the new scope to the `SCOPES` list in `setup_google_auth.py`, delete `keybinder/token.json`, and re-run the script.
+
+```bash
+rm keybinder/token.json
+cd keybinder && python3 setup_google_auth.py
+```
+
+> Both `client_secret.json` and `token.json` are listed in `.gitignore` and will never be committed to Git.

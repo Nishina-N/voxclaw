@@ -163,7 +163,20 @@ cp keybinder/secrets_for_skills.example.json keybinder/secrets_for_skills.json
 }
 ```
 
-### 4. 起動
+### 4. Google API を設定する（省略可）
+
+Drive・Calendar・Tasks・Sheets 連携を使う場合のみ必要です。使わない場合はスキップしてください。
+
+```bash
+pip install google-auth-oauthlib
+cd keybinder
+python3 setup_google_auth.py
+```
+
+ブラウザが開くので Google アカウントでログインして許可します。完了すると `keybinder/token.json` が生成されます。
+設定の詳細は [Google API の設定方法](#google-api-の設定方法driveカレンダータスクsheets) を参照してください。
+
+### 5. 起動
 
 ```bash
 docker-compose up -d --build
@@ -320,3 +333,62 @@ messages.db（SQLite）
 2. 対象チャンネルを右クリック → **「IDをコピー」** を選択します。
 
 これで `.env` の設定と `config/channels.json` の設定が揃います。
+
+---
+
+### Google API の設定方法（Drive・カレンダー・タスク・Sheets）
+
+keybinder は Google Drive・Calendar・Tasks・Sheets を利用するためのエンドポイントを内蔵しています。以下の手順で設定してください。
+
+#### 1. Google Cloud プロジェクトの設定
+
+1. [Google Cloud Console](https://console.cloud.google.com/) を開き、Google アカウントでログインします。
+2. プロジェクトを選択（または新規作成）します。
+3. 左メニューの **「APIとサービス」→「ライブラリ」** で以下の API を有効化します：
+   - Google Drive API
+   - Google Calendar API
+   - Google Tasks API
+   - Google Sheets API
+
+#### 2. OAuth2 クライアント ID を作成する
+
+1. **「APIとサービス」→「認証情報」** を開きます。
+2. **「認証情報を作成」→「OAuth クライアント ID」** をクリックします。
+3. アプリケーションの種類で **「デスクトップアプリ」** を選択します。
+4. 名前を入力（例: `gemiclaw`）して **「作成」** を押します。
+5. 生成された JSON をダウンロードし、`keybinder/client_secret.json` として保存します。
+
+> `client_secret.json` は複数の API を追加しても1つで共通です。どの API にアクセスするかはスコープで制御されます。
+
+#### 3. テストユーザーに自分を追加する
+
+アプリが本番公開されていない場合（通常はこちら）、認証できるのは登録済みのテストユーザーのみです。
+
+1. **「APIとサービス」→「OAuth 同意画面」** を開きます。
+2. 「テストユーザー」セクションの **「+ ADD USERS」** をクリックします。
+3. 自分の Google アカウントのメールアドレスを追加して保存します。
+
+> この手順を省略すると認証時に `Error 403: access_denied` が表示されます。
+
+#### 4. 認証スクリプトを実行する
+
+```bash
+pip install google-auth-oauthlib
+cd keybinder
+python3 setup_google_auth.py
+```
+
+ブラウザが開くので Google アカウントでログインして許可します。完了すると `keybinder/token.json` が自動で生成されます。
+
+> `token.json` は1時間で期限切れになる `access_token` と、長期有効な `refresh_token` を含んでいます。keybinder が自動でリフレッシュするため、再実行は不要です。
+
+#### 5. 新しい API スコープを追加したいとき
+
+`setup_google_auth.py` の `SCOPES` リストに追加して、`keybinder/token.json` を削除してから再実行してください。
+
+```bash
+rm keybinder/token.json
+cd keybinder && python3 setup_google_auth.py
+```
+
+> `client_secret.json` と `token.json` は `.gitignore` に含まれており、Git にはコミットされません。

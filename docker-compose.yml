@@ -31,3 +31,5 @@ services:
     volumes:
       # secrets はこのコンテナにのみマウント — gemiclaw コンテナからはアクセス不可
       - ./keybinder/secrets_for_skills.json:/secrets/keys.json:ro
+      # Google OAuth2 token (run keybinder/setup_google_auth.py first to generate this)
+      - ./keybinder/token.json:/secrets/google_token.json
