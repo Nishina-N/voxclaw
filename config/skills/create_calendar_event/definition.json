@@ -1,0 +1,34 @@
+{
+  "name": "create_calendar_event",
+  "description": "Googleカレンダーに予定を追加します。タイトル・開始終了時刻は必須。説明・場所は省略可。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "summary": {
+        "type": "STRING",
+        "description": "予定のタイトル"
+      },
+      "start_datetime": {
+        "type": "STRING",
+        "description": "開始日時 (ISO 8601形式: 2026-03-20T10:00:00+09:00)"
+      },
+      "end_datetime": {
+        "type": "STRING",
+        "description": "終了日時 (ISO 8601形式: 2026-03-20T11:00:00+09:00)"
+      },
+      "description": {
+        "type": "STRING",
+        "description": "予定の説明（省略可）"
+      },
+      "location": {
+        "type": "STRING",
+        "description": "場所（省略可）"
+      },
+      "timezone": {
+        "type": "STRING",
+        "description": "タイムゾーン（省略可、デフォルト: Asia/Tokyo）"
+      }
+    },
+    "required": ["summary", "start_datetime", "end_datetime"]
+  }
+}

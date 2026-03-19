@@ -1,0 +1,21 @@
+{
+  "name": "get_tasks",
+  "description": "Googleタスクの一覧を取得します。未完了タスクのみ、または完了済みも含めて取得できます。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "show_completed": {
+        "type": "BOOLEAN",
+        "description": "完了済みタスクも取得するか（デフォルト: false）"
+      },
+      "max_results": {
+        "type": "NUMBER",
+        "description": "取得する最大件数（省略可）"
+      },
+      "tasklist_id": {
+        "type": "STRING",
+        "description": "タスクリストのID（省略時はデフォルトリスト）"
+      }
+    }
+  }
+}

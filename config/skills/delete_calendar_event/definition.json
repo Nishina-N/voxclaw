@@ -1,0 +1,14 @@
+{
+  "name": "delete_calendar_event",
+  "description": "Googleカレンダーの予定を削除します。eventIdが必須です。削除前にユーザーに確認を取ってください。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "event_id": {
+        "type": "STRING",
+        "description": "削除する予定のイベントID（get_calendar_eventsで取得可能）"
+      }
+    },
+    "required": ["event_id"]
+  }
+}

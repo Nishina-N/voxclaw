@@ -1,0 +1,26 @@
+{
+  "name": "create_task",
+  "description": "Googleタスクに新しいタスクを追加します。タイトルは必須。期限・メモは省略可。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "title": {
+        "type": "STRING",
+        "description": "タスクのタイトル"
+      },
+      "notes": {
+        "type": "STRING",
+        "description": "メモ・詳細（省略可）"
+      },
+      "due": {
+        "type": "STRING",
+        "description": "期限 (RFC 3339形式: 2026-03-20T00:00:00.000Z)（省略可）"
+      },
+      "tasklist_id": {
+        "type": "STRING",
+        "description": "追加先タスクリストのID（省略時はデフォルトリスト）"
+      }
+    },
+    "required": ["title"]
+  }
+}

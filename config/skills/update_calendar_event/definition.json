@@ -1,0 +1,38 @@
+{
+  "name": "update_calendar_event",
+  "description": "Googleカレンダーの既存の予定を更新します。eventIdは必須。変更したい項目だけ指定すればOKです。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "event_id": {
+        "type": "STRING",
+        "description": "更新する予定のイベントID（get_calendar_eventsで取得可能）"
+      },
+      "summary": {
+        "type": "STRING",
+        "description": "新しいタイトル（省略可）"
+      },
+      "start_datetime": {
+        "type": "STRING",
+        "description": "新しい開始日時 (ISO 8601形式: 2026-03-20T10:00:00+09:00)（省略可）"
+      },
+      "end_datetime": {
+        "type": "STRING",
+        "description": "新しい終了日時 (ISO 8601形式: 2026-03-20T11:00:00+09:00)（省略可）"
+      },
+      "description": {
+        "type": "STRING",
+        "description": "新しい説明（省略可）"
+      },
+      "location": {
+        "type": "STRING",
+        "description": "新しい場所（省略可）"
+      },
+      "timezone": {
+        "type": "STRING",
+        "description": "タイムゾーン（省略可、デフォルト: Asia/Tokyo）"
+      }
+    },
+    "required": ["event_id"]
+  }
+}

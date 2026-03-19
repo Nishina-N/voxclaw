@@ -1,0 +1,34 @@
+{
+  "name": "update_task",
+  "description": "Googleタスクを更新します。タスクの完了マーク・タイトル変更・期限変更などに使います。task_idは必須。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "task_id": {
+        "type": "STRING",
+        "description": "更新するタスクのID（get_tasksで取得可能）"
+      },
+      "title": {
+        "type": "STRING",
+        "description": "新しいタイトル（省略可）"
+      },
+      "notes": {
+        "type": "STRING",
+        "description": "新しいメモ（省略可）"
+      },
+      "due": {
+        "type": "STRING",
+        "description": "新しい期限 (RFC 3339形式: 2026-03-20T00:00:00.000Z)（省略可）"
+      },
+      "status": {
+        "type": "STRING",
+        "description": "ステータス: 'completed'（完了）または 'needsAction'（未完了）（省略可）"
+      },
+      "tasklist_id": {
+        "type": "STRING",
+        "description": "タスクリストのID（省略時はデフォルトリスト）"
+      }
+    },
+    "required": ["task_id"]
+  }
+}
