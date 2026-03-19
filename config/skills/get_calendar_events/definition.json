@@ -1,0 +1,21 @@
+{
+  "name": "get_calendar_events",
+  "description": "Googleカレンダーから予定を取得します。指定した期間（timeMin, timeMax）のイベントを取得可能です。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "timeMin": {
+        "type": "STRING",
+        "description": "開始時刻 (ISO 8601形式: YYYY-MM-DDTHH:MM:SSZ)"
+      },
+      "timeMax": {
+        "type": "STRING",
+        "description": "終了時刻 (ISO 8601形式: YYYY-MM-DDTHH:MM:SSZ)"
+      },
+      "maxResults": {
+        "type": "NUMBER",
+        "description": "取得する最大件数"
+      }
+    }
+  }
+}
