@@ -1,5 +1,5 @@
 {
-  "name": "run_python_code",
+  "name": "util_run_python_code",
   "description": "メモリ上でPythonコード断片を即時実行する。前提: 外部ファイル不要。動作: 渡された文字列をPythonコードとして実行し、標準出力を返す。成功時: 実行結果を文字列として返す。エラー時: 例外内容を報告。用途: データ加工、一時的な計算、ロジックテスト。",
   "parameters": {
     "type": "OBJECT",

@@ -1,5 +1,5 @@
 {
-  "name": "write_spreadsheet",
+  "name": "gsheet_write_spreadsheet",
   "description": "Google スプレッドシートの指定範囲にデータを書き込みます（既存のデータを上書き）。valuesは2次元配列で指定します。数式や日付を自動解釈したい場合はvalue_input_optionを'USER_ENTERED'に設定してください（デフォルト）。",
   "parameters": {
     "type": "OBJECT",

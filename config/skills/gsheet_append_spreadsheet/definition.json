@@ -1,5 +1,5 @@
 {
-  "name": "append_spreadsheet",
+  "name": "gsheet_append_spreadsheet",
   "description": "Google スプレッドシートのデータが入っている最終行の後に新しい行を追加します。ログや記録の蓄積に適しています。valuesは2次元配列で指定します。",
   "parameters": {
     "type": "OBJECT",

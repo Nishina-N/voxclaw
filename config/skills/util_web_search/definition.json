@@ -1,5 +1,5 @@
 {
-  "name": "web_search",
+  "name": "util_web_search",
   "description": "Brave Search APIを使用してWeb検索を行い、検索結果を返します。目的: 情報調査。動作: クエリに基づきネット検索を行う。エラー時: 検索失敗の理由を出力。正常終了時は再実行不要。",
   "parameters": {
     "type": "OBJECT",

@@ -1,5 +1,5 @@
 {
-  "name": "create_spreadsheet",
+  "name": "gsheet_create_spreadsheet",
   "description": "Google スプレッドシートを新規作成します。タイトルは必須。シート名のリストを渡すと複数シートを初期作成できます。作成後に返されるspreadsheetIdを使って読み書きができます。",
   "parameters": {
     "type": "OBJECT",

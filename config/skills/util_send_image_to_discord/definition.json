@@ -1,5 +1,5 @@
 {
-  "name": "send_image_to_discord",
+  "name": "util_send_image_to_discord",
   "description": "指定されたパスにある画像ファイルをDiscordの指定チャンネルに送信するツール。チャンネルIDは、各メッセージの冒頭に含まれる [Channel ID: <ID>] から取得し、それを指定すること。実行前条件: 指定パスに画像ファイルが存在すること。動作: Discord APIにファイルをPOST。成功時: Discord APIからのレスポンス結果を返却。失敗時: エラーメッセージを出力。",
   "parameters": {
     "type": "OBJECT",

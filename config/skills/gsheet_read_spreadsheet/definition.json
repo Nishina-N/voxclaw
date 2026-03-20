@@ -1,5 +1,5 @@
 {
-  "name": "read_spreadsheet",
+  "name": "gsheet_read_spreadsheet",
   "description": "Google スプレッドシートの指定範囲のセル値を取得します。rangeはA1記法で指定します（例: 'Sheet1!A1:C10'、'A1:B5'）。",
   "parameters": {
     "type": "OBJECT",
