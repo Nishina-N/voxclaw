@@ -2,393 +2,67 @@
 
 🇯🇵 日本語 | [🇺🇸 English](README.en.md)
 
-[Openclaw](https://github.com/openclawai/openclaw) と [Nanoclaw](https://github.com/qwibitai/nanoclaw) にインスパイアされた、**Google Gemini API × Discord の自律エージェント**です。Docker上で動作し、エージェントが自分でスキルを作り・マニュアルを育て・cronで自律動作する三層構造が特徴です。
+**Google Gemini API × Discord の自律エージェント。** エージェントが自分でスキルを作り・マニュアルを育て・cron で自律動作する三層構造が特徴です。Docker 上で動作し、リビルド不要で即座に拡張できます。
 
->  制作背景や設計思想は [Zenn 記事](https://zenn.dev/nishina__n/articles/69587684b36113) で詳しく書いています。
----
-
-## 特徴
-
-- **自己拡張（動的スキル）**: エージェントが `config/skills/` にスキルを自作し、新しいツールを即座に獲得できます。リビルド不要。
-- **自己更新（人格・ユーザー情報）**: `SOUL.md`・`USER.md`・`IDENTITY.md` をエージェントが直接書き換えられます。
-- **スキル × マニュアル × cron の三層構造**: スキルは最小機能単位、マニュアルは組み合わせ手順書、cronがマニュアルを定時に起動するトリガーになります。
-- **SQLite + ポーリング**: メッセージをSQLiteに永続化し2秒間隔で処理。クラッシュ後も取りこぼしなし。
-- **可変部と非可変部の分離**: エージェントループ・接続部分はコンテナに焼き込み。設定・スキル・マニュアルはボリュームマウントで永続化。
-- **Key Binder によるAPIキー隔離**: サードパーティAPIキーを別コンテナで管理し、エージェントがキーに直接アクセスできない設計。
+> 制作背景と設計思想は [Zenn 記事](https://zenn.dev/nishina__n/articles/69587684b36113) で詳しく書いています。
 
 ---
 
-## 三層構造
+## 何ができるか
 
-```
-スキル（config/skills/）        ← 最小機能単位。エージェントが自作。
-  └─ マニュアル（config/manuals/） ← スキルの組み合わせ手順書。
-       └─ cron（config/cron.json）  ← マニュアルを定時に起動するトリガー。
-```
-
-cronの `prompt` にマニュアルのパスを渡すことで、定時タスクの精度がマニュアルの品質に直結します。
-
-```json
-{
-  "id": "daily_market_news",
-  "cron": "0 23 * * *",
-  "prompt": "マニュアル（/app/config/manuals/market_news_recipe.md）に従って米国株式市場ニュースを投稿してください。",
-  "channelId": "チャンネルID",
-  "enabled": true
-}
-```
+- Discord でメンションして話しかけると Gemini が応答する
+- 「〇〇するスキルを作って」と言うだけでエージェントが自分でツールを追加する
+- cron × マニュアルで定時タスクを自動実行する（例: 毎日の株式市場ニュース投稿）
+- Google Drive・Calendar・Tasks・Sheets・Web検索・地図画像生成などが使える
 
 ---
 
-## ディレクトリ構成
+## 主要な特徴
 
-```
-gemiclaw/
-├── src/                      # ❌ 非可変（コンテナに焼き込み）
-│   ├── index.ts              # エントリーポイント・ポーリングループ
-│   ├── db.ts                 # SQLite層
-│   ├── agent.ts              # Gemini API・エージェントループ
-│   ├── cron-runner.ts        # cronスケジューラ
-│   ├── skill-loader.ts       # 動的スキルのロード・実行
-│   ├── channels/
-│   │   ├── types.ts          # Channel インターフェース
-│   │   └── discord.ts        # Discord実装
-│   └── skills/               # 組み込みツール
-│       ├── files.ts          # read_file / write_file / list_directory
-│       ├── memory.ts         # read_memory / write_memory
-│       └── pip.ts            # pip_install
-│
-├── keybinder/                # 🔑 APIキー隔離コンテナ（エージェントからアクセス不可）
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── server.ts             # APIプロキシサーバー（:3001）
-│   ├── secrets_for_skills.json       # 実際のAPIキー ※gitignore
-│   └── secrets_for_skills.example.json
-│
-├── config/                   # ✅ 可変（エージェント・人間が読み書き可）
-│   ├── channels.json         # チャンネル別設定（requireMention 等）
-│   ├── cron.json             # 定期タスク定義
-│   ├── skills/               # エージェントが自作した動的スキル
-│   │   └── <skill-name>/
-│   │       ├── definition.json   # Gemini FunctionDeclaration
-│   │       └── run.sh            # 実行スクリプト（キーなし・keybinder呼び出し）
-│   ├── manuals/              # スキルの組み合わせ手順書
-│   │   └── <task>_recipe.md
-│   └── pip_packages/         # pip_install で永続化されたパッケージ
-│
-├── memory/                   # ✅ 可変（SQLite DB・日次メモ）
-├── workspace/                # ✅ 可変（エージェントの作業出力）
-├── knowledge/                # 📖 読み取り専用（参照ドキュメント）
-│
-├── AGENTS.md                 # 行動ルール             ※読み取り専用
-├── TOOLS.md                  # ツール仕様             ※読み取り専用
-├── SOUL.md                   # キャラクター・口調     ✅ エージェントが書き換え可
-├── USER.md                   # ユーザー情報           ✅ エージェントが書き換え可
-├── IDENTITY.md               # 名前・プロフィール     ✅ エージェントが書き換え可
-├── Dockerfile
-└── docker-compose.yml
-```
+| 特徴 | 説明 |
+|---|---|
+| **自己拡張（動的スキル）** | `config/skills/` にスキルを自作。リビルド不要で次のメッセージから即有効 |
+| **三層構造** | スキル（最小機能）→ マニュアル（組み合わせ手順）→ cron（定時トリガー）|
+| **Key Binder** | APIキーを別コンテナで隔離。エージェントがキーに直接触れない設計 |
+| **SQLite + ポーリング** | 2秒間隔でメッセージを処理。クラッシュ後も取りこぼしなし |
+| **可変 / 非可変の分離** | ループ・接続はコンテナに焼き込み。スキル・設定はボリュームマウントで永続化 |
 
 ---
 
-## Key Binder：APIキー隔離の仕組み
-
-AIエージェントはスキルスクリプト（`config/skills/`）を自ら書き換えられます。もしAPIキーがエージェントの読める場所に存在すると、プロンプトインジェクション攻撃によってキーを書き換えたスクリプト経由で流出するリスクがあります。
-
-gemiclawはこのリスクに対して **Key Binder**（`keybinder/`）を導入しています。
-
-```
-【従来の構造】
-スキルスクリプト → secrets_for_skills.json（エージェントが読める）→ 外部API
-
-【Key Binder導入後】
-スキルスクリプト → http://keybinder:3001/brave?q=... → keybinder（キーを保持）→ 外部API
-                   ↑ 結果だけ返す。キーはエージェントに渡らない
-```
-
-keybinderコンテナは `secrets_for_skills.json` を**自コンテナのみにマウント**しているため、gemiclaw コンテナからはファイルとして読めず、Python の `os.environ` にも存在しません。スキルスクリプトを書き換えても、keybinderへのリクエスト結果しか得られません。
-
-**Key Binderのセットアップ：**
+## クイックスタート
 
 ```bash
-cp keybinder/secrets_for_skills.example.json keybinder/secrets_for_skills.json
-# keybinder/secrets_for_skills.json にAPIキーを記入
-```
-
-新しいAPIを使うスキルをエージェントが自作する場合、`keybinder/server.ts` に対応エンドポイントを人間が追加してリビルドする必要があります。これはセキュリティ上意図した制約です（エージェントが未知のAPIを勝手に使い始めることを防ぎます）。
-
----
-
-## セットアップ
-
-### 前提条件
-
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)（Windows / Mac）または Docker Engine（Linux）
-- Gemini API キー（[取得方法](#gemini-api-キーの取得)）
-- Discord Bot トークン（[取得方法](#discord-bot-の作成とトークン取得)）
-
-### 1. リポジトリをクローン
-
-```bash
+# 1. クローン
 git clone https://github.com/qwibitai/gemiclaw.git
 cd gemiclaw
-```
 
-### 2. 環境変数を設定
-
-```bash
+# 2. 環境変数を設定
 cp .env.example .env
-```
+# .env を開いて DISCORD_TOKEN と GEMINI_API_KEY を記入
 
-`.env` を開いて以下を記入します。
-
-```env
-DISCORD_TOKEN=取得したDiscord Botトークン
-GEMINI_API_KEY=取得したGemini APIキー
-GEMINI_MODEL=gemini-3.1-flash-lite-preview  # 省略可能（デフォルト: gemini-3.1-flash-lite-preview）
-```
-
-### 3. Key Binder のAPIキーを設定
-
-```bash
+# 3. Key Binder のAPIキーを設定
 cp keybinder/secrets_for_skills.example.json keybinder/secrets_for_skills.json
-```
+# keybinder/secrets_for_skills.json に使用するAPIキーを記入
 
-`keybinder/secrets_for_skills.json` を開いて、使用するAPIのキーを記入します。
-
-```json
-{
-  "brave": { "api_key": "YOUR_BRAVE_API_KEY" },
-  "mapbox": { "access_token": "YOUR_MAPBOX_TOKEN" }
-}
-```
-
-### 4. Google API を設定する（省略可）
-
-Drive・Calendar・Tasks・Sheets 連携を使う場合のみ必要です。使わない場合はスキップしてください。
-
-```bash
-pip install google-auth-oauthlib
-cd keybinder
-python3 setup_google_auth.py
-```
-
-ブラウザが開くので Google アカウントでログインして許可します。完了すると `keybinder/token.json` が生成されます。
-設定の詳細は [Google API の設定方法](#google-api-の設定方法driveカレンダータスクsheets) を参照してください。
-
-### 5. 起動
-
-```bash
+# 4. 起動
 docker-compose up -d --build
+
+# 5. 動作確認
+docker-compose logs -f
 ```
 
-```bash
-docker-compose logs -f  # ログ確認（Ctrl+C で抜ける）
-```
-
----
-
-## 使い方
-
-### メンションして話しかける
+Discord でボットをメンションして話しかけてください。
 
 ```
-@gemiclaw 今日の作業メモを書いて
-@gemiclaw /app/workspace の中身を見せて
-```
-
-### メンションなしで返信するチャンネルを設定
-
-`config/channels.json` を編集します。エージェント自身に設定させることもできます。
-
-```json
-{
-  "チャンネルID": {
-    "name": "talk",
-    "requireMention": false
-  }
-}
-```
-
-### スキルを追加する
-
-エージェントに「〇〇するスキルを作って」と話しかけるだけで、`config/skills/` に自動で追加されます。
-
-### 定期タスクを設定する
-
-`config/cron.json` を編集します（またはエージェントに設定させます）。
-
-```json
-[
-  {
-    "id": "任意のID",
-    "cron": "0 9 * * 1-5",
-    "prompt": "マニュアル（/app/config/manuals/xxxx.md）に従って実行してください。",
-    "channelId": "送信先チャンネルID",
-    "enabled": true
-  }
-]
+@gemiclaw こんにちは！
 ```
 
 ---
 
-## アーキテクチャ
+## ドキュメント
 
-```
-Discord
-  │ messageCreate → storeMessage()
-  ▼
-messages.db（SQLite）
-  ▲
-  │ getNewMentions() / getNewMessages()
-  │ setInterval(2000ms)
-  ▼
-[ポーリングループ / index.ts]          [cron-runner.ts]
-  │ channels.json で requireMention 判定  │ cron.json のスケジュールで発火
-  └──────────────┬───────────────────────┘
-                 ▼
-        [processChannel()]
-          getChannelHistory() → Gemini へ履歴付きで投げる
-                 ▼
-        [agent.ts — エージェントループ（最大20ラウンド）]
-          config/skills/ をスキャンして動的スキルをロード
-          │
-          ├─ functionCall → executeTool()
-          │   ├─ 組み込みツール（src/skills/）
-          │   └─ 動的スキル（config/skills/<name>/run.sh）
-          │   → 結果を Gemini へ返す → 繰り返す
-          └─ テキスト応答 → Discord へ送信
-```
-
----
-
-## 可変部と非可変部
-
-| 領域 | 書き込み権限 | 説明 |
-|---|---|---|
-| `src/` | ❌ なし | ループ・接続・ツールエンジン（コンテナに焼き込み） |
-| `AGENTS.md` / `TOOLS.md` | 人間のみ | システムルール（読み取り専用マウント） |
-| `config/` | ✅ エージェント・人間 | スキル・マニュアル・cron・チャンネル設定 |
-| `SOUL.md` / `USER.md` / `IDENTITY.md` | ✅ エージェント・人間 | 人格・ユーザー情報 |
-| `workspace/` | ✅ エージェント・人間 | 作業出力 |
-| `memory/` | ✅ エージェント | 日次メモ・SQLite DB |
-| `knowledge/` | 読み取り専用 | 参照ドキュメント |
-
----
-
----
-
-## 補足：APIキーの取得方法
-
-### Gemini API キーの取得
-
-1. [Google AI Studio](https://aistudio.google.com/) にアクセスし、Googleアカウントでログインします。
-2. 左側メニューの **「Get API key」** をクリックします。
-3. **「Create API key」** ボタンを押すと API キーが発行されます。
-4. 発行されたキーをコピーして `.env` の `GEMINI_API_KEY=` に貼り付けます。
-
-> **無料枠について**: 2026/3時点では `gemini-3.1-flash-light` は無料枠で利用できます。使用量は [Google AI Studio](https://aistudio.google.com/) のダッシュボードで確認できます。
-
----
-
-### Discord Bot の作成とトークン取得
-
-#### 1. アプリケーションを作成する
-
-1. [Discord Developer Portal](https://discord.com/developers/applications) にアクセスし、Discordアカウントでログインします。
-2. 右上の **「New Application」** をクリックします。
-3. アプリケーション名（例: `gemiclaw`）を入力して **「Create」** を押します。
-
-#### 2. Bot を追加してトークンを取得する
-
-1. 左メニューの **「Bot」** をクリックします。
-2. **「Add Bot」**（または「Reset Token」）ボタンを押します。
-3. **「Token」** の下にある **「Copy」** ボタンでトークンをコピーし、`.env` の `DISCORD_TOKEN=` に貼り付けます。
-   > ⚠️ トークンは一度しか表示されません。紛失した場合は「Reset Token」で再発行してください。
-
-#### 3. Privileged Gateway Intents を有効化する
-
-同じ **「Bot」** ページの下部にある **「Privileged Gateway Intents」** で以下の2つを **ON** にします。
-
-- ✅ **SERVER MEMBERS INTENT**
-- ✅ **MESSAGE CONTENT INTENT**（メッセージ内容を読むために必須）
-
-#### 4. Bot をサーバーに招待する
-
-1. 左メニューの **「OAuth2」→「URL Generator」** をクリックします。
-2. **「Scopes」** で `bot` にチェックを入れます。
-3. **「Bot Permissions」** で以下にチェックを入れます。
-   - ✅ Read Messages / View Channels
-   - ✅ Send Messages
-   - ✅ Read Message History
-   - ✅ Attach Files（画像送信スキルを使う場合）
-4. ページ下部に生成された URL をコピーしてブラウザで開きます。
-5. 招待したいサーバーを選択して **「認証」** を押します。
-
-#### 5. チャンネル ID を調べる方法
-
-`config/channels.json` や `config/cron.json` に設定するチャンネル ID の調べ方です。
-
-1. Discord の **設定 → 詳細設定 → 開発者モード** を ON にします。
-2. 対象チャンネルを右クリック → **「IDをコピー」** を選択します。
-
-これで `.env` の設定と `config/channels.json` の設定が揃います。
-
----
-
-### Google API の設定方法（Drive・カレンダー・タスク・Sheets）
-
-keybinder は Google Drive・Calendar・Tasks・Sheets を利用するためのエンドポイントを内蔵しています。以下の手順で設定してください。
-
-#### 1. Google Cloud プロジェクトの設定
-
-1. [Google Cloud Console](https://console.cloud.google.com/) を開き、Google アカウントでログインします。
-2. プロジェクトを選択（または新規作成）します。
-3. 左メニューの **「APIとサービス」→「ライブラリ」** で以下の API を有効化します：
-   - Google Drive API
-   - Google Calendar API
-   - Google Tasks API
-   - Google Sheets API
-
-#### 2. OAuth2 クライアント ID を作成する
-
-1. **「APIとサービス」→「認証情報」** を開きます。
-2. **「認証情報を作成」→「OAuth クライアント ID」** をクリックします。
-3. アプリケーションの種類で **「デスクトップアプリ」** を選択します。
-4. 名前を入力（例: `gemiclaw`）して **「作成」** を押します。
-5. 生成された JSON をダウンロードし、`keybinder/client_secret.json` として保存します。
-
-> `client_secret.json` は複数の API を追加しても1つで共通です。どの API にアクセスするかはスコープで制御されます。
-
-#### 3. テストユーザーに自分を追加する
-
-アプリが本番公開されていない場合（通常はこちら）、認証できるのは登録済みのテストユーザーのみです。
-
-1. **「APIとサービス」→「OAuth 同意画面」** を開きます。
-2. 「テストユーザー」セクションの **「+ ADD USERS」** をクリックします。
-3. 自分の Google アカウントのメールアドレスを追加して保存します。
-
-> この手順を省略すると認証時に `Error 403: access_denied` が表示されます。
-
-#### 4. 認証スクリプトを実行する
-
-```bash
-pip install google-auth-oauthlib
-cd keybinder
-python3 setup_google_auth.py
-```
-
-ブラウザが開くので Google アカウントでログインして許可します。完了すると `keybinder/token.json` が自動で生成されます。
-
-> `token.json` は1時間で期限切れになる `access_token` と、長期有効な `refresh_token` を含んでいます。keybinder が自動でリフレッシュするため、再実行は不要です。
-
-#### 5. 新しい API スコープを追加したいとき
-
-`setup_google_auth.py` の `SCOPES` リストに追加して、`keybinder/token.json` を削除してから再実行してください。
-
-```bash
-rm keybinder/token.json
-cd keybinder && python3 setup_google_auth.py
-```
-
-> `client_secret.json` と `token.json` は `.gitignore` に含まれており、Git にはコミットされません。
+| ページ | 内容 |
+|---|---|
+| [セットアップガイド](docs/setup.md) | 前提条件・各APIキーの取得・Google API設定・Docker起動手順 |
+| [アーキテクチャ](docs/architecture.md) | 設計思想・コンポーネント構成・データフロー・可変/非可変の分離 |
+| [スキルガイド](docs/skills.md) | スキル一覧・スキルの作り方・Key Binder エンドポイント仕様 |
