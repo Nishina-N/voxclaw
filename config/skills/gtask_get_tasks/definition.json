@@ -1,5 +1,5 @@
 {
-  "name": "get_tasks",
+  "name": "gtask_get_tasks",
   "description": "Googleタスクの一覧を取得します。未完了タスクのみ、または完了済みも含めて取得できます。",
   "parameters": {
     "type": "OBJECT",

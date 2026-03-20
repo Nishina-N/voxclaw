@@ -1,5 +1,5 @@
 {
-  "name": "update_calendar_event",
+  "name": "gcal_update_calendar_event",
   "description": "Googleカレンダーの既存の予定を更新します。eventIdは必須。変更したい項目だけ指定すればOKです。",
   "parameters": {
     "type": "OBJECT",

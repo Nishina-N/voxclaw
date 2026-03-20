@@ -1,5 +1,5 @@
 {
-  "name": "create_calendar_event",
+  "name": "gcal_create_calendar_event",
   "description": "Googleカレンダーに予定を追加します。タイトル・開始終了時刻は必須。説明・場所は省略可。",
   "parameters": {
     "type": "OBJECT",

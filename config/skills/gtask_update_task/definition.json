@@ -1,5 +1,5 @@
 {
-  "name": "update_task",
+  "name": "gtask_update_task",
   "description": "Googleタスクを更新します。タスクの完了マーク・タイトル変更・期限変更などに使います。task_idは必須。",
   "parameters": {
     "type": "OBJECT",

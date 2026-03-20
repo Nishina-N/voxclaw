@@ -1,5 +1,5 @@
 {
-  "name": "create_task",
+  "name": "gtask_create_task",
   "description": "Googleタスクに新しいタスクを追加します。タイトルは必須。期限・メモは省略可。",
   "parameters": {
     "type": "OBJECT",

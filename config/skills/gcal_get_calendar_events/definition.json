@@ -1,5 +1,5 @@
 {
-  "name": "get_calendar_events",
+  "name": "gcal_get_calendar_events",
   "description": "Googleカレンダーから予定を取得します。指定した期間（timeMin, timeMax）のイベントを取得可能です。",
   "parameters": {
     "type": "OBJECT",
