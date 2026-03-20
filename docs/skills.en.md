@@ -48,63 +48,63 @@ Skills the agent has created in `config/skills/`:
 
 | Skill | Description |
 |---|---|
-| `web_search` | Search the web using Brave Search API and return results |
-| `get_today_date` | Get the current date (UTC, YYYY-MM-DD format) |
-| `memory_search` | Full-text search across `/app/memory/` using SQLite FTS5 |
+| `util_web_search` | Search the web using Brave Search API and return results |
+| `util_get_today_date` | Get the current date (UTC, YYYY-MM-DD format) |
+| `util_memory_search` | Full-text search across `/app/memory/` using SQLite FTS5 |
 
 ### Maps & Location
 
 | Skill | Description |
 |---|---|
-| `get_location` | Get latitude/longitude from a place name or address |
-| `get_mapbox_map` | Fetch a map image via Mapbox API and save it to a local path |
+| `map_get_location` | Get latitude/longitude from a place name or address |
+| `map_get_mapbox_map` | Fetch a map image via Mapbox API and save it to a local path |
 
 ### Python Execution
 
 | Skill | Description |
 |---|---|
-| `run_python` | Execute an existing Python file on the server |
-| `run_python_code` | Execute a Python code snippet in memory immediately |
+| `util_run_python` | Execute an existing Python file on the server |
+| `util_run_python_code` | Execute a Python code snippet in memory immediately |
 
 ### Discord
 
 | Skill | Description |
 |---|---|
-| `send_image_to_discord` | Send an image file from a local path to a Discord channel |
+| `util_send_image_to_discord` | Send an image file from a local path to a Discord channel |
 
 ### Google Calendar
 
 | Skill | Description |
 |---|---|
-| `get_calendar_events` | Fetch Google Calendar events for a specified period |
-| `create_calendar_event` | Add an event to Google Calendar |
-| `update_calendar_event` | Update an existing Google Calendar event |
-| `delete_calendar_event` | Delete a Google Calendar event |
+| `gcal_get_calendar_events` | Fetch Google Calendar events for a specified period |
+| `gcal_create_calendar_event` | Add an event to Google Calendar |
+| `gcal_update_calendar_event` | Update an existing Google Calendar event |
+| `gcal_delete_calendar_event` | Delete a Google Calendar event |
 
 ### Google Sheets
 
 | Skill | Description |
 |---|---|
-| `create_spreadsheet` | Create a new Google Spreadsheet |
-| `get_spreadsheet_info` | Get spreadsheet title and sheet name list |
-| `read_spreadsheet` | Read cell values from a range (A1 notation) |
-| `write_spreadsheet` | Write data to a range (overwrites existing data) |
-| `append_spreadsheet` | Append rows after the last row with data |
+| `gsheet_create_spreadsheet` | Create a new Google Spreadsheet |
+| `gsheet_get_spreadsheet_info` | Get spreadsheet title and sheet name list |
+| `gsheet_read_spreadsheet` | Read cell values from a range (A1 notation) |
+| `gsheet_write_spreadsheet` | Write data to a range (overwrites existing data) |
+| `gsheet_append_spreadsheet` | Append rows after the last row with data |
 
 ### Google Tasks
 
 | Skill | Description |
 |---|---|
-| `get_tasks` | Get a list of Google Tasks |
-| `create_task` | Add a new task to Google Tasks |
-| `update_task` | Update a task (mark complete, rename, change due date) |
-| `delete_task` | Delete a Google Task |
+| `gtask_get_tasks` | Get a list of Google Tasks |
+| `gtask_create_task` | Add a new task to Google Tasks |
+| `gtask_update_task` | Update a task (mark complete, rename, change due date) |
+| `gtask_delete_task` | Delete a Google Task |
 
 ### System Management
 
 | Skill | Description |
 |---|---|
-| `update_skills_list` | Scan `config/skills/` and update `config/skills_list.md` |
+| `util_update_skills_list` | Scan `config/skills/` and update `config/skills_list.md` |
 
 ---
 

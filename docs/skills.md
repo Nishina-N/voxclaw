@@ -48,63 +48,63 @@
 
 | スキル | 説明 |
 |---|---|
-| `web_search` | Brave Search API で Web 検索し結果を返す |
-| `get_today_date` | 現在の日付（UTC基準、YYYY年MM月DD日）を取得 |
-| `memory_search` | `/app/memory/` を SQLite FTS5 で全文検索する |
+| `util_web_search` | Brave Search API で Web 検索し結果を返す |
+| `util_get_today_date` | 現在の日付（UTC基準、YYYY年MM月DD日）を取得 |
+| `util_memory_search` | `/app/memory/` を SQLite FTS5 で全文検索する |
 
 ### マップ・位置情報
 
 | スキル | 説明 |
 |---|---|
-| `get_location` | 場所名・住所から緯度・経度を取得する |
-| `get_mapbox_map` | Mapbox API で地図画像を取得し、ローカルパスに保存して返す |
+| `map_get_location` | 場所名・住所から緯度・経度を取得する |
+| `map_get_mapbox_map` | Mapbox API で地図画像を取得し、ローカルパスに保存して返す |
 
 ### Python 実行
 
 | スキル | 説明 |
 |---|---|
-| `run_python` | サーバー内の既存 Python ファイルを実行する |
-| `run_python_code` | メモリ上で Python コード断片を即時実行する |
+| `util_run_python` | サーバー内の既存 Python ファイルを実行する |
+| `util_run_python_code` | メモリ上で Python コード断片を即時実行する |
 
 ### Discord
 
 | スキル | 説明 |
 |---|---|
-| `send_image_to_discord` | 指定パスの画像ファイルを Discord チャンネルに送信する |
+| `util_send_image_to_discord` | 指定パスの画像ファイルを Discord チャンネルに送信する |
 
 ### Google カレンダー
 
 | スキル | 説明 |
 |---|---|
-| `get_calendar_events` | 指定期間の Google カレンダー予定を取得する |
-| `create_calendar_event` | Google カレンダーに予定を追加する |
-| `update_calendar_event` | Google カレンダーの既存予定を更新する |
-| `delete_calendar_event` | Google カレンダーの予定を削除する |
+| `gcal_get_calendar_events` | 指定期間の Google カレンダー予定を取得する |
+| `gcal_create_calendar_event` | Google カレンダーに予定を追加する |
+| `gcal_update_calendar_event` | Google カレンダーの既存予定を更新する |
+| `gcal_delete_calendar_event` | Google カレンダーの予定を削除する |
 
 ### Google スプレッドシート
 
 | スキル | 説明 |
 |---|---|
-| `create_spreadsheet` | Google スプレッドシートを新規作成する |
-| `get_spreadsheet_info` | スプレッドシートのタイトルとシート名一覧を取得する |
-| `read_spreadsheet` | 指定範囲のセル値を取得する（A1記法） |
-| `write_spreadsheet` | 指定範囲にデータを書き込む（既存データを上書き） |
-| `append_spreadsheet` | 最終行の後に新しい行を追加する |
+| `gsheet_create_spreadsheet` | Google スプレッドシートを新規作成する |
+| `gsheet_get_spreadsheet_info` | スプレッドシートのタイトルとシート名一覧を取得する |
+| `gsheet_read_spreadsheet` | 指定範囲のセル値を取得する（A1記法） |
+| `gsheet_write_spreadsheet` | 指定範囲にデータを書き込む（既存データを上書き） |
+| `gsheet_append_spreadsheet` | 最終行の後に新しい行を追加する |
 
 ### Google タスク
 
 | スキル | 説明 |
 |---|---|
-| `get_tasks` | Google タスクの一覧を取得する |
-| `create_task` | Google タスクに新しいタスクを追加する |
-| `update_task` | Google タスクを更新する（完了マーク・タイトル変更・期限変更） |
-| `delete_task` | Google タスクを削除する |
+| `gtask_get_tasks` | Google タスクの一覧を取得する |
+| `gtask_create_task` | Google タスクに新しいタスクを追加する |
+| `gtask_update_task` | Google タスクを更新する（完了マーク・タイトル変更・期限変更） |
+| `gtask_delete_task` | Google タスクを削除する |
 
 ### システム管理
 
 | スキル | 説明 |
 |---|---|
-| `update_skills_list` | `config/skills/` を走査して `config/skills_list.md` を更新する |
+| `util_update_skills_list` | `config/skills/` を走査して `config/skills_list.md` を更新する |
 
 ---
 
