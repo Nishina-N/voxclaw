@@ -1,0 +1,14 @@
+{
+  "name": "gsheet_list_charts",
+  "description": "Google スプレッドシート内のグラフ一覧（chartId・title・chartType・シート名）を取得します。グラフの削除・更新前に chartId を調べるときに使います。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "spreadsheet_id": {
+        "type": "STRING",
+        "description": "スプレッドシートのID（URLの /d/ 以降の文字列）"
+      }
+    },
+    "required": ["spreadsheet_id"]
+  }
+}

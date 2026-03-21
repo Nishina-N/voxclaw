@@ -1,0 +1,30 @@
+{
+  "name": "gsheet_add_chart",
+  "description": "Google スプレッドシートにグラフを追加します。source_range の1列目がカテゴリ（X軸・ラベル）、残りの列がシリーズ（値）として扱われます。position を省略すると新しいシートに作成されます。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "spreadsheet_id": {
+        "type": "STRING",
+        "description": "スプレッドシートのID（URLの /d/ 以降の文字列）"
+      },
+      "chart_type": {
+        "type": "STRING",
+        "description": "グラフの種類: BAR（横棒）/ LINE（折れ線）/ COLUMN（縦棒）/ PIE（円グラフ）/ SCATTER（散布図）/ AREA（面グラフ）"
+      },
+      "source_range": {
+        "type": "STRING",
+        "description": "データ範囲（A1記法: 例 'Sheet1!A1:B10'）。1列目がカテゴリ、残りがシリーズ"
+      },
+      "title": {
+        "type": "STRING",
+        "description": "グラフタイトル（省略可）"
+      },
+      "position": {
+        "type": "OBJECT",
+        "description": "グラフの配置（省略時は新しいシートに作成）。例: { \"overlayPosition\": { \"anchorCell\": { \"sheetId\": 0, \"rowIndex\": 0, \"columnIndex\": 0 }, \"widthPixels\": 600, \"heightPixels\": 371 } }"
+      }
+    },
+    "required": ["spreadsheet_id", "chart_type", "source_range"]
+  }
+}
