@@ -1,0 +1,22 @@
+{
+  "name": "gsheet_update_chart",
+  "description": "Google スプレッドシートの既存グラフのスペック（タイトル・凡例・軸・色など）を更新します。【重要】updateChartSpec はスペック全体の置き換えになるため、先に gsheet_list_charts でスペックを取得し、変更したいフィールドをマージして渡してください。代表的なフィールド: title（タイトル）、basicChart.legendPosition（凡例位置: BOTTOM_LEGEND / TOP_LEGEND / RIGHT_LEGEND / NO_LEGEND）、basicChart.stackedType（積み上げ: NOT_STACKED / STACKED / PERCENT_STACKED）、basicChart.series[].color（系列の色 { red, green, blue }）、pieChart.pieHole（ドーナツ比率 0.0〜1.0）。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "spreadsheet_id": {
+        "type": "STRING",
+        "description": "スプレッドシートのID（URLの /d/ 以降の文字列）"
+      },
+      "chart_id": {
+        "type": "NUMBER",
+        "description": "更新するグラフのID（gsheet_list_charts で取得できる）"
+      },
+      "spec": {
+        "type": "OBJECT",
+        "description": "ChartSpec オブジェクト。スペック全体の置き換えになるため、既存のスペックに変更フィールドをマージして渡すこと"
+      }
+    },
+    "required": ["spreadsheet_id", "chart_id", "spec"]
+  }
+}

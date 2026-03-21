@@ -1,0 +1,18 @@
+{
+  "name": "gsheet_delete_chart",
+  "description": "Google スプレッドシートのグラフを削除します。chartId は gsheet_list_charts で確認できます。削除前にユーザーに確認を取ってください。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "spreadsheet_id": {
+        "type": "STRING",
+        "description": "スプレッドシートのID（URLの /d/ 以降の文字列）"
+      },
+      "chart_id": {
+        "type": "NUMBER",
+        "description": "削除するグラフのID（gsheet_list_charts で取得できる）"
+      }
+    },
+    "required": ["spreadsheet_id", "chart_id"]
+  }
+}

@@ -307,6 +307,49 @@ curl -X POST http://keybinder:3001/google/sheets/write \
 curl -X POST http://keybinder:3001/google/sheets/append \
   -H 'Content-Type: application/json' \
   -d '{"spreadsheetId": "abc123", "range": "Sheet1", "values": [["Bob", 85]]}'
+
+# グラフを追加
+# POST /google/sheets/charts/add
+#   body: { spreadsheetId, chartType, title?, sourceRange, position? }
+#   chartType: "BAR" | "LINE" | "COLUMN" | "PIE" | "SCATTER" | "AREA"
+#   sourceRange: A1記法 例 "Sheet1!A1:B10"（1列目がカテゴリ、残りがシリーズ）
+#   position: EmbeddedObjectPosition（省略時は新シートに作成）
+curl -X POST http://keybinder:3001/google/sheets/charts/add \
+  -H 'Content-Type: application/json' \
+  -d '{"spreadsheetId": "abc123", "chartType": "BAR", "title": "売上", "sourceRange": "Sheet1!A1:B10"}'
+# 戻り値: { "chartId": 123456789, ... }
+
+# グラフのスペックを更新（タイトル・凡例・軸・色など）
+# PUT /google/sheets/charts/update
+#   body: { spreadsheetId, chartId, spec, fields? }
+#   spec: ChartSpec オブジェクト（変更するフィールドだけ渡せる）
+#   fields: FieldMask（省略時は "*" で全上書き）
+#
+# 代表的な spec フィールド:
+#   title                              グラフタイトル
+#   titleTextFormat.fontSize           タイトルフォントサイズ
+#   basicChart.legendPosition          凡例位置: BOTTOM_LEGEND / TOP_LEGEND / LEFT_LEGEND / RIGHT_LEGEND / NO_LEGEND
+#   basicChart.axis[].title            軸タイトル
+#   basicChart.stackedType             積み上げ: NOT_STACKED / STACKED / PERCENT_STACKED
+#   basicChart.series[].color          系列の色 { red, green, blue }
+#   basicChart.series[].dataLabel.type データラベル: DATA / CUSTOM / NONE
+#   pieChart.pieHole                   ドーナツ比率 (0.0〜1.0)
+curl -X PUT http://keybinder:3001/google/sheets/charts/update \
+  -H 'Content-Type: application/json' \
+  -d '{"spreadsheetId": "abc123", "chartId": 123456789, "spec": {"title": "新しいタイトル"}, "fields": "title"}'
+# 戻り値: batchUpdate レスポンス JSON
+
+# グラフを削除
+# DELETE /google/sheets/charts/delete  body: { spreadsheetId, chartId }
+curl -X DELETE http://keybinder:3001/google/sheets/charts/delete \
+  -H 'Content-Type: application/json' \
+  -d '{"spreadsheetId": "abc123", "chartId": 123456789}'
+# 戻り値: { "success": true }
+
+# スプレッドシート内のグラフ一覧を取得
+# GET /google/sheets/charts/list?spreadsheetId=<id>
+curl "http://keybinder:3001/google/sheets/charts/list?spreadsheetId=abc123"
+# 戻り値: { "charts": [ { "chartId": 123456789, "title": "売上", "chartType": "BAR", "sheetTitle": "Sheet1" }, ... ] }
 ```
 
 ### Google タスク
