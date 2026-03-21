@@ -629,6 +629,44 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // PUT /google/sheets/charts/update
+    //   body: { spreadsheetId, chartId, spec, fields? }
+    //   spec: ChartSpec object (partial or full)
+    //   fields: FieldMask string (default "*" = full overwrite)
+    //
+    // Representative ChartSpec fields:
+    //   title                                          Chart title
+    //   titleTextFormat.fontSize                       Title font size
+    //   basicChart.legendPosition                      BOTTOM_LEGEND / TOP_LEGEND / LEFT_LEGEND / RIGHT_LEGEND / NO_LEGEND
+    //   basicChart.axis[].title                        Axis title
+    //   basicChart.axis[].viewWindowOptions.viewWindowMin / viewWindowMax  Axis min/max
+    //   basicChart.axis[].viewWindowOptions.viewWindowMode  EXPLICIT / PRETTY / MAXIMIZED
+    //   basicChart.series[].color                      Series color { red, green, blue }
+    //   basicChart.series[].dataLabel.type             Data label: DATA / CUSTOM / NONE
+    //   basicChart.stackedType                         NOT_STACKED / STACKED / PERCENT_STACKED
+    //   pieChart.legendPosition                        Pie chart legend position
+    //   pieChart.pieHole                               Donut ratio (0.0–1.0)
+    if (pathname === '/google/sheets/charts/update' && method === 'PUT') {
+      const bodyStr = await readBody(req);
+      const { spreadsheetId, chartId, spec, fields = '*' } = JSON.parse(bodyStr);
+      if (!spreadsheetId || chartId == null || !spec) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Missing fields: spreadsheetId, chartId, spec' }));
+        return;
+      }
+
+      const result = await googleRequest('POST',
+        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}:batchUpdate`,
+        { 'Content-Type': 'application/json' },
+        JSON.stringify({
+          requests: [{ updateChartSpec: { chartId, spec } }],
+        }),
+      );
+      res.writeHead(result.status);
+      res.end(result.body);
+      return;
+    }
+
     // DELETE /google/sheets/charts/delete  body: { spreadsheetId, chartId }
     if (pathname === '/google/sheets/charts/delete' && method === 'DELETE') {
       const bodyStr = await readBody(req);

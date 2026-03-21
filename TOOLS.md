@@ -338,6 +338,16 @@ curl -X POST http://keybinder:3001/google/sheets/charts/add \
   -d '{"spreadsheetId": "abc123", "chartType": "BAR", "title": "Sales", "sourceRange": "Sheet1!A1:B10"}'
 # Returns: { "chartId": 123456789, ... }
 
+# Update a chart spec (title, legend, axis, colors, etc.)
+# PUT /google/sheets/charts/update
+#   body: { spreadsheetId, chartId, spec, fields? }
+#   spec: ChartSpec object — pass only the fields you want to change
+#   fields: FieldMask (default "*" = full overwrite)
+curl -X PUT http://keybinder:3001/google/sheets/charts/update \
+  -H 'Content-Type: application/json' \
+  -d '{"spreadsheetId": "abc123", "chartId": 123456789, "spec": {"title": "New Title"}, "fields": "title"}'
+# Returns: batchUpdate response JSON
+
 # Delete a chart
 # DELETE /google/sheets/charts/delete  body: { spreadsheetId, chartId }
 curl -X DELETE http://keybinder:3001/google/sheets/charts/delete \
