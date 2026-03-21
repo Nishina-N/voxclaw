@@ -126,6 +126,62 @@ async function googleRequest(
   }, body);
 }
 
+// ─── Google Sheets chart helpers ─────────────────────────────────────────────
+
+function columnLetterToIndex(col: string): number {
+  let result = 0;
+  for (const ch of col.toUpperCase()) {
+    result = result * 26 + (ch.charCodeAt(0) - 65 + 1);
+  }
+  return result - 1;
+}
+
+async function parseA1Range(spreadsheetId: string, source: string): Promise<{
+  sheetId: number;
+  startRowIndex: number;
+  endRowIndex: number;
+  startColumnIndex: number;
+  endColumnIndex: number;
+}> {
+  let sheetTitle = '';
+  let rangeStr = source;
+
+  const bangIdx = source.indexOf('!');
+  if (bangIdx !== -1) {
+    sheetTitle = source.slice(0, bangIdx);
+    rangeStr = source.slice(bangIdx + 1);
+  }
+
+  let sheetId = 0;
+  if (sheetTitle) {
+    const infoResult = await googleRequest('GET',
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}?fields=sheets.properties`
+    );
+    const info = JSON.parse(infoResult.body);
+    const sheet = (info.sheets || []).find((s: any) => s.properties?.title === sheetTitle);
+    if (!sheet) throw new Error(`Sheet not found: ${sheetTitle}`);
+    sheetId = sheet.properties.sheetId;
+  }
+
+  const parseCell = (cell: string): { col: number; row: number } => {
+    const m = cell.match(/^([A-Za-z]+)(\d+)$/);
+    if (!m) throw new Error(`Invalid cell reference: ${cell}`);
+    return { col: columnLetterToIndex(m[1]), row: parseInt(m[2]) - 1 };
+  };
+
+  const parts = rangeStr.split(':');
+  const start = parseCell(parts[0]);
+  const end = parts.length > 1 ? parseCell(parts[1]) : start;
+
+  return {
+    sheetId,
+    startRowIndex: start.row,
+    endRowIndex: end.row + 1,
+    startColumnIndex: start.col,
+    endColumnIndex: end.col + 1,
+  };
+}
+
 // ─── HTTP server ──────────────────────────────────────────────────────────────
 
 const server = http.createServer(async (req, res) => {
@@ -503,6 +559,136 @@ const server = http.createServer(async (req, res) => {
       );
       res.writeHead(result.status === 204 ? 200 : result.status);
       res.end(JSON.stringify({ success: result.status === 204 }));
+      return;
+    }
+
+    // ────────────────────────────────────────────
+    // Google Sheets Charts
+    // ────────────────────────────────────────────
+
+    // POST /google/sheets/charts/add
+    //   body: { spreadsheetId, chartType, title?, sourceRange, position? }
+    //   chartType: "BAR" | "LINE" | "COLUMN" | "PIE" | "SCATTER" | "AREA"
+    //   sourceRange: A1 notation e.g. "Sheet1!A1:B10"
+    //   position: EmbeddedObjectPosition (defaults to new sheet)
+    if (pathname === '/google/sheets/charts/add' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { spreadsheetId, chartType, title, sourceRange, position } = JSON.parse(bodyStr);
+      if (!spreadsheetId || !chartType || !sourceRange) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Missing fields: spreadsheetId, chartType, sourceRange' }));
+        return;
+      }
+
+      const gridRange = await parseA1Range(spreadsheetId, sourceRange);
+
+      // First column → domain (categories), remaining columns → series
+      const domainRange = { ...gridRange, endColumnIndex: gridRange.startColumnIndex + 1 };
+      const seriesRange = { ...gridRange, startColumnIndex: gridRange.startColumnIndex + 1 };
+
+      let chartSpec: Record<string, any>;
+      if (chartType === 'PIE') {
+        chartSpec = {
+          title: title || '',
+          pieChart: {
+            legendPosition: 'RIGHT_LEGEND',
+            domain: { sourceRange: { sources: [domainRange] } },
+            series: { sourceRange: { sources: [seriesRange] } },
+          },
+        };
+      } else {
+        chartSpec = {
+          title: title || '',
+          basicChart: {
+            chartType,
+            legendPosition: 'BOTTOM_LEGEND',
+            headerCount: 1,
+            domains: [{ domain: { sourceRange: { sources: [domainRange] } } }],
+            series: [{ series: { sourceRange: { sources: [seriesRange] } } }],
+          },
+        };
+      }
+
+      const result = await googleRequest('POST',
+        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}:batchUpdate`,
+        { 'Content-Type': 'application/json' },
+        JSON.stringify({
+          requests: [{ addChart: { chart: { spec: chartSpec, position: position || { newSheet: true } } } }],
+        }),
+      );
+
+      if (result.status === 200) {
+        const parsed = JSON.parse(result.body);
+        const chartId = parsed.replies?.[0]?.addChart?.chart?.chartId;
+        res.writeHead(200);
+        res.end(JSON.stringify({ chartId, ...parsed }));
+      } else {
+        res.writeHead(result.status);
+        res.end(result.body);
+      }
+      return;
+    }
+
+    // DELETE /google/sheets/charts/delete  body: { spreadsheetId, chartId }
+    if (pathname === '/google/sheets/charts/delete' && method === 'DELETE') {
+      const bodyStr = await readBody(req);
+      const { spreadsheetId, chartId } = JSON.parse(bodyStr);
+      if (!spreadsheetId || chartId == null) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Missing fields: spreadsheetId, chartId' }));
+        return;
+      }
+
+      const result = await googleRequest('POST',
+        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}:batchUpdate`,
+        { 'Content-Type': 'application/json' },
+        JSON.stringify({ requests: [{ deleteEmbeddedObject: { objectId: chartId } }] }),
+      );
+      res.writeHead(result.status === 200 ? 200 : result.status);
+      res.end(result.status === 200 ? JSON.stringify({ success: true }) : result.body);
+      return;
+    }
+
+    // GET /google/sheets/charts/list?spreadsheetId=<id>
+    if (pathname === '/google/sheets/charts/list' && method === 'GET') {
+      const spreadsheetId = query.spreadsheetId as string;
+      if (!spreadsheetId) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Missing parameter: spreadsheetId' }));
+        return;
+      }
+
+      const result = await googleRequest('GET',
+        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}?fields=sheets(charts,properties.title)`
+      );
+
+      if (result.status !== 200) {
+        res.writeHead(result.status);
+        res.end(result.body);
+        return;
+      }
+
+      const parsed = JSON.parse(result.body);
+      const charts: Array<{ chartId: number; title: string; chartType: string; sheetTitle: string }> = [];
+
+      for (const sheet of parsed.sheets || []) {
+        const sheetTitle = sheet.properties?.title || '';
+        for (const chart of sheet.charts || []) {
+          const spec = chart.spec || {};
+          let chartType = 'UNKNOWN';
+          if (spec.basicChart?.chartType) {
+            chartType = spec.basicChart.chartType;
+          } else if (spec.pieChart) {
+            chartType = 'PIE';
+          } else if (spec.areaChart) {
+            chartType = 'AREA';
+          }
+          charts.push({ chartId: chart.chartId, title: spec.title || '', chartType, sheetTitle });
+        }
+      }
+
+      res.writeHead(200);
+      res.end(JSON.stringify({ charts }));
       return;
     }
 
