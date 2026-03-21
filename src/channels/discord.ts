@@ -4,13 +4,18 @@ import type { Message as DiscordMessage, Attachment } from 'discord.js';
 import { type Message } from '../db.js';
 import { type Channel, type OnMessageCallback } from './types.js';
 import { processMessage as processAgentMessage } from '../agent.js';
-import { transcribeVoiceMessage } from '../voice.js';
+import { transcribeVoiceMessage, transcribeAudioText } from '../voice.js';
 
 // --- Voice confirmation helpers ---
 
-const CONFIRM_KEYWORDS = ['はい', 'yes', 'ok', 'おk', '実行', 'やって', '進めて', 'いいよ', 'そう', 'そうです', '正しい', '合ってる', 'もちろん', 'お願い'];
+const CONFIRM_KEYWORDS = [
+    'はい', 'ハイ', 'うん', 'うんうん', 'そう', 'そうです', 'そうして',
+    'yes', 'ok', 'おk', 'オーケー',
+    '実行', 'やって', 'やる', '進めて', 'いいよ', 'いいです', 'いいですよ',
+    '正しい', '合ってる', 'もちろん', 'お願い', '了解', 'わかった', 'わかりました',
+    'ええ', 'ゆえに', '承認',
+];
 const CANCEL_KEYWORDS = ['いいえ', 'no', 'キャンセル', 'やめて', '違う', 'やめます', '中止'];
-const AMBIGUOUS_KEYWORDS = ['大丈夫', 'どうぞ', 'まあ', 'いいんじゃない', 'かな'];
 const VOICE_CONFIRM_TIMEOUT_MS = 60_000;
 const MAX_AMBIGUOUS_RETRIES = 2;
 
@@ -22,11 +27,6 @@ function isConfirm(text: string): boolean {
 function isCancel(text: string): boolean {
     const t = text.trim().toLowerCase();
     return CANCEL_KEYWORDS.some((k) => t.includes(k.toLowerCase()));
-}
-
-function isAmbiguous(text: string): boolean {
-    const t = text.trim().toLowerCase();
-    return AMBIGUOUS_KEYWORDS.some((k) => t.includes(k.toLowerCase()));
 }
 
 // チャンネル+ユーザーごとに確認待ち中フラグを管理
@@ -157,19 +157,29 @@ export class DiscordChannel implements Channel {
                     return;
                 }
 
-                // 返答テキストを取得（音声の場合は Gemini でテキスト化）
-                let replyText = replyMsg?.content ?? '';
+                // null チェック：収集されたはずだが念のため
+                if (!replyMsg) {
+                    await ch.send(`${mention} 確認がなかったためキャンセルしました。`);
+                    return;
+                }
+
+                // 返答テキストを取得
+                // 音声の場合は transcribeAudioText（言い換えなし文字起こし）を使う
+                // ※ transcribeVoiceMessage の intent は「〜したい」形式の説明文になるため
+                //   「はい」「了解」などの確認ワードが失われる可能性がある
+                let replyText = replyMsg.content.trim();
                 if (replyText === '') {
-                    const audioAtt = replyMsg?.attachments.find((a: Attachment) => a.contentType?.startsWith('audio/'));
+                    const audioAtt = replyMsg.attachments.find((a: Attachment) => a.contentType?.startsWith('audio/'));
                     if (audioAtt) {
                         try {
-                            const replyAnalysis = await transcribeVoiceMessage(audioAtt.url, audioAtt.contentType ?? 'audio/ogg');
-                            replyText = replyAnalysis.intent;
+                            replyText = await transcribeAudioText(audioAtt.url, audioAtt.contentType ?? 'audio/ogg');
                         } catch {
                             replyText = '';
                         }
                     }
                 }
+
+                console.log(`[voice confirm] replyText="${replyText}" isConfirm=${isConfirm(replyText)} isCancel=${isCancel(replyText)}`);
 
                 // 確認・キャンセル・曖昧を判定
                 if (isConfirm(replyText) && !isCancel(replyText)) {

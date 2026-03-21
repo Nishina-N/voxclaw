@@ -14,6 +14,52 @@ export interface VoiceAnalysis {
 }
 
 /**
+ * 確認フロー専用：音声をそのまま文字起こしして返す（intent への言い換えは行わない）。
+ * 「はい」と言えば「はい」が返る。
+ */
+export async function transcribeAudioText(audioUrl: string, mimeType: string): Promise<string> {
+    const tmpPath = path.join('/tmp', `voice-confirm-${crypto.randomBytes(8).toString('hex')}`);
+
+    try {
+        const resp = await fetch(audioUrl);
+        if (!resp.ok) throw new Error(`Failed to download audio: ${resp.status}`);
+        const buffer = Buffer.from(await resp.arrayBuffer());
+        await fs.writeFile(tmpPath, buffer);
+
+        const uploaded = await ai.files.upload({
+            file: tmpPath,
+            config: { mimeType, displayName: 'voice_confirm' },
+        });
+
+        if (!uploaded.uri) throw new Error('File upload failed: no URI returned');
+
+        const result = await ai.models.generateContent({
+            model,
+            contents: [
+                {
+                    role: 'user',
+                    parts: [
+                        {
+                            fileData: {
+                                fileUri: uploaded.uri,
+                                mimeType: uploaded.mimeType ?? mimeType,
+                            },
+                        },
+                        {
+                            text: 'この音声の発言内容をそのまま文字起こしてください。言い換えや要約は不要です。話者が話した言葉をそのまま書いてください。文字起こし結果のみを返してください。',
+                        },
+                    ],
+                },
+            ],
+        });
+
+        return result.text?.trim() ?? '';
+    } finally {
+        await fs.unlink(tmpPath).catch(() => {});
+    }
+}
+
+/**
  * Discord のボイスメッセージを Gemini File API に渡して
  * 意図テキストとアクション有無を返す。
  */
