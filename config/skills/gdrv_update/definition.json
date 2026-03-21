@@ -1,0 +1,13 @@
+{
+  "name": "gdrv_update",
+  "description": "Googleドライブ上のファイルを更新する",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "fileId": { "type": "STRING", "description": "更新するファイルのID" },
+      "content": { "type": "STRING", "description": "新しい内容" },
+      "mimeType": { "type": "STRING", "description": "MIMEタイプ" }
+    },
+    "required": ["fileId", "content"]
+  }
+}

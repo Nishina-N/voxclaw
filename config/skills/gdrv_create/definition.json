@@ -1,0 +1,14 @@
+{
+  "name": "gdrv_create",
+  "description": "Googleドライブに新規ファイルを作成する",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "name": { "type": "STRING", "description": "ファイル名" },
+      "content": { "type": "STRING", "description": "ファイル内容" },
+      "mimeType": { "type": "STRING", "description": "MIMEタイプ" },
+      "folderId": { "type": "STRING", "description": "作成先フォルダID" }
+    },
+    "required": ["name", "content"]
+  }
+}

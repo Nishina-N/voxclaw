@@ -1,0 +1,12 @@
+{
+  "name": "gdrv_list",
+  "description": "Googleドライブ内のファイルを検索・一覧化する",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "folderId": { "type": "STRING", "description": "検索対象のフォルダID" },
+      "query": { "type": "STRING", "description": "検索クエリ" },
+      "pageSize": { "type": "NUMBER", "description": "取得件数" }
+    }
+  }
+}

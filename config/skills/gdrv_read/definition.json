@@ -1,0 +1,11 @@
+{
+  "name": "gdrv_read",
+  "description": "Googleドライブ上のテキストファイルの内容を読み取る",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "fileId": { "type": "STRING", "description": "読み取るファイルのID" }
+    },
+    "required": ["fileId"]
+  }
+}
