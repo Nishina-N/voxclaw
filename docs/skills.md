@@ -90,6 +90,10 @@
 | `gsheet_read_spreadsheet` | 指定範囲のセル値を取得する（A1記法） |
 | `gsheet_write_spreadsheet` | 指定範囲にデータを書き込む（既存データを上書き） |
 | `gsheet_append_spreadsheet` | 最終行の後に新しい行を追加する |
+| `gsheet_list_charts` | スプレッドシート内のグラフ一覧（chartId・title・chartType）を取得する |
+| `gsheet_add_chart` | グラフを追加する（BAR / LINE / COLUMN / PIE / SCATTER / AREA） |
+| `gsheet_update_chart` | グラフのスペックを更新する（タイトル・凡例・軸・色など） |
+| `gsheet_delete_chart` | グラフを削除する |
 
 ### Google タスク
 

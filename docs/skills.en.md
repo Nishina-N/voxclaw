@@ -90,6 +90,10 @@ Skills the agent has created in `config/skills/`:
 | `gsheet_read_spreadsheet` | Read cell values from a range (A1 notation) |
 | `gsheet_write_spreadsheet` | Write data to a range (overwrites existing data) |
 | `gsheet_append_spreadsheet` | Append rows after the last row with data |
+| `gsheet_list_charts` | Get a list of charts in a spreadsheet (chartId, title, chartType) |
+| `gsheet_add_chart` | Add a chart (BAR / LINE / COLUMN / PIE / SCATTER / AREA) |
+| `gsheet_update_chart` | Update a chart spec (title, legend, axis, colors, etc.) |
+| `gsheet_delete_chart` | Delete a chart |
 
 ### Google Tasks
 
