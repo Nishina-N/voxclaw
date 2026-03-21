@@ -8,9 +8,11 @@ import { transcribeVoiceMessage } from '../voice.js';
 
 // --- Voice confirmation helpers ---
 
-const CONFIRM_KEYWORDS = ['はい', 'yes', 'ok', 'おk', '実行', 'やって', '進めて', 'いいよ', 'そう', 'そうです', '正しい', '合ってる'];
-const CANCEL_KEYWORDS = ['いいえ', 'no', 'キャンセル', 'やめて', '違う', '異なる'];
-const VOICE_CONFIRM_TIMEOUT_MS = 30_000;
+const CONFIRM_KEYWORDS = ['はい', 'yes', 'ok', 'おk', '実行', 'やって', '進めて', 'いいよ', 'そう', 'そうです', '正しい', '合ってる', 'もちろん', 'お願い'];
+const CANCEL_KEYWORDS = ['いいえ', 'no', 'キャンセル', 'やめて', '違う', 'やめます', '中止'];
+const AMBIGUOUS_KEYWORDS = ['大丈夫', 'どうぞ', 'まあ', 'いいんじゃない', 'かな'];
+const VOICE_CONFIRM_TIMEOUT_MS = 60_000;
+const MAX_AMBIGUOUS_RETRIES = 2;
 
 function isConfirm(text: string): boolean {
     const t = text.trim().toLowerCase();
@@ -20,6 +22,11 @@ function isConfirm(text: string): boolean {
 function isCancel(text: string): boolean {
     const t = text.trim().toLowerCase();
     return CANCEL_KEYWORDS.some((k) => t.includes(k.toLowerCase()));
+}
+
+function isAmbiguous(text: string): boolean {
+    const t = text.trim().toLowerCase();
+    return AMBIGUOUS_KEYWORDS.some((k) => t.includes(k.toLowerCase()));
 }
 
 // チャンネル+ユーザーごとに確認待ち中フラグを管理
@@ -92,56 +99,106 @@ export class DiscordChannel implements Channel {
         pendingVoiceConfirmations.add(confirmKey);
 
         const ch = message.channel as any;
+        const mention = `<@${message.author.id}>`;
+        const senderName = message.author.displayName ?? message.author.username;
 
         try {
             if ('sendTyping' in ch) await ch.sendTyping();
 
-            // 1. 音声を Gemini で理解して意図を取得
+            // 1. 音声を Gemini で解析して意図とアクション有無を取得
             const mimeType = attachment.contentType ?? 'audio/ogg';
-            let intent: string;
+            let analysis: { intent: string; hasAction: boolean };
             try {
-                intent = await transcribeVoiceMessage(attachment.url, mimeType);
+                analysis = await transcribeVoiceMessage(attachment.url, mimeType);
             } catch (err) {
                 console.error('[voice] transcription failed:', err);
-                await ch.send(`<@${message.author.id}> 音声の処理に失敗しました。もう一度お試しください。`);
+                await ch.send(`${mention} 音声の処理に失敗しました。もう一度お試しください。`);
                 return;
             }
 
-            // 2. 意図確認メッセージを送信
-            await ch.send(`<@${message.author.id}> 「${intent}」ということですね？実行してよいですか？`);
+            const { intent, hasAction } = analysis;
 
-            // 3. ユーザーの返答を待機（30秒）
-            let userReply: string;
-            try {
-                const collected = await ch.awaitMessages({
-                    filter: (m: DiscordMessage) => m.author.id === message.author.id,
-                    max: 1,
-                    time: VOICE_CONFIRM_TIMEOUT_MS,
-                    errors: ['time'],
-                });
-                userReply = collected.first()?.content ?? '';
-            } catch {
-                // タイムアウト
-                await ch.send(`<@${message.author.id}> 確認がなかったためキャンセルしました。`);
-                return;
-            }
-
-            // 4. 確認またはキャンセルを判定して処理
-            if (isConfirm(userReply) && !isCancel(userReply)) {
+            // 2. アクション意図なし → 確認なしでそのままテキスト会話として処理
+            if (!hasAction) {
                 if ('sendTyping' in ch) await ch.sendTyping();
                 try {
-                    const senderName = message.author.displayName ?? message.author.username;
                     const response = await processAgentMessage(intent, [], senderName, message.channelId);
                     const truncated = response.length > 1990 ? response.slice(0, 1990) + '…' : response;
-                    await ch.send(`<@${message.author.id}> ${truncated}`);
+                    await ch.send(`${mention} ${truncated}`);
                 } catch (err: any) {
                     console.error('[voice] processMessage error:', err);
                     const code = err.status ?? err.code ?? 'unknown';
-                    await ch.send(`<@${message.author.id}> ⚠️ エラーが発生しました（${code}）。しばらく経ってから再度お試しください。`);
+                    await ch.send(`${mention} ⚠️ エラーが発生しました（${code}）。しばらく経ってから再度お試しください。`);
                 }
-            } else {
-                // isCancel または不明な返答
-                await ch.send(`<@${message.author.id}> キャンセルしました。`);
+                return;
+            }
+
+            // 3. アクション意図あり → 意図確認メッセージを送信
+            await ch.send(`${mention} 「${intent}」ということですね？実行してよいですか？`);
+
+            // 4. 確認待ちループ（最大 MAX_AMBIGUOUS_RETRIES 回まで再確認）
+            let ambiguousCount = 0;
+            while (true) {
+                // ユーザーの返答を待機（テキストまたは音声）
+                let replyMsg: DiscordMessage | undefined;
+                try {
+                    const collected = await ch.awaitMessages({
+                        filter: (m: DiscordMessage) =>
+                            m.author.id === message.author.id &&
+                            (m.content.trim() !== '' || m.attachments.some((a: Attachment) => a.contentType?.startsWith('audio/'))),
+                        max: 1,
+                        time: VOICE_CONFIRM_TIMEOUT_MS,
+                        errors: ['time'],
+                    });
+                    replyMsg = collected.first();
+                } catch {
+                    // タイムアウト
+                    await ch.send(`${mention} 確認がなかったためキャンセルしました。`);
+                    return;
+                }
+
+                // 返答テキストを取得（音声の場合は Gemini でテキスト化）
+                let replyText = replyMsg?.content ?? '';
+                if (replyText === '') {
+                    const audioAtt = replyMsg?.attachments.find((a: Attachment) => a.contentType?.startsWith('audio/'));
+                    if (audioAtt) {
+                        try {
+                            const replyAnalysis = await transcribeVoiceMessage(audioAtt.url, audioAtt.contentType ?? 'audio/ogg');
+                            replyText = replyAnalysis.intent;
+                        } catch {
+                            replyText = '';
+                        }
+                    }
+                }
+
+                // 確認・キャンセル・曖昧を判定
+                if (isConfirm(replyText) && !isCancel(replyText)) {
+                    // 実行
+                    if ('sendTyping' in ch) await ch.sendTyping();
+                    try {
+                        const response = await processAgentMessage(intent, [], senderName, message.channelId);
+                        const truncated = response.length > 1990 ? response.slice(0, 1990) + '…' : response;
+                        await ch.send(`${mention} ${truncated}`);
+                    } catch (err: any) {
+                        console.error('[voice] processMessage error:', err);
+                        const code = err.status ?? err.code ?? 'unknown';
+                        await ch.send(`${mention} ⚠️ エラーが発生しました（${code}）。しばらく経ってから再度お試しください。`);
+                    }
+                    return;
+                }
+
+                if (isCancel(replyText)) {
+                    await ch.send(`${mention} キャンセルしました。`);
+                    return;
+                }
+
+                // 曖昧な返答
+                ambiguousCount++;
+                if (ambiguousCount >= MAX_AMBIGUOUS_RETRIES) {
+                    await ch.send(`${mention} キャンセルしました。`);
+                    return;
+                }
+                await ch.send(`${mention} 「はい」か「いいえ」でお答えください。`);
             }
         } finally {
             pendingVoiceConfirmations.delete(confirmKey);

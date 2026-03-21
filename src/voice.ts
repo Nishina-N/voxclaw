@@ -6,11 +6,18 @@ import * as crypto from 'crypto';
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
+export interface VoiceAnalysis {
+    /** 音声の内容を日本語一文で表した意図テキスト */
+    intent: string;
+    /** ファイル操作・検索・実行など何らかのアクションを要求しているか */
+    hasAction: boolean;
+}
+
 /**
- * Discord のボイスメッセージ（音声添付ファイル）を Gemini File API に渡して
- * ユーザーの意図を日本語で返す。
+ * Discord のボイスメッセージを Gemini File API に渡して
+ * 意図テキストとアクション有無を返す。
  */
-export async function transcribeVoiceMessage(audioUrl: string, mimeType: string): Promise<string> {
+export async function transcribeVoiceMessage(audioUrl: string, mimeType: string): Promise<VoiceAnalysis> {
     const tmpPath = path.join('/tmp', `voice-${crypto.randomBytes(8).toString('hex')}`);
 
     try {
@@ -28,7 +35,7 @@ export async function transcribeVoiceMessage(audioUrl: string, mimeType: string)
 
         if (!uploaded.uri) throw new Error('File upload failed: no URI returned');
 
-        // 3. Gemini に音声内容を理解させて意図を取得
+        // 3. 意図テキストとアクション有無を一度に取得
         const result = await ai.models.generateContent({
             model,
             contents: [
@@ -42,14 +49,40 @@ export async function transcribeVoiceMessage(audioUrl: string, mimeType: string)
                             },
                         },
                         {
-                            text: 'この音声メッセージを聞いて、ユーザーが何をしたいのか日本語で簡潔に一文で説明してください。「〜したい」「〜してほしい」という形式で答えてください。説明文のみを返してください。',
+                            text: `この音声メッセージを分析して、以下の JSON 形式のみで回答してください（説明不要）。
+
+{
+  "intent": "ユーザーの発言内容を日本語一文で要約したテキスト",
+  "hasAction": true または false
+}
+
+hasAction の判定基準：
+- true: ファイル操作・検索・実行・作成・送信・計算など何らかの操作・タスクを要求している
+- false: 雑談・質問・感想・挨拶など、操作を伴わない会話`,
                         },
                     ],
                 },
             ],
         });
 
-        return result.text?.trim() || '音声内容を理解できませんでした。';
+        const raw = result.text?.trim() ?? '';
+
+        // JSON を抽出してパース（```json ... ``` を除去）
+        const jsonMatch = raw.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            try {
+                const parsed = JSON.parse(jsonMatch[0]) as { intent?: string; hasAction?: boolean };
+                return {
+                    intent: parsed.intent?.trim() || '音声内容を理解できませんでした。',
+                    hasAction: parsed.hasAction === true,
+                };
+            } catch {
+                // パース失敗 → フォールバック
+            }
+        }
+
+        // JSON が取れなかった場合は会話扱い
+        return { intent: raw || '音声内容を理解できませんでした。', hasAction: false };
     } finally {
         // 4. 一時ファイルを削除
         await fs.unlink(tmpPath).catch(() => {});
