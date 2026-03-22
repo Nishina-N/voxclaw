@@ -118,6 +118,9 @@ export class DiscordChannel implements Channel {
 
             const { intent, hasAction } = analysis;
 
+            // 解析直後・処理開始前に文字起こし内容を投稿
+            await ch.send(`ユーザー入力：${intent}`);
+
             // 2. アクション意図なし → 確認なしでそのままテキスト会話として処理
             if (!hasAction) {
                 if ('sendTyping' in ch) await ch.sendTyping();
