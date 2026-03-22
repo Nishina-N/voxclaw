@@ -4,44 +4,54 @@ import type { Message as DiscordMessage, Attachment } from 'discord.js';
 import { type Message } from '../db.js';
 import { type Channel, type OnMessageCallback } from './types.js';
 import { processMessage as processAgentMessage } from '../agent.js';
-import { transcribeVoiceMessage, transcribeAudioText, transcribeAudioWithContext } from '../voice.js';
+import { analyzeVoice, classifyReply, type VoiceAnalysis } from '../voice.js';
 
-// --- Voice confirmation helpers ---
-
-const CONFIRM_KEYWORDS = [
-    'はい', 'ハイ', 'うん', 'うんうん', 'そう', 'そうです', 'そうして',
-    'yes', 'ok', 'おk', 'オーケー',
-    '実行', 'やって', 'やる', '進めて', 'いいよ', 'いいです', 'いいですよ',
-    '正しい', '合ってる', 'もちろん', 'お願い', '了解', 'わかった', 'わかりました',
-    'ええ', 'ゆえに', '承認',
-];
-// 「違う」は「違う、△△で」のような修正intentを含む場合があるため除外
-const CANCEL_KEYWORDS = ['いいえ', 'no', 'キャンセル', 'やめて', 'やめます', '中止'];
-// 曖昧な返答（修正intentとは別に再確認を促す）
-const AMBIGUOUS_KEYWORDS = ['大丈夫', 'どうぞ', 'まあ', 'いいんじゃない', 'かな'];
 const VOICE_CONFIRM_TIMEOUT_MS = 60_000;
-const MAX_AMBIGUOUS_RETRIES = 2;
-const MAX_CORRECTION_RETRIES = 3;
-
-function isConfirm(text: string): boolean {
-    const t = text.trim().toLowerCase();
-    return CONFIRM_KEYWORDS.some((k) => t.includes(k.toLowerCase()));
-}
-
-function isCancel(text: string): boolean {
-    const t = text.trim().toLowerCase();
-    return CANCEL_KEYWORDS.some((k) => t.includes(k.toLowerCase()));
-}
-
-function isAmbiguous(text: string): boolean {
-    const t = text.trim().toLowerCase();
-    return AMBIGUOUS_KEYWORDS.some((k) => t.includes(k.toLowerCase()));
-}
+const MAX_ATTEMPTS = 5;
 
 // チャンネル+ユーザーごとに確認待ち中フラグを管理
 const pendingVoiceConfirmations = new Set<string>();
 
-// ---
+// ---- ヘルパー関数 ----
+
+/** awaitMessages のラッパー。タイムアウト時は null を返す。 */
+async function awaitReply(
+    ch: any,
+    userId: string,
+    timeout: number,
+): Promise<DiscordMessage | null> {
+    try {
+        const collected = await ch.awaitMessages({
+            filter: (m: DiscordMessage) =>
+                m.author.id === userId &&
+                (m.content.trim() !== '' ||
+                    m.attachments.some((a: Attachment) => a.contentType?.startsWith('audio/'))),
+            max: 1,
+            time: timeout,
+            errors: ['time'],
+        });
+        return collected.first() ?? null;
+    } catch {
+        return null;
+    }
+}
+
+/** チャンネル直近8件の履歴を取得して整形する。 */
+async function fetchContextMessages(ch: any): Promise<string> {
+    try {
+        const fetched = await ch.messages.fetch({ limit: 8 });
+        return ([...fetched.values()] as any[])
+            .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+            .filter((m) => m.content.trim() !== '')
+            .map((m) => `${m.author.bot ? 'Bot' : 'User'}：${m.content}`)
+            .join('\n');
+    } catch (err) {
+        console.warn('[voice] failed to fetch channel history:', err);
+        return '';
+    }
+}
+
+// ----
 
 export class DiscordChannel implements Channel {
     readonly name = 'discord';
@@ -114,33 +124,26 @@ export class DiscordChannel implements Channel {
         try {
             if ('sendTyping' in ch) await ch.sendTyping();
 
-            // 1. 意図+アクション判定 と 生文字起こし を並行取得
-            const mimeType = attachment.contentType ?? 'audio/ogg';
-            let analysis: { intent: string; hasAction: boolean };
-            let rawText: string;
+            // 1. 音声解析（rawText / intent / hasAction を1回で取得）
+            let analysis: VoiceAnalysis;
             try {
-                [analysis, rawText] = await Promise.all([
-                    transcribeVoiceMessage(attachment.url, mimeType),
-                    transcribeAudioText(attachment.url, mimeType),
-                ]);
+                analysis = await analyzeVoice(attachment.url, attachment.contentType ?? 'audio/ogg');
             } catch (err) {
-                console.error('[voice] transcription failed:', err);
+                console.error('[voice] analysis failed:', err);
                 await ch.send(`${mention} 音声の処理に失敗しました。もう一度お試しください。`);
                 return;
             }
 
-            // 解析直後・処理開始前に生文字起こしを投稿
+            const { rawText, intent, hasAction } = analysis;
+
+            // 生文字起こしを先行表示
             await ch.send(`ユーザー入力：${rawText}`);
 
-            // currentIntent は確認フロー内で修正される可能性があるため let で保持
-            let currentIntent = analysis.intent;
-            const { hasAction } = analysis;
-
-            // 2. アクション意図なし → 確認なしでそのままテキスト会話として処理
+            // 2. アクション意図なし → 確認なしでテキスト会話として処理
             if (!hasAction) {
                 if ('sendTyping' in ch) await ch.sendTyping();
                 try {
-                    const response = await processAgentMessage(currentIntent, [], senderName, message.channelId);
+                    const response = await processAgentMessage(intent, [], senderName, message.channelId);
                     const truncated = response.length > 1990 ? response.slice(0, 1990) + '…' : response;
                     await ch.send(`${mention} ${truncated}`);
                 } catch (err: any) {
@@ -151,62 +154,45 @@ export class DiscordChannel implements Channel {
                 return;
             }
 
-            // 3. アクション意図あり → 意図確認メッセージを送信
-            await ch.send(`${mention} 「${currentIntent}」ということですね？実行してよいですか？`);
+            // 3. アクション意図あり → 確認フロー（最大 MAX_ATTEMPTS 回）
+            let currentIntent = intent;
 
-            // 4. 確認待ちループ
-            let ambiguousCount = 0;
-            let correctionCount = 0;
+            for (let attempts = 0; attempts < MAX_ATTEMPTS; attempts++) {
+                await ch.send(`${mention} 「${currentIntent}」ということですね？実行してよいですか？`);
 
-            while (true) {
-                // ユーザーの返答を待機（テキストまたは音声）
-                let replyMsg: DiscordMessage | undefined;
-                try {
-                    const collected = await ch.awaitMessages({
-                        filter: (m: DiscordMessage) =>
-                            m.author.id === message.author.id &&
-                            (m.content.trim() !== '' || m.attachments.some((a: Attachment) => a.contentType?.startsWith('audio/'))),
-                        max: 1,
-                        time: VOICE_CONFIRM_TIMEOUT_MS,
-                        errors: ['time'],
-                    });
-                    replyMsg = collected.first();
-                } catch {
-                    // タイムアウト
+                const reply = await awaitReply(ch, message.author.id, VOICE_CONFIRM_TIMEOUT_MS);
+                if (!reply) {
                     await ch.send(`${mention} 確認がなかったためキャンセルしました。`);
                     return;
                 }
 
-                // null チェック：収集されたはずだが念のため
-                if (!replyMsg) {
-                    await ch.send(`${mention} 確認がなかったためキャンセルしました。`);
-                    return;
-                }
-
-                // 返答テキストを取得
-                // 音声の場合は transcribeAudioText（言い換えなし文字起こし）を使い、判定前に必ず表示する
-                let replyText = replyMsg.content.trim();
-                const replyAudioAtt = replyMsg.attachments.find(
+                // 音声なら解析して生文字起こしを表示、テキストはそのまま使う
+                let replyText: string;
+                const replyAudioAtt = reply.attachments.find(
                     (a: Attachment) => a.contentType?.startsWith('audio/'),
                 );
-                if (replyText === '' && replyAudioAtt) {
+                if (replyAudioAtt) {
                     try {
-                        replyText = await transcribeAudioText(
+                        const replyAnalysis = await analyzeVoice(
                             replyAudioAtt.url,
                             replyAudioAtt.contentType ?? 'audio/ogg',
                         );
+                        replyText = replyAnalysis.rawText;
                         await ch.send(`ユーザー入力：${replyText}`);
                     } catch {
                         replyText = '';
                     }
+                } else {
+                    replyText = reply.content.trim();
                 }
 
-                console.log(`[voice confirm] replyText="${replyText}" isConfirm=${isConfirm(replyText)} isCancel=${isCancel(replyText)} isAmbiguous=${isAmbiguous(replyText)}`);
+                // チャンネル履歴を取得してGeminiで分類
+                const context = await fetchContextMessages(ch);
+                const { result, correctedIntent } = await classifyReply(replyText, context);
 
-                // --- 判定 ---
+                console.log(`[voice confirm] attempt=${attempts + 1} replyText="${replyText}" result=${result}`);
 
-                // 確認
-                if (isConfirm(replyText) && !isCancel(replyText)) {
+                if (result === 'confirm') {
                     if ('sendTyping' in ch) await ch.sendTyping();
                     try {
                         const response = await processAgentMessage(currentIntent, [], senderName, message.channelId);
@@ -220,65 +206,21 @@ export class DiscordChannel implements Channel {
                     return;
                 }
 
-                // キャンセル
-                if (isCancel(replyText)) {
+                if (result === 'cancel') {
                     await ch.send(`${mention} キャンセルしました。`);
                     return;
                 }
 
-                // 曖昧（はい/いいえのどちらとも取れない短い返答）
-                if (isAmbiguous(replyText)) {
-                    ambiguousCount++;
-                    if (ambiguousCount >= MAX_AMBIGUOUS_RETRIES) {
-                        await ch.send(`${mention} キャンセルしました。`);
-                        return;
-                    }
-                    await ch.send(`${mention} 「はい」か「いいえ」でお答えください。`);
+                if (result === 'correction') {
+                    currentIntent = correctedIntent ?? replyText;
                     continue;
                 }
 
-                // 修正intent：yes/no/曖昧のいずれにも当てはまらない返答を新しい指示として扱う
-                correctionCount++;
-                if (correctionCount > MAX_CORRECTION_RETRIES) {
-                    await ch.send(`${mention} 修正回数の上限に達したためキャンセルしました。`);
-                    return;
-                }
-
-                // チャンネル直近8件の履歴を取得してコンテキストを構築
-                let contextText = '';
-                try {
-                    const fetched = await ch.messages.fetch({ limit: 8 });
-                    contextText = ([...fetched.values()] as any[])
-                        .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-                        .filter((m) => m.content.trim() !== '')
-                        .map((m) => `${m.author.bot ? 'Bot' : 'User'}：${m.content}`)
-                        .join('\n');
-                } catch (err) {
-                    console.warn('[voice correction] failed to fetch channel history:', err);
-                }
-
-                // 音声修正：生文字起こしは共通ステップで表示済み。コンテキスト付きintentのみ取得
-                // テキスト修正：共通ステップは走っていないため、ここで表示してからintentに使う
-                let newIntent: string;
-                if (replyAudioAtt) {
-                    try {
-                        newIntent = await transcribeAudioWithContext(
-                            replyAudioAtt.url,
-                            replyAudioAtt.contentType ?? 'audio/ogg',
-                            contextText,
-                        );
-                    } catch (err) {
-                        console.warn('[voice correction] transcribeAudioWithContext failed, falling back to raw text:', err);
-                        newIntent = replyText;
-                    }
-                } else {
-                    await ch.send(`ユーザー入力（修正）：${replyText}`);
-                    newIntent = replyText;
-                }
-
-                currentIntent = newIntent;
-                await ch.send(`${mention} 「${currentIntent}」ということですね？実行してよいですか？`);
+                // unclear
+                await ch.send(`${mention} 「はい」か「いいえ」でお答えください。`);
             }
+
+            await ch.send(`${mention} 確認の上限に達したためキャンセルしました。`);
         } finally {
             pendingVoiceConfirmations.delete(confirmKey);
         }

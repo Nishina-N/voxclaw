@@ -7,68 +7,24 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 export interface VoiceAnalysis {
-    /** 音声の内容を日本語一文で表した意図テキスト */
+    /** 発話をそのまま文字起こしたテキスト */
+    rawText: string;
+    /** 整理された意図（日本語一文） */
     intent: string;
-    /** ファイル操作・検索・実行など何らかのアクションを要求しているか */
+    /** ファイル操作・検索・実行など何らかの操作を要求しているか */
     hasAction: boolean;
 }
 
-/**
- * 確認フロー専用：音声をそのまま文字起こしして返す（intent への言い換えは行わない）。
- * 「はい」と言えば「はい」が返る。
- */
-export async function transcribeAudioText(audioUrl: string, mimeType: string): Promise<string> {
-    const tmpPath = path.join('/tmp', `voice-confirm-${crypto.randomBytes(8).toString('hex')}`);
+export type ConfirmResult = 'confirm' | 'cancel' | 'correction' | 'unclear';
 
-    try {
-        const resp = await fetch(audioUrl);
-        if (!resp.ok) throw new Error(`Failed to download audio: ${resp.status}`);
-        const buffer = Buffer.from(await resp.arrayBuffer());
-        await fs.writeFile(tmpPath, buffer);
+// ---- 内部ヘルパー ----
 
-        const uploaded = await ai.files.upload({
-            file: tmpPath,
-            config: { mimeType, displayName: 'voice_confirm' },
-        });
-
-        if (!uploaded.uri) throw new Error('File upload failed: no URI returned');
-
-        const result = await ai.models.generateContent({
-            model,
-            contents: [
-                {
-                    role: 'user',
-                    parts: [
-                        {
-                            fileData: {
-                                fileUri: uploaded.uri,
-                                mimeType: uploaded.mimeType ?? mimeType,
-                            },
-                        },
-                        {
-                            text: 'この音声の発言内容をそのまま文字起こしてください。言い換えや要約は不要です。話者が話した言葉をそのまま書いてください。文字起こし結果のみを返してください。',
-                        },
-                    ],
-                },
-            ],
-        });
-
-        return result.text?.trim() ?? '';
-    } finally {
-        await fs.unlink(tmpPath).catch(() => {});
-    }
-}
-
-/**
- * 修正フロー専用：チャンネル履歴コンテキストを踏まえて、音声の修正指示を新しい intent として返す。
- */
-export async function transcribeAudioWithContext(
+async function uploadAudio(
     audioUrl: string,
     mimeType: string,
-    contextMessages: string,
-): Promise<string> {
-    const tmpPath = path.join('/tmp', `voice-correction-${crypto.randomBytes(8).toString('hex')}`);
-
+    displayName: string,
+): Promise<{ uri: string; mimeType: string }> {
+    const tmpPath = path.join('/tmp', `voice-${crypto.randomBytes(8).toString('hex')}`);
     try {
         const resp = await fetch(audioUrl);
         if (!resp.ok) throw new Error(`Failed to download audio: ${resp.status}`);
@@ -77,114 +33,118 @@ export async function transcribeAudioWithContext(
 
         const uploaded = await ai.files.upload({
             file: tmpPath,
-            config: { mimeType, displayName: 'voice_correction' },
+            config: { mimeType, displayName },
         });
-
         if (!uploaded.uri) throw new Error('File upload failed: no URI returned');
-
-        const result = await ai.models.generateContent({
-            model,
-            contents: [
-                {
-                    role: 'user',
-                    parts: [
-                        {
-                            fileData: {
-                                fileUri: uploaded.uri,
-                                mimeType: uploaded.mimeType ?? mimeType,
-                            },
-                        },
-                        {
-                            text: `以下はDiscordチャンネルの直近の会話履歴です：
-${contextMessages}
-
-この音声はユーザーによる修正・追加指示です。
-会話履歴を踏まえて、最終的に実行すべき指示内容を日本語一文で返してください。
-余分な説明は不要です。指示内容のみを返してください。`,
-                        },
-                    ],
-                },
-            ],
-        });
-
-        return result.text?.trim() ?? '';
+        return { uri: uploaded.uri, mimeType: uploaded.mimeType ?? mimeType };
     } finally {
         await fs.unlink(tmpPath).catch(() => {});
     }
 }
 
+// ---- 公開 API ----
+
 /**
- * Discord のボイスメッセージを Gemini File API に渡して
- * 意図テキストとアクション有無を返す。
+ * 音声を1回のGemini呼び出しで解析し、rawText / intent / hasAction を返す。
+ * 最初の音声入力と確認フロー内の音声返答の両方で使う。
  */
-export async function transcribeVoiceMessage(audioUrl: string, mimeType: string): Promise<VoiceAnalysis> {
-    const tmpPath = path.join('/tmp', `voice-${crypto.randomBytes(8).toString('hex')}`);
+export async function analyzeVoice(audioUrl: string, mimeType: string): Promise<VoiceAnalysis> {
+    const file = await uploadAudio(audioUrl, mimeType, 'voice_message');
 
-    try {
-        // 1. 音声ファイルをダウンロード
-        const resp = await fetch(audioUrl);
-        if (!resp.ok) throw new Error(`Failed to download audio: ${resp.status}`);
-        const buffer = Buffer.from(await resp.arrayBuffer());
-        await fs.writeFile(tmpPath, buffer);
-
-        // 2. Gemini File API にアップロード
-        const uploaded = await ai.files.upload({
-            file: tmpPath,
-            config: { mimeType, displayName: 'voice_message' },
-        });
-
-        if (!uploaded.uri) throw new Error('File upload failed: no URI returned');
-
-        // 3. 意図テキストとアクション有無を一度に取得
-        const result = await ai.models.generateContent({
-            model,
-            contents: [
-                {
-                    role: 'user',
-                    parts: [
-                        {
-                            fileData: {
-                                fileUri: uploaded.uri,
-                                mimeType: uploaded.mimeType ?? mimeType,
-                            },
-                        },
-                        {
-                            text: `この音声メッセージを分析して、以下の JSON 形式のみで回答してください（説明不要）。
+    const result = await ai.models.generateContent({
+        model,
+        contents: [
+            {
+                role: 'user',
+                parts: [
+                    { fileData: { fileUri: file.uri, mimeType: file.mimeType } },
+                    {
+                        text: `この音声メッセージを分析して、以下の JSON 形式のみで回答してください（説明不要）。
 
 {
-  "intent": "ユーザーの発言内容を日本語一文で要約したテキスト",
+  "rawText": "音声の発言内容をそのまま文字起こしたテキスト",
+  "intent": "ユーザーの意図を日本語一文で要約したテキスト",
   "hasAction": true または false
 }
 
 hasAction の判定基準：
 - true: ファイル操作・検索・実行・作成・送信・計算など何らかの操作・タスクを要求している
 - false: 雑談・質問・感想・挨拶など、操作を伴わない会話`,
-                        },
-                    ],
-                },
-            ],
-        });
+                    },
+                ],
+            },
+        ],
+    });
 
-        const raw = result.text?.trim() ?? '';
-
-        // JSON を抽出してパース（```json ... ``` を除去）
-        const jsonMatch = raw.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            try {
-                const parsed = JSON.parse(jsonMatch[0]) as { intent?: string; hasAction?: boolean };
-                return {
-                    intent: parsed.intent?.trim() || '音声内容を理解できませんでした。',
-                    hasAction: parsed.hasAction === true,
-                };
-            } catch {
-                // パース失敗 → フォールバック
-            }
-        }
-
-        // JSON が取れなかった場合は会話扱い
-        return { intent: raw || '音声内容を理解できませんでした。', hasAction: false };
-    } finally {
-        // 4. 一時ファイルを削除
-        await fs.unlink(tmpPath).catch(() => {});
+    const raw = result.text?.trim() ?? '';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+        try {
+            const parsed = JSON.parse(jsonMatch[0]) as {
+                rawText?: string;
+                intent?: string;
+                hasAction?: boolean;
+            };
+            return {
+                rawText: parsed.rawText?.trim() || raw,
+                intent: parsed.intent?.trim() || raw,
+                hasAction: parsed.hasAction === true,
+            };
+        } catch { /* fall through */ }
     }
+    return { rawText: raw, intent: raw, hasAction: false };
+}
+
+/**
+ * 確認フロー中のユーザー返答をGeminiで分類する。
+ * confirm / cancel / correction / unclear のいずれかと、
+ * correction の場合は修正後の intent を返す。
+ */
+export async function classifyReply(
+    replyText: string,
+    contextMessages: string,
+): Promise<{ result: ConfirmResult; correctedIntent?: string }> {
+    const result = await ai.models.generateContent({
+        model,
+        contents: [
+            {
+                role: 'user',
+                parts: [
+                    {
+                        text: `以下はDiscordチャンネルの直近の会話履歴です：
+${contextMessages}
+
+ユーザーの返答：「${replyText}」
+
+この返答を以下の4つに分類し、JSON形式のみで回答してください（説明不要）。
+
+{
+  "result": "confirm" | "cancel" | "correction" | "unclear",
+  "correctedIntent": "修正後の新しい指示内容（result が correction の場合のみ）"
+}
+
+分類基準：
+- confirm: 実行に同意している（「はい」「OK」「了解」など）
+- cancel: 取りやめを希望している（「いいえ」「キャンセル」「やめて」など）
+- correction: 内容を修正・変更しようとしている（別の指示・「違う」「〇〇にして」など）
+- unclear: 上記のどれにも明確に当てはまらない曖昧な返答`,
+                    },
+                ],
+            },
+        ],
+    });
+
+    const raw = result.text?.trim() ?? '';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+        try {
+            const parsed = JSON.parse(jsonMatch[0]) as { result?: string; correctedIntent?: string };
+            const validResults: ConfirmResult[] = ['confirm', 'cancel', 'correction', 'unclear'];
+            const r = parsed.result as ConfirmResult;
+            if (validResults.includes(r)) {
+                return { result: r, correctedIntent: parsed.correctedIntent?.trim() };
+            }
+        } catch { /* fall through */ }
+    }
+    return { result: 'unclear' };
 }
