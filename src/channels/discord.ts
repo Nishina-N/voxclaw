@@ -253,28 +253,32 @@ export class DiscordChannel implements Channel {
                     console.warn('[voice correction] failed to fetch channel history:', err);
                 }
 
-                // 音声修正 → コンテキスト付き文字起こし、テキスト修正 → そのまま使用
+                // 音声修正 → 生文字起こし（表示用）とコンテキスト付きintent（確認用）を並行取得
+                // テキスト修正 → replyText をそのまま表示・intentの両方に使用
                 const correctionAudioAtt = replyMsg.attachments.find(
                     (a: Attachment) => a.contentType?.startsWith('audio/'),
                 );
+                let rawCorrectionText: string;
                 let newIntent: string;
                 if (correctionAudioAtt) {
+                    const attMimeType = correctionAudioAtt.contentType ?? 'audio/ogg';
                     try {
-                        newIntent = await transcribeAudioWithContext(
-                            correctionAudioAtt.url,
-                            correctionAudioAtt.contentType ?? 'audio/ogg',
-                            contextText,
-                        );
+                        [rawCorrectionText, newIntent] = await Promise.all([
+                            transcribeAudioText(correctionAudioAtt.url, attMimeType),
+                            transcribeAudioWithContext(correctionAudioAtt.url, attMimeType, contextText),
+                        ]);
                     } catch (err) {
-                        console.warn('[voice correction] transcribeAudioWithContext failed, falling back to raw text:', err);
+                        console.warn('[voice correction] transcription failed, falling back to raw text:', err);
+                        rawCorrectionText = replyText;
                         newIntent = replyText;
                     }
                 } else {
+                    rawCorrectionText = replyText;
                     newIntent = replyText;
                 }
 
                 currentIntent = newIntent;
-                await ch.send(`ユーザー入力（修正）：${currentIntent}`);
+                await ch.send(`ユーザー入力（修正）：${rawCorrectionText}`);
                 await ch.send(`${mention} 「${currentIntent}」ということですね？実行してよいですか？`);
             }
         } finally {
