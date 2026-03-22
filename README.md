@@ -4,7 +4,8 @@
 
 **Google Gemini API × Discord の自律エージェント。** エージェントが自分でスキルを作り・マニュアルを育て・cron で自律動作する三層構造が特徴です。Docker 上で動作し、リビルド不要で即座に拡張できます。軽量、セキュアかつ自己拡張可能であることを主眼に置いて開発しています。
 
-> 制作背景と設計思想は [Zenn 記事](https://zenn.dev/nishina__n/articles/69587684b36113) で詳しく書いています。
+> 制作背景と設計思想は [このZenn記事](https://zenn.dev/nishina__n/articles/69587684b36113) で詳しく書いています。
+> APIキーの隠匿化については[こちらの記事](https://zenn.dev/nishina__n/articles/2fd0f90086841b)に記載しています。
 
 ---
 
@@ -33,7 +34,7 @@
 
 ```bash
 # 1. クローン
-git clone https://github.com/qwibitai/gemiclaw.git
+git clone https://github.com/Nishina-N/gemiclaw
 cd gemiclaw
 
 # 2. 環境変数を設定

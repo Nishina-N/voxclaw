@@ -33,7 +33,7 @@
 
 ```bash
 # 1. Clone
-git clone https://github.com/qwibitai/gemiclaw.git
+git clone https://github.com/Nishina-N/gemiclaw
 cd gemiclaw
 
 # 2. Set environment variables
