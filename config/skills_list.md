@@ -4,14 +4,18 @@
 * **gcal_delete_calendar_event**: Googleカレンダーの予定を削除します。eventIdが必須です。削除前にユーザーに確認を取ってください。
 * **gcal_get_calendar_events**: Googleカレンダーから予定を取得します。指定した期間（timeMin, timeMax）のイベントを取得可能です。
 * **gcal_update_calendar_event**: Googleカレンダーの既存の予定を更新します。eventIdは必須。変更したい項目だけ指定すればOKです。
-* **gsheet_add_chart**: Google スプレッドシートにグラフを追加します。source_rangeの1列目がカテゴリ（X軸）、残りの列がシリーズ（値）として扱われます。chart_typeはBAR/LINE/COLUMN/PIE/SCATTER/AREAから指定。positionを省略すると新しいシートに作成されます。
+* **gdrv_create**: Googleドライブに新規ファイルを作成する
+* **gdrv_list**: Googleドライブ内のファイルを検索・一覧化する
+* **gdrv_read**: Googleドライブ上のテキストファイルの内容を読み取る
+* **gdrv_update**: Googleドライブ上のファイルを更新する
+* **gsheet_add_chart**: Google スプレッドシートにグラフを追加します。source_range の1列目がカテゴリ（X軸・ラベル）、残りの列がシリーズ（値）として扱われます。position を省略すると新しいシートに作成されます。
 * **gsheet_append_spreadsheet**: Google スプレッドシートのデータが入っている最終行の後に新しい行を追加します。ログや記録の蓄積に適しています。valuesは2次元配列で指定します。
 * **gsheet_create_spreadsheet**: Google スプレッドシートを新規作成します。タイトルは必須。シート名のリストを渡すと複数シートを初期作成できます。作成後に返されるspreadsheetIdを使って読み書きができます。
-* **gsheet_delete_chart**: Google スプレッドシートのグラフを削除します。chartIdはgsheet_list_chartsで確認できます。削除前にユーザーに確認を取ってください。
+* **gsheet_delete_chart**: Google スプレッドシートのグラフを削除します。chartId は gsheet_list_charts で確認できます。削除前にユーザーに確認を取ってください。
 * **gsheet_get_spreadsheet_info**: Google スプレッドシートのタイトルとシート名一覧を取得します。spreadsheet_idはURLに含まれる文字列です（例: docs.google.com/spreadsheets/d/<spreadsheet_id>/）。
-* **gsheet_list_charts**: Google スプレッドシート内のグラフ一覧（chartId・title・chartType・シート名）を取得します。グラフの削除・更新前にchartIdを調べるときに使います。
+* **gsheet_list_charts**: Google スプレッドシート内のグラフ一覧（chartId・title・chartType・シート名）を取得します。グラフの削除・更新前に chartId を調べるときに使います。
 * **gsheet_read_spreadsheet**: Google スプレッドシートの指定範囲のセル値を取得します。rangeはA1記法で指定します（例: 'Sheet1!A1:C10'、'A1:B5'）。
-* **gsheet_update_chart**: Google スプレッドシートの既存グラフのスペック（タイトル・凡例・軸・色など）を更新します。updateChartSpecはスペック全体の置き換えになるため、先にgsheet_list_chartsでスペックを取得し、変更したいフィールドをマージして渡してください。
+* **gsheet_update_chart**: Google スプレッドシートの既存グラフのスペック（タイトル・凡例・軸・色など）を更新します。【重要】updateChartSpec はスペック全体の置き換えになるため、先に gsheet_list_charts でスペックを取得し、変更したいフィールドをマージして渡してください。代表的なフィールド: title（タイトル）、basicChart.legendPosition（凡例位置: BOTTOM_LEGEND / TOP_LEGEND / RIGHT_LEGEND / NO_LEGEND）、basicChart.stackedType（積み上げ: NOT_STACKED / STACKED / PERCENT_STACKED）、basicChart.series[].color（系列の色 { red, green, blue }）、pieChart.pieHole（ドーナツ比率 0.0〜1.0）。
 * **gsheet_write_spreadsheet**: Google スプレッドシートの指定範囲にデータを書き込みます（既存のデータを上書き）。valuesは2次元配列で指定します。数式や日付を自動解釈したい場合はvalue_input_optionを'USER_ENTERED'に設定してください（デフォルト）。
 * **gtask_create_task**: Googleタスクに新しいタスクを追加します。タイトルは必須。期限・メモは省略可。
 * **gtask_delete_task**: Googleタスクを削除します。task_idは必須。削除前にユーザーに確認を取ってください。
