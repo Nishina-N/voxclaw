@@ -42,6 +42,17 @@ async function uploadAudio(
     }
 }
 
+/** Gemini レスポンスから JSON オブジェクトを抽出・パースする。失敗時は null を返す。 */
+function parseJsonResponse<T>(raw: string): T | null {
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+        try {
+            return JSON.parse(jsonMatch[0]) as T;
+        } catch { /* fall through */ }
+    }
+    return null;
+}
+
 // ---- 公開 API ----
 
 /**
@@ -77,20 +88,13 @@ hasAction の判定基準：
     });
 
     const raw = result.text?.trim() ?? '';
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-        try {
-            const parsed = JSON.parse(jsonMatch[0]) as {
-                rawText?: string;
-                intent?: string;
-                hasAction?: boolean;
-            };
-            return {
-                rawText: parsed.rawText?.trim() || raw,
-                intent: parsed.intent?.trim() || raw,
-                hasAction: parsed.hasAction === true,
-            };
-        } catch { /* fall through */ }
+    const parsed = parseJsonResponse<{ rawText?: string; intent?: string; hasAction?: boolean }>(raw);
+    if (parsed) {
+        return {
+            rawText: parsed.rawText?.trim() || raw,
+            intent: parsed.intent?.trim() || raw,
+            hasAction: parsed.hasAction === true,
+        };
     }
     return { rawText: raw, intent: raw, hasAction: false };
 }
@@ -135,16 +139,13 @@ ${contextMessages}
     });
 
     const raw = result.text?.trim() ?? '';
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-        try {
-            const parsed = JSON.parse(jsonMatch[0]) as { result?: string; correctedIntent?: string };
-            const validResults: ConfirmResult[] = ['confirm', 'cancel', 'correction', 'unclear'];
-            const r = parsed.result as ConfirmResult;
-            if (validResults.includes(r)) {
-                return { result: r, correctedIntent: parsed.correctedIntent?.trim() };
-            }
-        } catch { /* fall through */ }
+    const parsed = parseJsonResponse<{ result?: string; correctedIntent?: string }>(raw);
+    if (parsed) {
+        const validResults: ConfirmResult[] = ['confirm', 'cancel', 'correction', 'unclear'];
+        const r = parsed.result as ConfirmResult;
+        if (validResults.includes(r)) {
+            return { result: r, correctedIntent: parsed.correctedIntent?.trim() };
+        }
     }
     return { result: 'unclear' };
 }
