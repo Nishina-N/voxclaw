@@ -2,9 +2,11 @@
 
 [🇯🇵 日本語](README.md) | 🇺🇸 English
 
-**An autonomous agent built on Google Gemini API × Discord.** It features a three-layer architecture where the agent creates its own skills, maintains manuals, and runs autonomously via cron — all on Docker, extensible instantly without rebuilds.
+**An autonomous agent built on Google Gemini API × Discord.** It features a three-layer architecture where the agent creates its own skills, maintains manuals, and runs autonomously via cron — all on Docker, extensible instantly without rebuilds. Designed with a focus on being lightweight, secure, and self-extensible.
 
 > The background and design philosophy are covered in detail in the [Zenn article](https://zenn.dev/nishina__n/articles/69587684b36113).
+
+> For details on API key concealment, see [this article](https://zenn.dev/nishina__n/articles/2fd0f90086841b).
 
 ---
 
@@ -14,6 +16,8 @@
 - Tell it "Create a skill that does X" and the agent adds the tool on its own
 - Run scheduled tasks automatically via cron × manuals (e.g., daily stock market news posts)
 - Use Google Drive, Calendar, Tasks, Sheets, web search, map image generation, and more
+- Set `TALK_CHANNEL_ID` in your `.env` file to have the bot respond in that channel without being mentioned
+- Send a voice message to have the bot analyze the audio, confirm the intent, and execute — works in channels where mention-free responses are enabled
 
 ---
 
@@ -26,6 +30,7 @@
 | **Key Binder** | API keys isolated in a separate container. The agent never touches credentials directly |
 | **SQLite + polling** | Messages processed every 2 seconds. No messages lost after a crash |
 | **Mutable / immutable separation** | Loop and connection layer baked into container image. Skills and config persisted via volume mounts |
+| **Voice message support** | Analyzes Discord voice audio via Gemini File API. Includes a confirmation flow: intent check → revision → execution |
 
 ---
 
