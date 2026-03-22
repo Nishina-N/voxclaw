@@ -51,6 +51,99 @@ async function fetchContextMessages(ch: any): Promise<string> {
     }
 }
 
+/**
+ * 返答メッセージからテキストを取得する。
+ * 音声添付があれば analyzeVoice を呼んで rawText を返し、生文字起こしをチャンネルに送信する。
+ * テキスト返答はそのまま返す。
+ */
+async function resolveReplyText(reply: DiscordMessage, ch: any): Promise<string> {
+    const replyAudioAtt = reply.attachments.find(
+        (a: Attachment) => a.contentType?.startsWith('audio/'),
+    );
+    if (replyAudioAtt) {
+        try {
+            const replyAnalysis = await analyzeVoice(
+                replyAudioAtt.url,
+                replyAudioAtt.contentType ?? 'audio/ogg',
+            );
+            await ch.send(`ユーザー入力：${replyAnalysis.rawText}`);
+            return replyAnalysis.rawText;
+        } catch {
+            return '';
+        }
+    }
+    return reply.content.trim();
+}
+
+/** processAgentMessage を呼び出し、結果をチャンネルに送信する。エラー時はエラーメッセージを送信する。 */
+async function runAgentAndSend(
+    ch: any,
+    mention: string,
+    intent: string,
+    senderName: string,
+    channelId: string,
+): Promise<void> {
+    if ('sendTyping' in ch) await ch.sendTyping();
+    try {
+        const response = await processAgentMessage(intent, [], senderName, channelId);
+        const truncated = response.length > 1990 ? response.slice(0, 1990) + '…' : response;
+        await ch.send(`${mention} ${truncated}`);
+    } catch (err: any) {
+        console.error('[voice] processMessage error:', err);
+        const code = err.status ?? err.code ?? 'unknown';
+        await ch.send(`${mention} ⚠️ エラーが発生しました（${code}）。しばらく経ってから再度お試しください。`);
+    }
+}
+
+/** 確認ループ全体（最大 MAX_ATTEMPTS 回）を実行する。 */
+async function runConfirmationLoop(
+    ch: any,
+    mention: string,
+    analysis: VoiceAnalysis,
+    senderName: string,
+    channelId: string,
+    userId: string,
+): Promise<void> {
+    let currentIntent = analysis.intent;
+
+    for (let attempts = 0; attempts < MAX_ATTEMPTS; attempts++) {
+        await ch.send(`${mention} 「${currentIntent}」ということですね？実行してよいですか？`);
+
+        const reply = await awaitReply(ch, userId, VOICE_CONFIRM_TIMEOUT_MS);
+        if (!reply) {
+            await ch.send(`${mention} 確認がなかったためキャンセルしました。`);
+            return;
+        }
+
+        const replyText = await resolveReplyText(reply, ch);
+
+        const context = await fetchContextMessages(ch);
+        const { result, correctedIntent } = await classifyReply(replyText, context);
+
+        console.log(`[voice confirm] attempt=${attempts + 1} replyText="${replyText}" result=${result}`);
+
+        if (result === 'confirm') {
+            await runAgentAndSend(ch, mention, currentIntent, senderName, channelId);
+            return;
+        }
+
+        if (result === 'cancel') {
+            await ch.send(`${mention} キャンセルしました。`);
+            return;
+        }
+
+        if (result === 'correction') {
+            currentIntent = correctedIntent ?? replyText;
+            continue;
+        }
+
+        // unclear
+        await ch.send(`${mention} 「はい」か「いいえ」でお答えください。`);
+    }
+
+    await ch.send(`${mention} 確認の上限に達したためキャンセルしました。`);
+}
+
 // ----
 
 export class DiscordChannel implements Channel {
@@ -134,93 +227,17 @@ export class DiscordChannel implements Channel {
                 return;
             }
 
-            const { rawText, intent, hasAction } = analysis;
-
             // 生文字起こしを先行表示
-            await ch.send(`ユーザー入力：${rawText}`);
+            await ch.send(`ユーザー入力：${analysis.rawText}`);
 
             // 2. アクション意図なし → 確認なしでテキスト会話として処理
-            if (!hasAction) {
-                if ('sendTyping' in ch) await ch.sendTyping();
-                try {
-                    const response = await processAgentMessage(intent, [], senderName, message.channelId);
-                    const truncated = response.length > 1990 ? response.slice(0, 1990) + '…' : response;
-                    await ch.send(`${mention} ${truncated}`);
-                } catch (err: any) {
-                    console.error('[voice] processMessage error:', err);
-                    const code = err.status ?? err.code ?? 'unknown';
-                    await ch.send(`${mention} ⚠️ エラーが発生しました（${code}）。しばらく経ってから再度お試しください。`);
-                }
+            if (!analysis.hasAction) {
+                await runAgentAndSend(ch, mention, analysis.intent, senderName, message.channelId);
                 return;
             }
 
             // 3. アクション意図あり → 確認フロー（最大 MAX_ATTEMPTS 回）
-            let currentIntent = intent;
-
-            for (let attempts = 0; attempts < MAX_ATTEMPTS; attempts++) {
-                await ch.send(`${mention} 「${currentIntent}」ということですね？実行してよいですか？`);
-
-                const reply = await awaitReply(ch, message.author.id, VOICE_CONFIRM_TIMEOUT_MS);
-                if (!reply) {
-                    await ch.send(`${mention} 確認がなかったためキャンセルしました。`);
-                    return;
-                }
-
-                // 音声なら解析して生文字起こしを表示、テキストはそのまま使う
-                let replyText: string;
-                const replyAudioAtt = reply.attachments.find(
-                    (a: Attachment) => a.contentType?.startsWith('audio/'),
-                );
-                if (replyAudioAtt) {
-                    try {
-                        const replyAnalysis = await analyzeVoice(
-                            replyAudioAtt.url,
-                            replyAudioAtt.contentType ?? 'audio/ogg',
-                        );
-                        replyText = replyAnalysis.rawText;
-                        await ch.send(`ユーザー入力：${replyText}`);
-                    } catch {
-                        replyText = '';
-                    }
-                } else {
-                    replyText = reply.content.trim();
-                }
-
-                // チャンネル履歴を取得してGeminiで分類
-                const context = await fetchContextMessages(ch);
-                const { result, correctedIntent } = await classifyReply(replyText, context);
-
-                console.log(`[voice confirm] attempt=${attempts + 1} replyText="${replyText}" result=${result}`);
-
-                if (result === 'confirm') {
-                    if ('sendTyping' in ch) await ch.sendTyping();
-                    try {
-                        const response = await processAgentMessage(currentIntent, [], senderName, message.channelId);
-                        const truncated = response.length > 1990 ? response.slice(0, 1990) + '…' : response;
-                        await ch.send(`${mention} ${truncated}`);
-                    } catch (err: any) {
-                        console.error('[voice] processMessage error:', err);
-                        const code = err.status ?? err.code ?? 'unknown';
-                        await ch.send(`${mention} ⚠️ エラーが発生しました（${code}）。しばらく経ってから再度お試しください。`);
-                    }
-                    return;
-                }
-
-                if (result === 'cancel') {
-                    await ch.send(`${mention} キャンセルしました。`);
-                    return;
-                }
-
-                if (result === 'correction') {
-                    currentIntent = correctedIntent ?? replyText;
-                    continue;
-                }
-
-                // unclear
-                await ch.send(`${mention} 「はい」か「いいえ」でお答えください。`);
-            }
-
-            await ch.send(`${mention} 確認の上限に達したためキャンセルしました。`);
+            await runConfirmationLoop(ch, mention, analysis, senderName, message.channelId, message.author.id);
         } finally {
             pendingVoiceConfirmations.delete(confirmKey);
         }
