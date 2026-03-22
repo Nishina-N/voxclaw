@@ -4,7 +4,7 @@ import type { Message as DiscordMessage, Attachment } from 'discord.js';
 import { type Message } from '../db.js';
 import { type Channel, type OnMessageCallback } from './types.js';
 import { processMessage as processAgentMessage } from '../agent.js';
-import { transcribeVoiceMessage, transcribeAudioText } from '../voice.js';
+import { transcribeVoiceMessage, transcribeAudioText, transcribeAudioWithContext } from '../voice.js';
 
 // --- Voice confirmation helpers ---
 
@@ -239,7 +239,41 @@ export class DiscordChannel implements Channel {
                     await ch.send(`${mention} 修正回数の上限に達したためキャンセルしました。`);
                     return;
                 }
-                currentIntent = replyText;
+
+                // チャンネル直近8件の履歴を取得してコンテキストを構築
+                let contextText = '';
+                try {
+                    const fetched = await ch.messages.fetch({ limit: 8 });
+                    contextText = ([...fetched.values()] as any[])
+                        .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+                        .filter((m) => m.content.trim() !== '')
+                        .map((m) => `${m.author.bot ? 'Bot' : 'User'}：${m.content}`)
+                        .join('\n');
+                } catch (err) {
+                    console.warn('[voice correction] failed to fetch channel history:', err);
+                }
+
+                // 音声修正 → コンテキスト付き文字起こし、テキスト修正 → そのまま使用
+                const correctionAudioAtt = replyMsg.attachments.find(
+                    (a: Attachment) => a.contentType?.startsWith('audio/'),
+                );
+                let newIntent: string;
+                if (correctionAudioAtt) {
+                    try {
+                        newIntent = await transcribeAudioWithContext(
+                            correctionAudioAtt.url,
+                            correctionAudioAtt.contentType ?? 'audio/ogg',
+                            contextText,
+                        );
+                    } catch (err) {
+                        console.warn('[voice correction] transcribeAudioWithContext failed, falling back to raw text:', err);
+                        newIntent = replyText;
+                    }
+                } else {
+                    newIntent = replyText;
+                }
+
+                currentIntent = newIntent;
                 await ch.send(`ユーザー入力（修正）：${currentIntent}`);
                 await ch.send(`${mention} 「${currentIntent}」ということですね？実行してよいですか？`);
             }

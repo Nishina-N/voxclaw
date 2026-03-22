@@ -60,6 +60,60 @@ export async function transcribeAudioText(audioUrl: string, mimeType: string): P
 }
 
 /**
+ * 修正フロー専用：チャンネル履歴コンテキストを踏まえて、音声の修正指示を新しい intent として返す。
+ */
+export async function transcribeAudioWithContext(
+    audioUrl: string,
+    mimeType: string,
+    contextMessages: string,
+): Promise<string> {
+    const tmpPath = path.join('/tmp', `voice-correction-${crypto.randomBytes(8).toString('hex')}`);
+
+    try {
+        const resp = await fetch(audioUrl);
+        if (!resp.ok) throw new Error(`Failed to download audio: ${resp.status}`);
+        const buffer = Buffer.from(await resp.arrayBuffer());
+        await fs.writeFile(tmpPath, buffer);
+
+        const uploaded = await ai.files.upload({
+            file: tmpPath,
+            config: { mimeType, displayName: 'voice_correction' },
+        });
+
+        if (!uploaded.uri) throw new Error('File upload failed: no URI returned');
+
+        const result = await ai.models.generateContent({
+            model,
+            contents: [
+                {
+                    role: 'user',
+                    parts: [
+                        {
+                            fileData: {
+                                fileUri: uploaded.uri,
+                                mimeType: uploaded.mimeType ?? mimeType,
+                            },
+                        },
+                        {
+                            text: `以下はDiscordチャンネルの直近の会話履歴です：
+${contextMessages}
+
+この音声はユーザーによる修正・追加指示です。
+会話履歴を踏まえて、最終的に実行すべき指示内容を日本語一文で返してください。
+余分な説明は不要です。指示内容のみを返してください。`,
+                        },
+                    ],
+                },
+            ],
+        });
+
+        return result.text?.trim() ?? '';
+    } finally {
+        await fs.unlink(tmpPath).catch(() => {});
+    }
+}
+
+/**
  * Discord のボイスメッセージを Gemini File API に渡して
  * 意図テキストとアクション有無を返す。
  */
