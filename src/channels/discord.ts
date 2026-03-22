@@ -15,9 +15,13 @@ const CONFIRM_KEYWORDS = [
     '正しい', '合ってる', 'もちろん', 'お願い', '了解', 'わかった', 'わかりました',
     'ええ', 'ゆえに', '承認',
 ];
-const CANCEL_KEYWORDS = ['いいえ', 'no', 'キャンセル', 'やめて', '違う', 'やめます', '中止'];
+// 「違う」は「違う、△△で」のような修正intentを含む場合があるため除外
+const CANCEL_KEYWORDS = ['いいえ', 'no', 'キャンセル', 'やめて', 'やめます', '中止'];
+// 曖昧な返答（修正intentとは別に再確認を促す）
+const AMBIGUOUS_KEYWORDS = ['大丈夫', 'どうぞ', 'まあ', 'いいんじゃない', 'かな'];
 const VOICE_CONFIRM_TIMEOUT_MS = 60_000;
 const MAX_AMBIGUOUS_RETRIES = 2;
+const MAX_CORRECTION_RETRIES = 3;
 
 function isConfirm(text: string): boolean {
     const t = text.trim().toLowerCase();
@@ -27,6 +31,11 @@ function isConfirm(text: string): boolean {
 function isCancel(text: string): boolean {
     const t = text.trim().toLowerCase();
     return CANCEL_KEYWORDS.some((k) => t.includes(k.toLowerCase()));
+}
+
+function isAmbiguous(text: string): boolean {
+    const t = text.trim().toLowerCase();
+    return AMBIGUOUS_KEYWORDS.some((k) => t.includes(k.toLowerCase()));
 }
 
 // チャンネル+ユーザーごとに確認待ち中フラグを管理
@@ -105,27 +114,33 @@ export class DiscordChannel implements Channel {
         try {
             if ('sendTyping' in ch) await ch.sendTyping();
 
-            // 1. 音声を Gemini で解析して意図とアクション有無を取得
+            // 1. 意図+アクション判定 と 生文字起こし を並行取得
             const mimeType = attachment.contentType ?? 'audio/ogg';
             let analysis: { intent: string; hasAction: boolean };
+            let rawText: string;
             try {
-                analysis = await transcribeVoiceMessage(attachment.url, mimeType);
+                [analysis, rawText] = await Promise.all([
+                    transcribeVoiceMessage(attachment.url, mimeType),
+                    transcribeAudioText(attachment.url, mimeType),
+                ]);
             } catch (err) {
                 console.error('[voice] transcription failed:', err);
                 await ch.send(`${mention} 音声の処理に失敗しました。もう一度お試しください。`);
                 return;
             }
 
-            const { intent, hasAction } = analysis;
+            // 解析直後・処理開始前に生文字起こしを投稿
+            await ch.send(`ユーザー入力：${rawText}`);
 
-            // 解析直後・処理開始前に文字起こし内容を投稿
-            await ch.send(`ユーザー入力：${intent}`);
+            // currentIntent は確認フロー内で修正される可能性があるため let で保持
+            let currentIntent = analysis.intent;
+            const { hasAction } = analysis;
 
             // 2. アクション意図なし → 確認なしでそのままテキスト会話として処理
             if (!hasAction) {
                 if ('sendTyping' in ch) await ch.sendTyping();
                 try {
-                    const response = await processAgentMessage(intent, [], senderName, message.channelId);
+                    const response = await processAgentMessage(currentIntent, [], senderName, message.channelId);
                     const truncated = response.length > 1990 ? response.slice(0, 1990) + '…' : response;
                     await ch.send(`${mention} ${truncated}`);
                 } catch (err: any) {
@@ -137,10 +152,12 @@ export class DiscordChannel implements Channel {
             }
 
             // 3. アクション意図あり → 意図確認メッセージを送信
-            await ch.send(`${mention} 「${intent}」ということですね？実行してよいですか？`);
+            await ch.send(`${mention} 「${currentIntent}」ということですね？実行してよいですか？`);
 
-            // 4. 確認待ちループ（最大 MAX_AMBIGUOUS_RETRIES 回まで再確認）
+            // 4. 確認待ちループ
             let ambiguousCount = 0;
+            let correctionCount = 0;
+
             while (true) {
                 // ユーザーの返答を待機（テキストまたは音声）
                 let replyMsg: DiscordMessage | undefined;
@@ -168,8 +185,6 @@ export class DiscordChannel implements Channel {
 
                 // 返答テキストを取得
                 // 音声の場合は transcribeAudioText（言い換えなし文字起こし）を使う
-                // ※ transcribeVoiceMessage の intent は「〜したい」形式の説明文になるため
-                //   「はい」「了解」などの確認ワードが失われる可能性がある
                 let replyText = replyMsg.content.trim();
                 if (replyText === '') {
                     const audioAtt = replyMsg.attachments.find((a: Attachment) => a.contentType?.startsWith('audio/'));
@@ -182,14 +197,15 @@ export class DiscordChannel implements Channel {
                     }
                 }
 
-                console.log(`[voice confirm] replyText="${replyText}" isConfirm=${isConfirm(replyText)} isCancel=${isCancel(replyText)}`);
+                console.log(`[voice confirm] replyText="${replyText}" isConfirm=${isConfirm(replyText)} isCancel=${isCancel(replyText)} isAmbiguous=${isAmbiguous(replyText)}`);
 
-                // 確認・キャンセル・曖昧を判定
+                // --- 判定 ---
+
+                // 確認
                 if (isConfirm(replyText) && !isCancel(replyText)) {
-                    // 実行
                     if ('sendTyping' in ch) await ch.sendTyping();
                     try {
-                        const response = await processAgentMessage(intent, [], senderName, message.channelId);
+                        const response = await processAgentMessage(currentIntent, [], senderName, message.channelId);
                         const truncated = response.length > 1990 ? response.slice(0, 1990) + '…' : response;
                         await ch.send(`${mention} ${truncated}`);
                     } catch (err: any) {
@@ -200,18 +216,32 @@ export class DiscordChannel implements Channel {
                     return;
                 }
 
+                // キャンセル
                 if (isCancel(replyText)) {
                     await ch.send(`${mention} キャンセルしました。`);
                     return;
                 }
 
-                // 曖昧な返答
-                ambiguousCount++;
-                if (ambiguousCount >= MAX_AMBIGUOUS_RETRIES) {
-                    await ch.send(`${mention} キャンセルしました。`);
+                // 曖昧（はい/いいえのどちらとも取れない短い返答）
+                if (isAmbiguous(replyText)) {
+                    ambiguousCount++;
+                    if (ambiguousCount >= MAX_AMBIGUOUS_RETRIES) {
+                        await ch.send(`${mention} キャンセルしました。`);
+                        return;
+                    }
+                    await ch.send(`${mention} 「はい」か「いいえ」でお答えください。`);
+                    continue;
+                }
+
+                // 修正intent：yes/no/曖昧のいずれにも当てはまらない返答を新しい指示として扱う
+                correctionCount++;
+                if (correctionCount > MAX_CORRECTION_RETRIES) {
+                    await ch.send(`${mention} 修正回数の上限に達したためキャンセルしました。`);
                     return;
                 }
-                await ch.send(`${mention} 「はい」か「いいえ」でお答えください。`);
+                currentIntent = replyText;
+                await ch.send(`ユーザー入力（修正）：${currentIntent}`);
+                await ch.send(`${mention} 「${currentIntent}」ということですね？実行してよいですか？`);
             }
         } finally {
             pendingVoiceConfirmations.delete(confirmKey);
