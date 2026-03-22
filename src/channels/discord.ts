@@ -184,16 +184,20 @@ export class DiscordChannel implements Channel {
                 }
 
                 // 返答テキストを取得
-                // 音声の場合は transcribeAudioText（言い換えなし文字起こし）を使う
+                // 音声の場合は transcribeAudioText（言い換えなし文字起こし）を使い、判定前に必ず表示する
                 let replyText = replyMsg.content.trim();
-                if (replyText === '') {
-                    const audioAtt = replyMsg.attachments.find((a: Attachment) => a.contentType?.startsWith('audio/'));
-                    if (audioAtt) {
-                        try {
-                            replyText = await transcribeAudioText(audioAtt.url, audioAtt.contentType ?? 'audio/ogg');
-                        } catch {
-                            replyText = '';
-                        }
+                const replyAudioAtt = replyMsg.attachments.find(
+                    (a: Attachment) => a.contentType?.startsWith('audio/'),
+                );
+                if (replyText === '' && replyAudioAtt) {
+                    try {
+                        replyText = await transcribeAudioText(
+                            replyAudioAtt.url,
+                            replyAudioAtt.contentType ?? 'audio/ogg',
+                        );
+                        await ch.send(`ユーザー入力：${replyText}`);
+                    } catch {
+                        replyText = '';
                     }
                 }
 
@@ -253,32 +257,26 @@ export class DiscordChannel implements Channel {
                     console.warn('[voice correction] failed to fetch channel history:', err);
                 }
 
-                // 音声修正 → 生文字起こし（表示用）とコンテキスト付きintent（確認用）を並行取得
-                // テキスト修正 → replyText をそのまま表示・intentの両方に使用
-                const correctionAudioAtt = replyMsg.attachments.find(
-                    (a: Attachment) => a.contentType?.startsWith('audio/'),
-                );
-                let rawCorrectionText: string;
+                // 音声修正：生文字起こしは共通ステップで表示済み。コンテキスト付きintentのみ取得
+                // テキスト修正：共通ステップは走っていないため、ここで表示してからintentに使う
                 let newIntent: string;
-                if (correctionAudioAtt) {
-                    const attMimeType = correctionAudioAtt.contentType ?? 'audio/ogg';
+                if (replyAudioAtt) {
                     try {
-                        [rawCorrectionText, newIntent] = await Promise.all([
-                            transcribeAudioText(correctionAudioAtt.url, attMimeType),
-                            transcribeAudioWithContext(correctionAudioAtt.url, attMimeType, contextText),
-                        ]);
+                        newIntent = await transcribeAudioWithContext(
+                            replyAudioAtt.url,
+                            replyAudioAtt.contentType ?? 'audio/ogg',
+                            contextText,
+                        );
                     } catch (err) {
-                        console.warn('[voice correction] transcription failed, falling back to raw text:', err);
-                        rawCorrectionText = replyText;
+                        console.warn('[voice correction] transcribeAudioWithContext failed, falling back to raw text:', err);
                         newIntent = replyText;
                     }
                 } else {
-                    rawCorrectionText = replyText;
+                    await ch.send(`ユーザー入力（修正）：${replyText}`);
                     newIntent = replyText;
                 }
 
                 currentIntent = newIntent;
-                await ch.send(`ユーザー入力（修正）：${rawCorrectionText}`);
                 await ch.send(`${mention} 「${currentIntent}」ということですね？実行してよいですか？`);
             }
         } finally {
