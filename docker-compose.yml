@@ -51,5 +51,7 @@ services:
     build: ./voice-pwa/frontend
     container_name: gemiclaw_voice_frontend
     restart: unless-stopped
+    depends_on:
+      - voice-pwa-backend
     ports:
       - "3000:80"
