@@ -1,5 +1,6 @@
 // --- Config ---
-const WS_URL = `wss://${location.host.replace(/:\d+$/, '')}/ws`;
+const WS_PROTOCOL = location.protocol === 'https:' ? 'wss:' : 'ws:';
+const WS_URL = `${WS_PROTOCOL}//${location.host}/ws`;
 
 // --- State ---
 let ws = null;
