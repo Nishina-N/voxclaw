@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      - HTTP_API_PORT=3001
     depends_on:
       - keybinder
     volumes:
@@ -33,3 +35,21 @@ services:
       - ./keybinder/secrets_for_skills.json:/secrets/keys.json:ro
       # Google OAuth2 token (run keybinder/setup_google_auth.py first to generate this)
       - ./keybinder/token.json:/secrets/google_token.json
+
+  voice-pwa-backend:
+    build: ./voice-pwa/backend
+    container_name: gemiclaw_voice_backend
+    restart: unless-stopped
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMICLAW_API_URL=http://gemiclaw:3001
+      - VOICE_BACKEND_PORT=8080
+    depends_on:
+      - gemiclaw
+
+  voice-pwa-frontend:
+    build: ./voice-pwa/frontend
+    container_name: gemiclaw_voice_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"

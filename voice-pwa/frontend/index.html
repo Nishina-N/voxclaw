@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <link rel="manifest" href="/manifest.json" />
+  <title>Gemiclaw Voice</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      gap: 1.5rem;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: #a8b4ff;
+    }
+
+    #status {
+      font-size: 0.9rem;
+      color: #888;
+    }
+
+    #btn-record {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 3px solid #a8b4ff;
+      background: #16213e;
+      color: #a8b4ff;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    #btn-record:active { transform: scale(0.95); }
+    #btn-record.recording {
+      background: #a8b4ff;
+      color: #1a1a2e;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 480px;
+      background: #16213e;
+      border-radius: 12px;
+      padding: 1rem;
+    }
+
+    .card h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    .card p {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      min-height: 1.6em;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>Gemiclaw Voice</h1>
+  <p id="status">接続中...</p>
+
+  <button id="btn-record">● 話す</button>
+
+  <div class="card">
+    <h2>認識テキスト</h2>
+    <p id="transcript"></p>
+  </div>
+
+  <div class="card">
+    <h2>Gemiclaw の返答</h2>
+    <p id="reply"></p>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

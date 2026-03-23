@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
+import * as http from 'http';
 
 import { processMessage } from './agent.js';
 import { startCronRunner } from './cron-runner.js';
@@ -150,6 +151,70 @@ function startPollingLoop(channel: Channel): void {
     }, POLL_INTERVAL);
 }
 
+// --- HTTP API server ---
+
+const HTTP_API_PORT = parseInt(process.env.HTTP_API_PORT ?? '3001', 10);
+const VOICE_CHANNEL_ID = 'voice';
+
+function startHttpApi(): void {
+    const server = http.createServer((req, res) => {
+        if (req.method === 'POST' && req.url === '/api/message') {
+            let body = '';
+            req.on('data', (chunk) => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const { text, sender = 'voice-user' } = JSON.parse(body);
+                    if (!text || typeof text !== 'string') {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'text is required' }));
+                        return;
+                    }
+
+                    const historySince = new Date(Date.now() - HISTORY_WINDOW_MS).toISOString();
+                    const history = getChannelHistory(VOICE_CHANNEL_ID, historySince);
+
+                    const msgId = `voice-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                    storeMessage({
+                        id: msgId,
+                        channel_id: VOICE_CHANNEL_ID,
+                        sender_id: 'voice-user',
+                        sender_name: sender,
+                        content: text,
+                        timestamp: new Date().toISOString(),
+                        is_bot: 0,
+                    });
+
+                    const reply = await processMessage(text, history, sender, VOICE_CHANNEL_ID);
+
+                    storeMessage({
+                        id: `bot-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                        channel_id: VOICE_CHANNEL_ID,
+                        sender_id: 'gemiclaw',
+                        sender_name: 'gemiclaw',
+                        content: reply,
+                        timestamp: new Date().toISOString(),
+                        is_bot: 1,
+                    });
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ reply }));
+                } catch (err: any) {
+                    console.error('[http-api] error:', err);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'internal server error' }));
+                }
+            });
+        } else {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'not found' }));
+        }
+    });
+
+    server.listen(HTTP_API_PORT, () => {
+        console.log(`[http-api] listening on port ${HTTP_API_PORT}`);
+    });
+}
+
 // --- Entry point ---
 
 async function main(): Promise<void> {
@@ -182,6 +247,7 @@ async function main(): Promise<void> {
     process.on('SIGINT', () => shutdown('SIGINT'));
 
     startPollingLoop(channel);
+    startHttpApi();
 }
 
 main().catch((err) => {
