@@ -233,14 +233,19 @@ async function main(): Promise<void> {
 
     const channel: Channel = new DiscordChannel();
 
-    await channel.connect((msg) => {
-        if (!monitoredChannelIds.includes(msg.channel_id)) {
-            monitoredChannelIds.push(msg.channel_id);
-            setRouterState('monitored_channels', JSON.stringify(monitoredChannelIds));
-        }
-        lastMessageTime.set(msg.channel_id, Date.now());
-        storeMessage(msg);
-    });
+    try {
+        await channel.connect((msg) => {
+            if (!monitoredChannelIds.includes(msg.channel_id)) {
+                monitoredChannelIds.push(msg.channel_id);
+                setRouterState('monitored_channels', JSON.stringify(monitoredChannelIds));
+            }
+            lastMessageTime.set(msg.channel_id, Date.now());
+            storeMessage(msg);
+        });
+    } catch (err: any) {
+        console.warn(`[gemiclaw] Discord connection failed (${err.code ?? err.message}) — running in HTTP-API-only mode`);
+        return;
+    }
 
     startCronRunner(channel);
 
