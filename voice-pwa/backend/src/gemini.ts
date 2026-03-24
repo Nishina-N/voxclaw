@@ -15,8 +15,38 @@ export interface AudioSession {
 export async function createAudioSession(): Promise<AudioSession> {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
+    const textParts: string[] = [];
+    let resolveEnd: ((text: string) => void) | null = null;
+
     const session = await ai.live.connect({
         model: MODEL,
+        callbacks: {
+            onopen: () => {
+                console.log('[gemini] session opened');
+            },
+            onmessage: (msg: any) => {
+                const parts = msg?.serverContent?.modelTurn?.parts ?? [];
+                for (const part of parts) {
+                    if (part.text) textParts.push(part.text);
+                }
+                if (msg?.serverContent?.turnComplete && resolveEnd) {
+                    const text = textParts.join('').trim() || '（音声を聞き取れませんでした）';
+                    resolveEnd(text);
+                    resolveEnd = null;
+                    session.close();
+                }
+            },
+            onerror: (e: any) => {
+                console.error('[gemini] error:', e?.message ?? e);
+            },
+            onclose: (e: any) => {
+                console.log('[gemini] session closed:', e?.reason);
+                if (resolveEnd) {
+                    resolveEnd(textParts.join('').trim() || '（音声を聞き取れませんでした）');
+                    resolveEnd = null;
+                }
+            },
+        },
         config: {
             responseModalities: [Modality.TEXT],
             systemInstruction: {
@@ -27,19 +57,8 @@ export async function createAudioSession(): Promise<AudioSession> {
         },
     });
 
-    const chunks: Buffer[] = [];
-    const textParts: string[] = [];
-
-    session.on('message', (msg: any) => {
-        const parts = msg?.serverContent?.modelTurn?.parts ?? [];
-        for (const part of parts) {
-            if (part.text) textParts.push(part.text);
-        }
-    });
-
     return {
         sendAudio(pcm16: Buffer) {
-            chunks.push(pcm16);
             session.sendRealtimeInput({
                 audio: {
                     data: pcm16.toString('base64'),
@@ -49,13 +68,18 @@ export async function createAudioSession(): Promise<AudioSession> {
         },
 
         async end(): Promise<string> {
-            // Signal end of turn and wait briefly for final response
-            session.sendClientContent({ turns: [], turnComplete: true });
-
-            await new Promise((resolve) => setTimeout(resolve, 3000));
-            session.close();
-
-            return textParts.join('').trim() || '（音声を聞き取れませんでした）';
+            return new Promise<string>((resolve) => {
+                resolveEnd = resolve;
+                session.sendClientContent({ turns: [], turnComplete: true });
+                // 5秒のタイムアウト
+                setTimeout(() => {
+                    if (resolveEnd) {
+                        resolveEnd = null;
+                        resolve(textParts.join('').trim() || '（音声を聞き取れませんでした）');
+                        session.close();
+                    }
+                }, 5000);
+            });
         },
     };
 }
