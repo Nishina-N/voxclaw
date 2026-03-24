@@ -70,15 +70,16 @@ export async function createAudioSession(): Promise<AudioSession> {
         async end(): Promise<string> {
             return new Promise<string>((resolve) => {
                 resolveEnd = resolve;
-                session.sendClientContent({ turns: [], turnComplete: true });
-                // 5秒のタイムアウト
+                // Signal end of audio stream for native audio model
+                session.sendRealtimeInput({ audioStreamEnd: true });
+                // 10秒のタイムアウト
                 setTimeout(() => {
                     if (resolveEnd) {
                         resolveEnd = null;
                         resolve(textParts.join('').trim() || '（音声を聞き取れませんでした）');
-                        session.close();
+                        try { session.close(); } catch {}
                     }
-                }, 5000);
+                }, 10000);
             });
         },
     };
