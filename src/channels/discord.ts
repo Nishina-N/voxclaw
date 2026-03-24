@@ -163,7 +163,7 @@ export class DiscordChannel implements Channel {
 
     async connect(onMessage: OnMessageCallback): Promise<void> {
         if (!process.env.DISCORD_TOKEN) {
-            throw new Error('DISCORD_TOKEN is missing in .env');
+            throw new Error('DISCORD_TOKEN is not set');
         }
 
         this.client.on('messageCreate', async (message) => {

@@ -219,6 +219,12 @@ function startHttpApi(): void {
 
 async function main(): Promise<void> {
     initDatabase();
+    startHttpApi();
+
+    if (!process.env.DISCORD_TOKEN) {
+        console.log('[gemiclaw] DISCORD_TOKEN not set — running in HTTP-API-only mode');
+        return;
+    }
 
     const savedChannels = getRouterState('monitored_channels');
     monitoredChannelIds = savedChannels ? JSON.parse(savedChannels) : [];
@@ -247,7 +253,6 @@ async function main(): Promise<void> {
     process.on('SIGINT', () => shutdown('SIGINT'));
 
     startPollingLoop(channel);
-    startHttpApi();
 }
 
 main().catch((err) => {
