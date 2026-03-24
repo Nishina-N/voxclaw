@@ -1,6 +1,6 @@
 import { GoogleGenAI, Modality } from '@google/genai';
 
-const MODEL = 'gemini-2.5-flash-preview-native-audio-dialog';
+const MODEL = 'gemini-live-2.5-flash-native-audio';
 
 export interface AudioSession {
     sendAudio(pcm16: Buffer): void;
