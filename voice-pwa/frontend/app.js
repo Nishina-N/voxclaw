@@ -64,7 +64,9 @@ intentText.addEventListener('keydown', (e) => {
 });
 
 function updateConfirmState() {
-    const hasText = intentText.value.trim().length > 0;
+    const val = intentText.value;
+    const hasText = val.trim().length > 0;
+    console.log('[updateConfirmState] value=', JSON.stringify(val), 'hasText=', hasText);
     btnConfirm.disabled = !hasText;
     intentArea.classList.toggle('has-intent', hasText);
 }
