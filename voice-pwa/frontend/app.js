@@ -10,14 +10,12 @@ let processor = null;
 let isRecording = false;
 
 // --- DOM ---
-const btnRecord    = document.getElementById('btn-record');
-const btnConfirm   = document.getElementById('btn-confirm');
-const statusEl     = document.getElementById('status');
-const intentText   = document.getElementById('intent-text');
-const intentArea   = document.getElementById('intent-area');
-const replyEl      = document.getElementById('reply');
-const textInput    = document.getElementById('text-input');
-const btnTextSend  = document.getElementById('btn-text-send');
+const btnRecord   = document.getElementById('btn-record');
+const btnConfirm  = document.getElementById('btn-confirm');
+const statusEl    = document.getElementById('status');
+const intentText  = document.getElementById('intent-text');
+const intentArea  = document.getElementById('intent-area');
+const replyEl     = document.getElementById('reply');
 
 // --- PWA ---
 if ('serviceWorker' in navigator) {
@@ -39,8 +37,7 @@ function connectWs() {
 
         if (msg.type === 'intent') {
             intentText.value = msg.text;
-            intentArea.classList.add('has-intent');
-            btnConfirm.disabled = false;
+            updateConfirmState();
             setStatus('意図を検出しました');
 
         } else if (msg.type === 'gemiclaw_reply') {
@@ -55,16 +52,22 @@ function connectWs() {
 
 connectWs();
 
-// 意図テキストを手動編集したら confirm ボタンを有効化
-intentText.addEventListener('input', () => {
-    const hasText = intentText.value.trim().length > 0;
-    btnConfirm.disabled = !hasText;
-    if (hasText) {
-        intentArea.classList.add('has-intent');
-    } else {
-        intentArea.classList.remove('has-intent');
+// テキスト入力・編集で OK ボタンを制御
+intentText.addEventListener('input', updateConfirmState);
+
+// Ctrl/Cmd+Enter で送信
+intentText.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        sendIntent();
     }
 });
+
+function updateConfirmState() {
+    const hasText = intentText.value.trim().length > 0;
+    btnConfirm.disabled = !hasText;
+    intentArea.classList.toggle('has-intent', hasText);
+}
 
 // --- Recording ---
 btnRecord.addEventListener('click', async () => {
@@ -118,32 +121,15 @@ function stopRecording() {
     }
 }
 
-// --- 意図エリアの OK ボタン（音声 → 編集 → 送信）---
-btnConfirm.addEventListener('click', () => {
+// --- 送信 ---
+btnConfirm.addEventListener('click', sendIntent);
+
+function sendIntent() {
     const intent = intentText.value.trim();
     if (!intent || !ws || ws.readyState !== WebSocket.OPEN) return;
     setStatus('Gemiclaw に送信中...');
     replyEl.textContent = '';
     ws.send(JSON.stringify({ type: 'confirm', intent }));
-});
-
-// --- テキスト直接入力（Ctrl/Cmd+Enter でも送信）---
-textInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        sendTextInput();
-    }
-});
-
-btnTextSend.addEventListener('click', sendTextInput);
-
-function sendTextInput() {
-    const text = textInput.value.trim();
-    if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
-    setStatus('Gemiclaw に送信中...');
-    replyEl.textContent = '';
-    ws.send(JSON.stringify({ type: 'confirm', intent: text }));
-    textInput.value = '';
 }
 
 // --- Helpers ---

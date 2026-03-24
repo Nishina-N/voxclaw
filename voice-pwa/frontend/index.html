@@ -51,6 +51,66 @@
       color: #1a1a2e;
     }
 
+    #intent-area {
+      width: 100%;
+      max-width: 480px;
+      background: #16213e;
+      border-radius: 12px;
+      padding: 1rem;
+      border: 1px solid #2a2a4e;
+    }
+
+    #intent-area h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    #intent-text {
+      width: 100%;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      min-height: 4em;
+      color: #e0e0e0;
+      background: transparent;
+      border: 1px solid #2a2a4e;
+      border-radius: 6px;
+      padding: 0.4rem 0.5rem;
+      resize: vertical;
+      font-family: inherit;
+      margin-bottom: 0.75rem;
+    }
+
+    #intent-text::placeholder { color: #444; }
+    #intent-text:focus {
+      outline: none;
+      border-color: #a8b4ff;
+    }
+
+    #intent-area.has-intent { border-color: #a8b4ff; }
+
+    #btn-confirm {
+      width: 100%;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      border: none;
+      background: #a8b4ff;
+      color: #1a1a2e;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    #btn-confirm:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    #btn-confirm:not(:disabled):active { opacity: 0.8; }
+
     .card {
       width: 100%;
       max-width: 480px;
@@ -73,130 +133,6 @@
       min-height: 1.6em;
       white-space: pre-wrap;
     }
-
-    #intent-area {
-      width: 100%;
-      max-width: 480px;
-      background: #16213e;
-      border-radius: 12px;
-      padding: 1rem;
-      border: 1px solid #2a2a4e;
-    }
-
-    #intent-area h2 {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #666;
-      margin-bottom: 0.5rem;
-    }
-
-    #intent-text {
-      width: 100%;
-      font-size: 0.95rem;
-      line-height: 1.6;
-      min-height: 3.2em;
-      white-space: pre-wrap;
-      color: #e0e0e0;
-      margin-bottom: 0.75rem;
-      background: transparent;
-      border: 1px solid #2a2a4e;
-      border-radius: 6px;
-      padding: 0.4rem 0.5rem;
-      resize: vertical;
-      font-family: inherit;
-    }
-
-    #intent-text:focus {
-      outline: none;
-      border-color: #a8b4ff;
-    }
-
-    #intent-area.has-intent {
-      border-color: #a8b4ff;
-    }
-
-    #btn-confirm {
-      width: 100%;
-      padding: 0.6rem 1rem;
-      border-radius: 8px;
-      border: none;
-      background: #a8b4ff;
-      color: #1a1a2e;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-
-    #btn-confirm:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    #btn-confirm:not(:disabled):active {
-      opacity: 0.8;
-    }
-
-    /* テキスト入力エリア */
-    #text-input-area {
-      width: 100%;
-      max-width: 480px;
-      background: #16213e;
-      border-radius: 12px;
-      padding: 1rem;
-      border: 1px solid #2a2a4e;
-    }
-
-    #text-input-area h2 {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #666;
-      margin-bottom: 0.5rem;
-    }
-
-    #text-input {
-      width: 100%;
-      font-size: 0.95rem;
-      line-height: 1.6;
-      min-height: 4em;
-      color: #e0e0e0;
-      background: transparent;
-      border: 1px solid #2a2a4e;
-      border-radius: 6px;
-      padding: 0.4rem 0.5rem;
-      resize: vertical;
-      font-family: inherit;
-      margin-bottom: 0.75rem;
-    }
-
-    #text-input::placeholder {
-      color: #444;
-    }
-
-    #text-input:focus {
-      outline: none;
-      border-color: #a8b4ff;
-    }
-
-    #btn-text-send {
-      width: 100%;
-      padding: 0.6rem 1rem;
-      border-radius: 8px;
-      border: 1px solid #a8b4ff;
-      background: transparent;
-      color: #a8b4ff;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s, color 0.2s;
-    }
-
-    #btn-text-send:active {
-      background: #a8b4ff;
-      color: #1a1a2e;
-    }
   </style>
 </head>
 <body>
@@ -206,15 +142,9 @@
   <button id="btn-record">● 話す</button>
 
   <div id="intent-area">
-    <h2>推定された意図（編集可）</h2>
-    <textarea id="intent-text" placeholder="（会話すると意図が表示されます）"></textarea>
+    <h2>意図（音声入力 or 直接入力）</h2>
+    <textarea id="intent-text" placeholder="話すか、ここに直接入力してください"></textarea>
     <button id="btn-confirm" disabled>OK → Gemiclaw に送信</button>
-  </div>
-
-  <div id="text-input-area">
-    <h2>テキストで直接入力</h2>
-    <textarea id="text-input" placeholder="ここに入力して送信できます（電車内など音声が使えない場合）"></textarea>
-    <button id="btn-text-send">送信 → Gemiclaw へ</button>
   </div>
 
   <div class="card">
