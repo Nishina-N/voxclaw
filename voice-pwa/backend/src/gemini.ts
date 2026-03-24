@@ -8,14 +8,14 @@ export interface AudioSession {
 }
 
 /**
- * Opens a Gemini Native Audio Dialog session.
- * Accumulates audio chunks, then on end() closes the session and returns
- * the full transcribed/summarized text to forward to Gemiclaw.
+ * Opens a Gemini Native Audio session.
+ * Streams PCM audio in, then on end() signals audioStreamEnd and waits for
+ * inputAudioTranscription to arrive, returning the transcribed text.
  */
 export async function createAudioSession(): Promise<AudioSession> {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
-    const textParts: string[] = [];
+    const transcriptParts: string[] = [];
     let resolveEnd: ((text: string) => void) | null = null;
 
     const session = await ai.live.connect({
@@ -25,15 +25,21 @@ export async function createAudioSession(): Promise<AudioSession> {
                 console.log('[gemini] session opened');
             },
             onmessage: (msg: any) => {
+                // Input transcription: user's spoken words
+                const inputText = msg?.serverContent?.inputTranscription?.text;
+                if (inputText) transcriptParts.push(inputText);
+
+                // Fallback: text parts in model turn
                 const parts = msg?.serverContent?.modelTurn?.parts ?? [];
                 for (const part of parts) {
-                    if (part.text) textParts.push(part.text);
+                    if (part.text) transcriptParts.push(part.text);
                 }
+
                 if (msg?.serverContent?.turnComplete && resolveEnd) {
-                    const text = textParts.join('').trim() || '（音声を聞き取れませんでした）';
+                    const text = transcriptParts.join('').trim() || '（音声を聞き取れませんでした）';
                     resolveEnd(text);
                     resolveEnd = null;
-                    session.close();
+                    try { session.close(); } catch {}
                 }
             },
             onerror: (e: any) => {
@@ -42,19 +48,15 @@ export async function createAudioSession(): Promise<AudioSession> {
             onclose: (e: any) => {
                 console.log('[gemini] session closed:', e?.reason);
                 if (resolveEnd) {
-                    resolveEnd(textParts.join('').trim() || '（音声を聞き取れませんでした）');
+                    resolveEnd(transcriptParts.join('').trim() || '（音声を聞き取れませんでした）');
                     resolveEnd = null;
                 }
             },
         },
         config: {
-            responseModalities: [Modality.TEXT],
-            systemInstruction: {
-                parts: [{
-                    text: 'You are a voice input assistant. Listen to the user\'s speech and produce a clear, concise text summary of what they said in Japanese. Output only the summary text, nothing else.',
-                }],
-            },
-        },
+            responseModalities: [Modality.AUDIO],
+            inputAudioTranscription: {},
+        } as any,
     });
 
     return {
@@ -70,13 +72,12 @@ export async function createAudioSession(): Promise<AudioSession> {
         async end(): Promise<string> {
             return new Promise<string>((resolve) => {
                 resolveEnd = resolve;
-                // Signal end of audio stream for native audio model
                 session.sendRealtimeInput({ audioStreamEnd: true });
                 // 10秒のタイムアウト
                 setTimeout(() => {
                     if (resolveEnd) {
                         resolveEnd = null;
-                        resolve(textParts.join('').trim() || '（音声を聞き取れませんでした）');
+                        resolve(transcriptParts.join('').trim() || '（音声を聞き取れませんでした）');
                         try { session.close(); } catch {}
                     }
                 }, 10000);

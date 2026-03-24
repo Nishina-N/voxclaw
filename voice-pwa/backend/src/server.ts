@@ -27,6 +27,17 @@ const wss = new WebSocketServer({ server });
 wss.on('connection', (ws: WebSocket) => {
     console.log('[ws] client connected');
     let session: AudioSession | null = null;
+    let sessionCreating: Promise<AudioSession> | null = null;
+
+    async function getOrCreateSession(): Promise<AudioSession> {
+        if (session) return session;
+        if (!sessionCreating) {
+            sessionCreating = createAudioSession()
+                .then(s => { session = s; return s; })
+                .catch(err => { sessionCreating = null; throw err; });
+        }
+        return sessionCreating;
+    }
 
     ws.on('message', async (raw) => {
         let msg: ClientMsg;
@@ -38,27 +49,28 @@ wss.on('connection', (ws: WebSocket) => {
         }
 
         if (msg.type === 'audio') {
-            if (!session) {
-                try {
-                    session = await createAudioSession();
-                } catch (err: any) {
-                    console.error('[gemini] session create error:', err);
-                    ws.send(JSON.stringify({ type: 'error', message: 'failed to start audio session' }));
-                    return;
-                }
+            let s: AudioSession;
+            try {
+                s = await getOrCreateSession();
+            } catch (err: any) {
+                console.error('[gemini] session create error:', err);
+                ws.send(JSON.stringify({ type: 'error', message: 'failed to start audio session' }));
+                return;
             }
             const pcm = Buffer.from(msg.data, 'base64');
-            session.sendAudio(pcm);
+            s.sendAudio(pcm);
 
         } else if (msg.type === 'end') {
-            if (!session) {
+            if (!session && !sessionCreating) {
                 ws.send(JSON.stringify({ type: 'error', message: 'no active session' }));
                 return;
             }
 
             try {
-                const transcript = await session.end();
+                const s = session ?? await sessionCreating!;
                 session = null;
+                sessionCreating = null;
+                const transcript = await s.end();
 
                 console.log('[gemini] transcript:', transcript);
                 ws.send(JSON.stringify({ type: 'transcript', text: transcript }));
