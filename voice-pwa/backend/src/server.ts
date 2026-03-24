@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer } from 'http';
-import { createAudioSession, type AudioSession } from './gemini.js';
+import { createLiveSession, type GeminiLiveSession } from './gemini.js';
 import { sendToGemiclaw } from './gemiclaw-client.js';
 
 dotenv.config();
@@ -10,84 +10,82 @@ const PORT = parseInt(process.env.VOICE_BACKEND_PORT ?? '8080', 10);
 
 // Message types (frontend ↔ backend protocol)
 // Client → Server:
-//   { type: 'audio', data: '<base64 PCM16 16kHz mono>' }
-//   { type: 'end' }
+//   { type: 'audio', data: '<base64 PCM16 16kHz mono>' }  ← streaming audio chunks
+//   { type: 'audio_end' }                                  ← user stopped speaking
+//   { type: 'confirm', intent: '...' }                     ← user pressed OK
 // Server → Client:
-//   { type: 'transcript', text: '...' }   ← what Gemini heard
-//   { type: 'reply', text: '...' }         ← Gemiclaw's response
+//   { type: 'intent', text: '...' }      ← real-time intent from Gemini
+//   { type: 'gemiclaw_reply', text: '...' } ← after confirm
 //   { type: 'error', message: '...' }
-
-interface AudioMsg { type: 'audio'; data: string; }
-interface EndMsg   { type: 'end'; }
-type ClientMsg = AudioMsg | EndMsg;
 
 const server = createServer();
 const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws: WebSocket) => {
     console.log('[ws] client connected');
-    let session: AudioSession | null = null;
-    let sessionCreating: Promise<AudioSession> | null = null;
 
-    async function getOrCreateSession(): Promise<AudioSession> {
-        if (session) return session;
+    let geminiSession: GeminiLiveSession | null = null;
+    let sessionCreating: Promise<GeminiLiveSession> | null = null;
+
+    async function getOrCreateSession(): Promise<GeminiLiveSession> {
+        if (geminiSession) return geminiSession;
         if (!sessionCreating) {
-            sessionCreating = createAudioSession()
-                .then(s => { session = s; return s; })
-                .catch(err => { sessionCreating = null; throw err; });
+            sessionCreating = createLiveSession((intent) => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'intent', text: intent }));
+                }
+            }).then(s => {
+                geminiSession = s;
+                return s;
+            }).catch(err => {
+                sessionCreating = null;
+                throw err;
+            });
         }
         return sessionCreating;
     }
 
     ws.on('message', async (raw) => {
-        let msg: ClientMsg;
+        let msg: any;
         try {
-            msg = JSON.parse(raw.toString()) as ClientMsg;
+            msg = JSON.parse(raw.toString());
         } catch {
             ws.send(JSON.stringify({ type: 'error', message: 'invalid JSON' }));
             return;
         }
 
         if (msg.type === 'audio') {
-            let s: AudioSession;
             try {
-                s = await getOrCreateSession();
+                const s = await getOrCreateSession();
+                s.sendAudio(Buffer.from(msg.data, 'base64'));
             } catch (err: any) {
                 console.error('[gemini] session create error:', err);
                 ws.send(JSON.stringify({ type: 'error', message: 'failed to start audio session' }));
-                return;
-            }
-            const pcm = Buffer.from(msg.data, 'base64');
-            s.sendAudio(pcm);
-
-        } else if (msg.type === 'end') {
-            if (!session && !sessionCreating) {
-                ws.send(JSON.stringify({ type: 'error', message: 'no active session' }));
-                return;
             }
 
+        } else if (msg.type === 'audio_end') {
+            const s = geminiSession ?? (sessionCreating ? await sessionCreating.catch(() => null) : null);
+            s?.endTurn();
+
+        } else if (msg.type === 'confirm') {
+            const intent: string = msg.intent;
+            if (!intent) return;
+            console.log('[confirm] sending to gemiclaw:', intent);
             try {
-                const s = session ?? await sessionCreating!;
-                session = null;
-                sessionCreating = null;
-                const transcript = await s.end();
-
-                console.log('[gemini] transcript:', transcript);
-                ws.send(JSON.stringify({ type: 'transcript', text: transcript }));
-
-                const reply = await sendToGemiclaw(transcript);
+                const reply = await sendToGemiclaw(intent);
                 console.log('[gemiclaw] reply:', reply);
-                ws.send(JSON.stringify({ type: 'reply', text: reply }));
+                ws.send(JSON.stringify({ type: 'gemiclaw_reply', text: reply }));
             } catch (err: any) {
-                console.error('[end] error:', err);
-                ws.send(JSON.stringify({ type: 'error', message: err.message ?? 'unknown error' }));
+                console.error('[confirm] gemiclaw error:', err);
+                ws.send(JSON.stringify({ type: 'error', message: err.message ?? 'gemiclaw error' }));
             }
         }
     });
 
     ws.on('close', () => {
         console.log('[ws] client disconnected');
-        session = null;
+        geminiSession?.close();
+        geminiSession = null;
     });
 });
 

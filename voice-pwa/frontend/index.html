@@ -73,6 +73,58 @@
       min-height: 1.6em;
       white-space: pre-wrap;
     }
+
+    #intent-area {
+      width: 100%;
+      max-width: 480px;
+      background: #16213e;
+      border-radius: 12px;
+      padding: 1rem;
+      border: 1px solid #2a2a4e;
+    }
+
+    #intent-area h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    #intent-text {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      min-height: 1.6em;
+      white-space: pre-wrap;
+      color: #e0e0e0;
+      margin-bottom: 0.75rem;
+    }
+
+    #intent-area.has-intent {
+      border-color: #a8b4ff;
+    }
+
+    #btn-confirm {
+      width: 100%;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      border: none;
+      background: #a8b4ff;
+      color: #1a1a2e;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    #btn-confirm:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    #btn-confirm:not(:disabled):active {
+      opacity: 0.8;
+    }
   </style>
 </head>
 <body>
@@ -81,9 +133,10 @@
 
   <button id="btn-record">● 話す</button>
 
-  <div class="card">
-    <h2>認識テキスト</h2>
-    <p id="transcript"></p>
+  <div id="intent-area">
+    <h2>推定された意図</h2>
+    <p id="intent-text">（会話すると意図が表示されます）</p>
+    <button id="btn-confirm" disabled>OK → Gemiclaw に送信</button>
   </div>
 
   <div class="card">

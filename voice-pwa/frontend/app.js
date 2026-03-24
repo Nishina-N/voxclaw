@@ -4,14 +4,19 @@ const WS_URL = `${WS_PROTOCOL}//${location.host}/ws`;
 
 // --- State ---
 let ws = null;
-let mediaRecorder = null;
+let audioContext = null;
+let mediaStream = null;
+let processor = null;
 let isRecording = false;
+let currentIntent = '';
 
 // --- DOM ---
-const btnRecord  = document.getElementById('btn-record');
-const statusEl   = document.getElementById('status');
-const transcript = document.getElementById('transcript');
-const reply      = document.getElementById('reply');
+const btnRecord   = document.getElementById('btn-record');
+const btnConfirm  = document.getElementById('btn-confirm');
+const statusEl    = document.getElementById('status');
+const intentText  = document.getElementById('intent-text');
+const intentArea  = document.getElementById('intent-area');
+const replyEl     = document.getElementById('reply');
 
 // --- PWA ---
 if ('serviceWorker' in navigator) {
@@ -30,12 +35,18 @@ function connectWs() {
     ws.addEventListener('error', () => setStatus('接続エラー'));
     ws.addEventListener('message', (e) => {
         const msg = JSON.parse(e.data);
-        if (msg.type === 'transcript') {
-            transcript.textContent = msg.text;
-            setStatus('Gemiclaw に送信中...');
-        } else if (msg.type === 'reply') {
-            reply.textContent = msg.text;
+
+        if (msg.type === 'intent') {
+            currentIntent = msg.text;
+            intentText.textContent = msg.text;
+            intentArea.classList.add('has-intent');
+            btnConfirm.disabled = false;
+            setStatus('意図を検出しました');
+
+        } else if (msg.type === 'gemiclaw_reply') {
+            replyEl.textContent = msg.text;
             setStatus('完了');
+
         } else if (msg.type === 'error') {
             setStatus(`エラー: ${msg.message}`);
         }
@@ -54,40 +65,31 @@ btnRecord.addEventListener('click', async () => {
 });
 
 async function startRecording() {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+        setStatus('マイクへのアクセスが拒否されました');
+        return;
+    }
 
-    // Resample to 16kHz mono PCM16 via AudioContext
-    const ctx = new AudioContext({ sampleRate: 16000 });
-    const source = ctx.createMediaStreamSource(stream);
-    const processor = ctx.createScriptProcessor(4096, 1, 1);
+    audioContext = new AudioContext({ sampleRate: 16000 });
+    const source = audioContext.createMediaStreamSource(mediaStream);
+    processor = audioContext.createScriptProcessor(4096, 1, 1);
 
     source.connect(processor);
-    processor.connect(ctx.destination);
+    processor.connect(audioContext.destination);
 
     processor.onaudioprocess = (e) => {
-        if (!isRecording) return;
+        if (!isRecording || !ws || ws.readyState !== WebSocket.OPEN) return;
         const float32 = e.inputBuffer.getChannelData(0);
         const pcm16 = float32ToPcm16(float32);
-        const b64 = arrayBufferToBase64(pcm16.buffer);
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'audio', data: b64 }));
-        }
+        ws.send(JSON.stringify({ type: 'audio', data: arrayBufferToBase64(pcm16.buffer) }));
     };
 
     isRecording = true;
     btnRecord.textContent = '■ 停止';
     btnRecord.classList.add('recording');
     setStatus('録音中...');
-    transcript.textContent = '';
-    reply.textContent = '';
-
-    // Store refs for cleanup
-    btnRecord._cleanup = () => {
-        processor.disconnect();
-        source.disconnect();
-        ctx.close();
-        stream.getTracks().forEach((t) => t.stop());
-    };
 }
 
 function stopRecording() {
@@ -96,15 +98,22 @@ function stopRecording() {
     btnRecord.classList.remove('recording');
     setStatus('処理中...');
 
-    if (btnRecord._cleanup) {
-        btnRecord._cleanup();
-        btnRecord._cleanup = null;
-    }
+    if (processor) { processor.disconnect(); processor = null; }
+    if (audioContext) { audioContext.close(); audioContext = null; }
+    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
 
     if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'end' }));
+        ws.send(JSON.stringify({ type: 'audio_end' }));
     }
 }
+
+// --- OK button ---
+btnConfirm.addEventListener('click', () => {
+    if (!currentIntent || !ws || ws.readyState !== WebSocket.OPEN) return;
+    setStatus('Gemiclaw に送信中...');
+    replyEl.textContent = '';
+    ws.send(JSON.stringify({ type: 'confirm', intent: currentIntent }));
+});
 
 // --- Helpers ---
 function setStatus(msg) {
