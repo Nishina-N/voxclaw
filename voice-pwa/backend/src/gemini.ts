@@ -33,14 +33,18 @@ export async function createLiveSession(
                     if (call.name === 'report_intent' && call.args?.intent) {
                         console.log('[gemini] intent:', call.args.intent);
                         onIntent(call.args.intent);
-                        // Acknowledge tool call
-                        (session as any).sendToolResponse?.({
-                            functionResponses: [{
-                                id: call.id,
-                                name: call.name,
-                                response: { result: 'ok' },
-                            }],
-                        }).catch((e: any) => console.warn('[gemini] toolResponse error:', e?.message));
+                        // Acknowledge tool call (sendToolResponse returns void)
+                        try {
+                            (session as any).sendToolResponse?.({
+                                functionResponses: [{
+                                    id: call.id,
+                                    name: call.name,
+                                    response: { result: 'ok' },
+                                }],
+                            });
+                        } catch (e: any) {
+                            console.warn('[gemini] toolResponse error:', e?.message);
+                        }
                     }
                 }
             },
