@@ -6,6 +6,7 @@ import { processMessage } from './agent.js';
 import { startCronRunner } from './cron-runner.js';
 import { DiscordChannel } from './channels/discord.js';
 import { type Channel } from './channels/types.js';
+import { HISTORY_WINDOW_MS, truncateForDiscord, extractErrorCode, generateId } from './utils.js';
 import {
     getChannelHistory,
     getNewMentions,
@@ -20,7 +21,6 @@ import {
 dotenv.config();
 
 const POLL_INTERVAL = 2000;
-const HISTORY_WINDOW_MS = 24 * 60 * 60 * 1000;
 const CHANNELS_CONFIG_PATH = '/app/config/channels.json';
 
 // Per-channel config written by the agent via write_file
@@ -70,10 +70,10 @@ async function processChannel(
             let replyText: string;
             try {
                 const reply = await processMessage(content, history, msg.sender_name, channelId);
-                replyText = reply.length > 1990 ? reply.slice(0, 1990) + '…' : reply;
+                replyText = truncateForDiscord(reply);
             } catch (err: any) {
                 console.error(`[processChannel] error for msg ${msg.id}:`, err);
-                const code = err.status ?? err.code ?? 'unknown';
+                const code = extractErrorCode(err);
                 replyText = `⚠️ エラーが発生しました（${code}）。しばらく経ってから再度お試しください。`;
             }
 
@@ -85,7 +85,7 @@ async function processChannel(
             await channel.sendMessage(channelId, sendText);
 
             storeMessage({
-                id: `bot-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                id: generateId('bot'),
                 channel_id: channelId,
                 sender_id: channel.getBotId(),
                 sender_name: 'gemiclaw',
@@ -173,7 +173,7 @@ function startHttpApi(): void {
                     const historySince = new Date(Date.now() - HISTORY_WINDOW_MS).toISOString();
                     const history = getChannelHistory(VOICE_CHANNEL_ID, historySince);
 
-                    const msgId = `voice-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                    const msgId = generateId('voice');
                     storeMessage({
                         id: msgId,
                         channel_id: VOICE_CHANNEL_ID,
@@ -187,7 +187,7 @@ function startHttpApi(): void {
                     const reply = await processMessage(text, history, sender, VOICE_CHANNEL_ID);
 
                     storeMessage({
-                        id: `bot-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                        id: generateId('bot'),
                         channel_id: VOICE_CHANNEL_ID,
                         sender_id: 'gemiclaw',
                         sender_name: 'gemiclaw',

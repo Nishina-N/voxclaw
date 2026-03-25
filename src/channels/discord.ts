@@ -5,6 +5,7 @@ import { type Message } from '../db.js';
 import { type Channel, type OnMessageCallback } from './types.js';
 import { processMessage as processAgentMessage } from '../agent.js';
 import { analyzeVoice, classifyReply, type VoiceAnalysis } from '../voice.js';
+import { truncateForDiscord, extractErrorCode } from '../utils.js';
 
 const VOICE_CONFIRM_TIMEOUT_MS = 60_000;
 const MAX_ATTEMPTS = 5;
@@ -86,11 +87,10 @@ async function runAgentAndSend(
     if ('sendTyping' in ch) await ch.sendTyping();
     try {
         const response = await processAgentMessage(intent, [], senderName, channelId);
-        const truncated = response.length > 1990 ? response.slice(0, 1990) + '…' : response;
-        await ch.send(`${mention} ${truncated}`);
+        await ch.send(`${mention} ${truncateForDiscord(response)}`);
     } catch (err: any) {
         console.error('[voice] processMessage error:', err);
-        const code = err.status ?? err.code ?? 'unknown';
+        const code = extractErrorCode(err);
         await ch.send(`${mention} ⚠️ エラーが発生しました（${code}）。しばらく経ってから再度お試しください。`);
     }
 }

@@ -5,9 +5,9 @@ import cron from 'node-cron';
 import { type Channel } from './channels/types.js';
 import { processMessage } from './agent.js';
 import { getChannelHistory } from './db.js';
+import { HISTORY_WINDOW_MS, truncateForDiscord } from './utils.js';
 
 const CRON_CONFIG_PATH = '/app/config/cron.json';
-const HISTORY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export interface CronTask {
     id: string;          // Unique identifier
@@ -47,7 +47,7 @@ function scheduleAll(tasks: CronTask[], channel: Channel): void {
                 const historySince = new Date(Date.now() - HISTORY_WINDOW_MS).toISOString();
                 const history = getChannelHistory(task.channelId, historySince);
                 const reply = await processMessage(task.prompt, history, 'cron', task.channelId);
-                const text = reply.length > 1990 ? reply.slice(0, 1990) + '…' : reply;
+                const text = truncateForDiscord(reply);
                 await channel.sendMessage(task.channelId, text);
             } catch (e) {
                 console.error(`[cron] Task "${task.id}" failed:`, e);
