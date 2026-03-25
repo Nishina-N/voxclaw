@@ -55,3 +55,11 @@ services:
       - voice-pwa-backend
     ports:
       - "3000:80"
+
+  cloudflare-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: gemiclaw_tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    profiles:
+      - tunnel
