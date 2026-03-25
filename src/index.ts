@@ -6,7 +6,7 @@ import { processMessage } from './agent.js';
 import { startCronRunner } from './cron-runner.js';
 import { DiscordChannel } from './channels/discord.js';
 import { type Channel } from './channels/types.js';
-import { HISTORY_WINDOW_MS, truncateForDiscord, extractErrorCode, generateId } from './utils.js';
+import { truncateForDiscord, extractErrorCode, generateId, historySince } from './utils.js';
 import {
     getChannelHistory,
     getNewMentions,
@@ -56,8 +56,8 @@ async function processChannel(
     processingChannels.add(channelId);
 
     try {
-        const historySince = new Date(Date.now() - HISTORY_WINDOW_MS).toISOString();
-        const history = getChannelHistory(channelId, historySince);
+        const since = historySince();
+        const history = getChannelHistory(channelId, since);
 
         for (const msg of messages) {
             // Strip mention from content if present
@@ -170,8 +170,8 @@ function startHttpApi(): void {
                         return;
                     }
 
-                    const historySince = new Date(Date.now() - HISTORY_WINDOW_MS).toISOString();
-                    const history = getChannelHistory(VOICE_CHANNEL_ID, historySince);
+                    const since = historySince();
+                    const history = getChannelHistory(VOICE_CHANNEL_ID, since);
 
                     const msgId = generateId('voice');
                     storeMessage({
@@ -229,7 +229,7 @@ async function main(): Promise<void> {
     const savedChannels = getRouterState('monitored_channels');
     monitoredChannelIds = savedChannels ? JSON.parse(savedChannels) : [];
     lastTimestamp = getRouterState('last_timestamp')
-        ?? new Date(Date.now() - HISTORY_WINDOW_MS).toISOString();
+        ?? historySince();
 
     const channel: Channel = new DiscordChannel();
 

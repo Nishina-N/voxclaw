@@ -5,7 +5,7 @@ import cron from 'node-cron';
 import { type Channel } from './channels/types.js';
 import { processMessage } from './agent.js';
 import { getChannelHistory } from './db.js';
-import { HISTORY_WINDOW_MS, truncateForDiscord } from './utils.js';
+import { truncateForDiscord, historySince } from './utils.js';
 
 const CRON_CONFIG_PATH = '/app/config/cron.json';
 
@@ -44,8 +44,8 @@ function scheduleAll(tasks: CronTask[], channel: Channel): void {
         const scheduled = cron.schedule(task.cron, async () => {
             console.log(`[cron] Firing "${task.id}"`);
             try {
-                const historySince = new Date(Date.now() - HISTORY_WINDOW_MS).toISOString();
-                const history = getChannelHistory(task.channelId, historySince);
+                const since = historySince();
+                const history = getChannelHistory(task.channelId, since);
                 const reply = await processMessage(task.prompt, history, 'cron', task.channelId);
                 const text = truncateForDiscord(reply);
                 await channel.sendMessage(task.channelId, text);
