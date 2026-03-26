@@ -290,7 +290,7 @@ const server = http.createServer(async (req, res) => {
       const { name, content, mimeType = 'text/plain', folderId } = JSON.parse(bodyStr);
       if (!name || content == null) { res.writeHead(400); res.end(JSON.stringify({ error: 'Missing fields: name, content' })); return; }
 
-      const boundary = 'gemiclaw_boundary';
+      const boundary = 'voxclaw_boundary';
       const metadata: Record<string, any> = { name, mimeType };
       if (folderId) metadata.parents = [folderId];
 

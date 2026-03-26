@@ -26,8 +26,8 @@ Prepare the following in advance.
 ## 2. Clone the Repository
 
 ```bash
-git clone https://github.com/qwibitai/gemiclaw.git
-cd gemiclaw
+git clone https://github.com/qwibitai/voxclaw.git
+cd voxclaw
 ```
 
 ---
@@ -86,7 +86,7 @@ Only required if you want to use Drive, Calendar, Tasks, or Sheets integration. 
 1. Go to **APIs & Services → Credentials**.
 2. Click **Create credentials → OAuth client ID**.
 3. Select **Desktop app** as the application type.
-4. Enter a name (e.g. `gemiclaw`) and click **Create**.
+4. Enter a name (e.g. `voxclaw`) and click **Create**.
 5. Download the generated JSON file and save it as `keybinder/client_secret.json`.
 
 > One `client_secret.json` covers all APIs — it represents your app, not any specific API. Which APIs you can access is controlled by scopes.
@@ -143,7 +143,7 @@ docker-compose logs -f  # View logs (Ctrl+C to exit)
 Mention the bot on Discord to start chatting.
 
 ```
-@gemiclaw Hello!
+@voxclaw Hello!
 ```
 
 ---
@@ -167,7 +167,7 @@ Mention the bot on Discord to start chatting.
 
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and log in with your Discord account.
 2. Click **"New Application"** in the upper right.
-3. Enter an application name (e.g. `gemiclaw`) and press **"Create"**.
+3. Enter an application name (e.g. `voxclaw`) and press **"Create"**.
 
 #### 2. Add a Bot and get the token
 

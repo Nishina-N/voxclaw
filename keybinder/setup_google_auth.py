@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-One-time Google OAuth2 setup script for gemiclaw keybinder.
+One-time Google OAuth2 setup script for voxclaw keybinder.
 Run this manually to generate token.json before starting the bot.
 
 Requirements:
@@ -73,7 +73,7 @@ def main():
         json.dump(token_data, f, indent=2)
 
     print(f"\n✅ token.json saved to {TOKEN_PATH}")
-    print("You can now start gemiclaw:")
+    print("You can now start voxclaw:")
     print("  docker-compose up -d --build")
 
 

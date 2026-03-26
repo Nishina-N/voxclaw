@@ -1,7 +1,7 @@
 services:
-  gemiclaw:
+  voxclaw:
     build: .
-    container_name: gemiclaw_bot
+    container_name: voxclaw_bot
     restart: unless-stopped
     env_file:
       - .env
@@ -28,28 +28,28 @@ services:
 
   keybinder:
     build: ./keybinder
-    container_name: gemiclaw_keybinder
+    container_name: voxclaw_keybinder
     restart: unless-stopped
     volumes:
-      # secrets はこのコンテナにのみマウント — gemiclaw コンテナからはアクセス不可
+      # secrets はこのコンテナにのみマウント — voxclaw コンテナからはアクセス不可
       - ./keybinder/secrets_for_skills.json:/secrets/keys.json:ro
       # Google OAuth2 token (run keybinder/setup_google_auth.py first to generate this)
       - ./keybinder/token.json:/secrets/google_token.json
 
   voice-pwa-backend:
     build: ./voice-pwa/backend
-    container_name: gemiclaw_voice_backend
+    container_name: voxclaw_voice_backend
     restart: unless-stopped
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMICLAW_API_URL=http://gemiclaw:3001
+      - VOXCLAW_API_URL=http://voxclaw:3001
       - VOICE_BACKEND_PORT=8080
     depends_on:
-      - gemiclaw
+      - voxclaw
 
   voice-pwa-frontend:
     build: ./voice-pwa/frontend
-    container_name: gemiclaw_voice_frontend
+    container_name: voxclaw_voice_frontend
     restart: unless-stopped
     depends_on:
       - voice-pwa-backend
@@ -58,7 +58,7 @@ services:
 
   cloudflare-tunnel:
     image: cloudflare/cloudflared:latest
-    container_name: gemiclaw_tunnel
+    container_name: voxclaw_tunnel
     restart: unless-stopped
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     profiles:

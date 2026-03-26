@@ -1,4 +1,4 @@
-# gemiclaw 🐾
+# voxclaw 🐾
 
 🇯🇵 日本語 | [🇺🇸 English](README.en.md)
 
@@ -37,8 +37,8 @@
 
 ```bash
 # 1. クローン
-git clone https://github.com/Nishina-N/gemiclaw
-cd gemiclaw
+git clone https://github.com/Nishina-N/voxclaw
+cd voxclaw
 
 # 2. 環境変数を設定
 cp .env.example .env
@@ -58,7 +58,7 @@ docker-compose logs -f
 Discord でボットをメンションして話しかけてください。
 
 ```
-@gemiclaw こんにちは！
+@voxclaw こんにちは！
 ```
 
 ---

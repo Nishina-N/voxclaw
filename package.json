@@ -1,5 +1,5 @@
 {
-  "name": "gemiclaw",
+  "name": "voxclaw",
   "version": "1.0.0",
   "type": "module",
   "main": "src/index.ts",

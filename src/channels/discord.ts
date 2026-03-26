@@ -198,7 +198,7 @@ export class DiscordChannel implements Channel {
 
         await new Promise<void>((resolve, reject) => {
             this.client.once('clientReady', (c) => {
-                console.log(`🐾 gemiclaw is online as ${c.user.tag} [${this.name}]`);
+                console.log(`🐾 voxclaw is online as ${c.user.tag} [${this.name}]`);
                 this._connected = true;
                 resolve();
             });

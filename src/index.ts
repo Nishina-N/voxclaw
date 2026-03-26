@@ -88,7 +88,7 @@ async function processChannel(
                 id: generateId('bot'),
                 channel_id: channelId,
                 sender_id: channel.getBotId(),
-                sender_name: 'gemiclaw',
+                sender_name: 'voxclaw',
                 content: sendText,
                 timestamp: new Date().toISOString(),
                 is_bot: 1,
@@ -189,8 +189,8 @@ function startHttpApi(): void {
                     storeMessage({
                         id: generateId('bot'),
                         channel_id: VOICE_CHANNEL_ID,
-                        sender_id: 'gemiclaw',
-                        sender_name: 'gemiclaw',
+                        sender_id: 'voxclaw',
+                        sender_name: 'voxclaw',
                         content: reply,
                         timestamp: new Date().toISOString(),
                         is_bot: 1,
@@ -222,7 +222,7 @@ async function main(): Promise<void> {
     startHttpApi();
 
     if (!process.env.DISCORD_TOKEN) {
-        console.log('[gemiclaw] DISCORD_TOKEN not set — running in HTTP-API-only mode');
+        console.log('[voxclaw] DISCORD_TOKEN not set — running in HTTP-API-only mode');
         return;
     }
 
@@ -243,7 +243,7 @@ async function main(): Promise<void> {
             storeMessage(msg);
         });
     } catch (err: any) {
-        console.warn(`[gemiclaw] Discord connection failed (${err.code ?? err.message}) — running in HTTP-API-only mode`);
+        console.warn(`[voxclaw] Discord connection failed (${err.code ?? err.message}) — running in HTTP-API-only mode`);
         return;
     }
 
@@ -261,6 +261,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-    console.error('Failed to start gemiclaw:', err);
+    console.error('Failed to start voxclaw:', err);
     process.exit(1);
 });

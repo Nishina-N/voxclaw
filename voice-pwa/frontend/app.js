@@ -40,7 +40,7 @@ function connectWs() {
             updateConfirmState();
             setStatus('意図を検出しました');
 
-        } else if (msg.type === 'gemiclaw_reply') {
+        } else if (msg.type === 'voxclaw_reply') {
             replyEl.textContent = msg.text;
             setStatus('完了');
 
@@ -129,7 +129,7 @@ btnConfirm.addEventListener('click', sendIntent);
 function sendIntent() {
     const intent = intentText.value.trim();
     if (!intent || !ws || ws.readyState !== WebSocket.OPEN) return;
-    setStatus('Gemiclaw に送信中...');
+    setStatus('Voxclaw に送信中...');
     replyEl.textContent = '';
     ws.send(JSON.stringify({ type: 'confirm', intent }));
 }

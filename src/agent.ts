@@ -73,7 +73,7 @@ async function loadSystemInstructions(): Promise<string> {
 function formatHistory(history: Message[]): string {
     if (history.length === 0) return '';
     const lines = history.map((m) =>
-        m.is_bot ? `gemiclaw: ${m.content}` : `${m.sender_name}: ${m.content}`
+        m.is_bot ? `voxclaw: ${m.content}` : `${m.sender_name}: ${m.content}`
     );
     return `[Recent conversation]\n${lines.join('\n')}\n\n`;
 }

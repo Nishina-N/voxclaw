@@ -2,7 +2,7 @@ import * as dotenv from 'dotenv';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer } from 'http';
 import { createLiveSession, type GeminiLiveSession } from './gemini.js';
-import { sendToGemiclaw } from './gemiclaw-client.js';
+import { sendToVoxclaw } from './voxclaw-client.js';
 
 dotenv.config();
 
@@ -15,7 +15,7 @@ const PORT = parseInt(process.env.VOICE_BACKEND_PORT ?? '8080', 10);
 //   { type: 'confirm', intent: '...' }                     ← user pressed OK
 // Server → Client:
 //   { type: 'intent', text: '...' }      ← real-time intent from Gemini
-//   { type: 'gemiclaw_reply', text: '...' } ← after confirm
+//   { type: 'voxclaw_reply', text: '...' } ← after confirm
 //   { type: 'error', message: '...' }
 
 const server = createServer();
@@ -70,14 +70,14 @@ wss.on('connection', (ws: WebSocket) => {
         } else if (msg.type === 'confirm') {
             const intent: string = msg.intent;
             if (!intent) return;
-            console.log('[confirm] sending to gemiclaw:', intent);
+            console.log('[confirm] sending to voxclaw:', intent);
             try {
-                const reply = await sendToGemiclaw(intent);
-                console.log('[gemiclaw] reply:', reply);
-                ws.send(JSON.stringify({ type: 'gemiclaw_reply', text: reply }));
+                const reply = await sendToVoxclaw(intent);
+                console.log('[voxclaw] reply:', reply);
+                ws.send(JSON.stringify({ type: 'voxclaw_reply', text: reply }));
             } catch (err: any) {
-                console.error('[confirm] gemiclaw error:', err);
-                ws.send(JSON.stringify({ type: 'error', message: err.message ?? 'gemiclaw error' }));
+                console.error('[confirm] voxclaw error:', err);
+                ws.send(JSON.stringify({ type: 'error', message: err.message ?? 'voxclaw error' }));
             }
         }
     });

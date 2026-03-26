@@ -14,7 +14,7 @@
 
 ## 1. Design Philosophy
 
-gemiclaw is built around three principles.
+voxclaw is built around three principles.
 
 **Lightweight** — No dependency on external orchestration services. All you need is Docker and a Gemini API key.
 
@@ -26,13 +26,13 @@ gemiclaw is built around three principles.
 
 ## 2. Component Overview
 
-### gemiclaw container (main agent)
+### voxclaw container (main agent)
 
 Receives messages from Discord, sends them to the Gemini API, invokes tools, and returns responses. Contains the polling loop, agent loop, and skill loader.
 
 ### keybinder container (API key isolation)
 
-A proxy server for external APIs (Brave Search, Mapbox, Google APIs). It mounts `secrets_for_skills.json` to itself only — the gemiclaw container cannot read it. Adding support for a new external API requires a human to add an endpoint to `keybinder/server.ts` and rebuild (an intentional security constraint).
+A proxy server for external APIs (Brave Search, Mapbox, Google APIs). It mounts `secrets_for_skills.json` to itself only — the voxclaw container cannot read it. Adding support for a new external API requires a human to add an endpoint to `keybinder/server.ts` and rebuild (an intentional security constraint).
 
 ### Skills (`config/skills/`)
 
@@ -114,7 +114,7 @@ This separation keeps the core logic stable as a container image, while user con
 ## 5. Directory Structure
 
 ```
-gemiclaw/
+voxclaw/
 ├── src/                      # ❌ Immutable (baked into container image)
 │   ├── index.ts              # Entry point & polling loop
 │   ├── db.ts                 # SQLite layer

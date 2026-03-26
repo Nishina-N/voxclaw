@@ -5,7 +5,7 @@ try:
     args = json.loads(os.environ.get('SKILL_ARGS', '{}'))
     query = args.get('query')
     url = 'https://nominatim.openstreetmap.org/search?q=' + urllib.parse.quote(query) + '&format=json&limit=1'
-    req = urllib.request.Request(url, headers={'User-Agent': 'gemiclaw-agent/1.0'})
+    req = urllib.request.Request(url, headers={'User-Agent': 'voxclaw-agent/1.0'})
     with urllib.request.urlopen(req, timeout=10) as res:
         data = json.loads(res.read().decode())
         if data:
