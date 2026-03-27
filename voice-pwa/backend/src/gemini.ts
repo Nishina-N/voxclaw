@@ -1,6 +1,6 @@
 import { GoogleGenAI, Modality } from '@google/genai';
 
-const MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
+const MODEL = process.env.VOICE_GEMINI_MODEL ?? 'gemini-2.5-flash-native-audio-preview-12-2025';
 
 const SYSTEM_INSTRUCTION = `あなたは音声アシスタントです。必ず日本語で応答してください。
 
