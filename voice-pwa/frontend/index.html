@@ -3,154 +3,284 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#1a1a2e" />
+  <meta name="theme-color" content="#ffffff" />
   <link rel="manifest" href="/manifest.json" />
-  <title>Voxclaw Voice</title>
+  <title>Voxclaw</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #1a1a2e;
-      color: #e0e0e0;
-      min-height: 100dvh;
+      background: #fff;
+      color: #1a1a1a;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Tab bar ── */
+    #tab-bar {
+      display: flex;
+      border-bottom: 1px solid #e5e5e5;
+      background: #fff;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 2rem 1rem;
-      gap: 1.5rem;
-    }
-
-    h1 {
-      font-size: 1.4rem;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      color: #a8b4ff;
-    }
-
-    #status {
-      font-size: 0.9rem;
-      color: #888;
-    }
-
-    #btn-record {
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      border: 3px solid #a8b4ff;
-      background: #16213e;
-      color: #a8b4ff;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-    }
-
-    #btn-record:active { transform: scale(0.95); }
-    #btn-record.recording {
-      background: #a8b4ff;
-      color: #1a1a2e;
-    }
-
-    #intent-area {
-      width: 100%;
-      max-width: 480px;
-      background: #16213e;
-      border-radius: 12px;
-      padding: 1rem;
-      border: 1px solid #2a2a4e;
-    }
-
-    #intent-area h2 {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #666;
-      margin-bottom: 0.5rem;
-    }
-
-    #intent-text {
-      width: 100%;
-      font-size: 0.95rem;
-      line-height: 1.6;
-      min-height: 4em;
-      color: #e0e0e0;
-      background: transparent;
-      border: 1px solid #2a2a4e;
-      border-radius: 6px;
-      padding: 0.4rem 0.5rem;
-      resize: vertical;
-      font-family: inherit;
-      margin-bottom: 0.75rem;
-    }
-
-    #intent-text::placeholder { color: #444; }
-    #intent-text:focus {
-      outline: none;
-      border-color: #a8b4ff;
-    }
-
-    #intent-area.has-intent { border-color: #a8b4ff; }
-
-    #btn-confirm {
-      width: 100%;
-      padding: 0.6rem 1rem;
-      border-radius: 8px;
+      gap: 2px;
+      padding: 10px 4px 8px;
       border: none;
-      background: #a8b4ff;
-      color: #1a1a2e;
-      font-size: 0.95rem;
-      font-weight: 600;
+      background: transparent;
       cursor: pointer;
-      transition: opacity 0.2s;
+      color: #aaa;
+      font-size: 0.65rem;
     }
 
-    #btn-confirm:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
+    .tab-btn svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
 
-    #btn-confirm:not(:disabled):active { opacity: 0.8; }
-
-    .card {
-      width: 100%;
-      max-width: 480px;
-      background: #16213e;
-      border-radius: 12px;
-      padding: 1rem;
+    .tab-btn.active {
+      color: #1a1a1a;
     }
 
-    .card h2 {
+    .tab-btn.active svg {
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+    }
+
+    /* ── Tab panels ── */
+    .tab-panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+    .tab-panel.active { display: flex; }
+
+    /* ── Chat messages ── */
+    #chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 16px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .message { display: flex; flex-direction: column; gap: 4px; }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .message-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .message.user .message-dot   { background: #22c55e; }
+    .message.voxclaw .message-dot { background: #f97316; }
+
+    .message-name {
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .message-time {
       font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #666;
-      margin-bottom: 0.5rem;
+      color: #999;
+      margin-left: 4px;
     }
 
-    .card p {
-      font-size: 0.95rem;
+    .message-body {
+      font-size: 0.9rem;
       line-height: 1.6;
-      min-height: 1.6em;
+      color: #333;
+      padding-left: 14px;
       white-space: pre-wrap;
+    }
+
+    /* typing indicator */
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+      padding-left: 14px;
+      padding-top: 4px;
+    }
+
+    .typing-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ccc;
+      animation: typing-bounce 1.2s ease-in-out infinite;
+    }
+
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing-bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-4px); }
+    }
+
+    /* ── Input bar ── */
+    #input-bar {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      padding: 10px 14px 14px;
+      border-top: 1px solid #e5e5e5;
+      background: #fff;
+      flex-shrink: 0;
+    }
+
+    #btn-mic {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: #555;
+      transition: color 0.2s;
+    }
+
+    #btn-mic svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    #btn-mic.recording {
+      color: #f97316;
+      animation: mic-glow 1.5s ease-in-out infinite;
+    }
+
+    @keyframes mic-glow {
+      0%   { box-shadow: 0 0 0px 0px rgba(249,115,22,0); }
+      50%  { box-shadow: 0 0 12px 6px rgba(249,115,22,0.4); }
+      100% { box-shadow: 0 0 0px 0px rgba(249,115,22,0); }
+    }
+
+    #input-text {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: none;
+      background: transparent;
+      line-height: 1.5;
+      max-height: 120px;
+      overflow-y: auto;
+      color: #1a1a1a;
+    }
+
+    #input-text::placeholder { color: #bbb; }
+
+    #btn-send {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: none;
+      background: #e5e5e5;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+
+    #btn-send.has-text { background: #1a1a1a; }
+
+    #btn-send svg {
+      width: 16px;
+      height: 16px;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    #btn-send:not(.has-text) svg { stroke: #aaa; }
+
+    /* ── Placeholder panels ── */
+    .panel-placeholder {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ccc;
+      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
-  <h1>Voxclaw Voice</h1>
-  <p id="status">接続中...</p>
 
-  <button id="btn-record">● 話す</button>
+  <!-- Tab bar -->
+  <nav id="tab-bar">
+    <button class="tab-btn active" data-tab="chat">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      chat
+    </button>
+    <button class="tab-btn" data-tab="skills">
+      <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      skills
+    </button>
+    <button class="tab-btn" data-tab="cron">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      cron
+    </button>
+    <button class="tab-btn" data-tab="task">
+      <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      task
+    </button>
+    <button class="tab-btn" data-tab="settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      settings
+    </button>
+  </nav>
 
-  <div id="intent-area">
-    <h2>意図（音声入力 or 直接入力）</h2>
-    <textarea id="intent-text" placeholder="話すか、ここに直接入力してください"></textarea>
-    <button id="btn-confirm" disabled>OK → Voxclaw に送信</button>
+  <!-- Chat panel -->
+  <div class="tab-panel active" id="panel-chat">
+    <div id="chat-messages"></div>
+    <div id="input-bar">
+      <button id="btn-mic">
+        <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+      <textarea id="input-text" rows="1" placeholder="何をしたいですか？"></textarea>
+      <button id="btn-send">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+      </button>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>Voxclaw の返答</h2>
-    <p id="reply"></p>
-  </div>
+  <!-- Placeholder panels -->
+  <div class="tab-panel" id="panel-skills"><div class="panel-placeholder">skills — coming soon</div></div>
+  <div class="tab-panel" id="panel-cron"><div class="panel-placeholder">cron — coming soon</div></div>
+  <div class="tab-panel" id="panel-task"><div class="panel-placeholder">task — coming soon</div></div>
+  <div class="tab-panel" id="panel-settings"><div class="panel-placeholder">settings — coming soon</div></div>
 
   <script src="/app.js"></script>
 </body>
