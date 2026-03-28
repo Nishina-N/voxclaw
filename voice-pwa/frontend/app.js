@@ -49,6 +49,11 @@ if (getToken()) {
     connectWs();
 }
 
+// bfcache復元時（戻る/進む）: WSが死んでいるので再接続
+window.addEventListener('pageshow', (e) => {
+    if (e.persisted) connectWs();
+});
+
 // --- State ---
 let ws = null;
 let audioContext = null;
@@ -81,6 +86,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // --- WebSocket ---
 function connectWs() {
+    if (!getToken()) return;
+    if (ws) {
+        ws.onclose = null; // 再接続ループを防ぐ
+        ws.close();
+        ws = null;
+    }
     ws = new WebSocket(wsUrl());
     ws.addEventListener('open', () => console.log('[ws] connected'));
     ws.addEventListener('close', (e) => {
