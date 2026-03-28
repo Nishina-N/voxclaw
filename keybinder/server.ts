@@ -1,6 +1,7 @@
 import * as http from 'http';
 import * as https from 'https';
 import * as fs from 'fs';
+import * as path from 'path';
 import * as url from 'url';
 
 const SECRETS_PATH = '/secrets/keys.json';
@@ -759,6 +760,7 @@ const server = http.createServer(async (req, res) => {
       const s = loadSecrets();
       if (!s[service]) s[service] = {};
       s[service][key] = value;
+      fs.mkdirSync(path.dirname(SECRETS_PATH), { recursive: true });
       fs.writeFileSync(SECRETS_PATH, JSON.stringify(s, null, 2));
       res.writeHead(200);
       res.end(JSON.stringify({ ok: true }));
