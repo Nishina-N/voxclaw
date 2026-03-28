@@ -230,6 +230,27 @@ curl "http://keybinder:3001/mapbox/static?lat=35.68&lon=139.69&zoom=13"
 # Returns: { "image_base64": "...", "content_type": "image/png" }
 ```
 
+#### Google認証セットアップ
+
+Googleサービス（Drive / Calendar / Sheets / Tasks）を初めて使う際、または認証が切れた際に実行します。
+
+**ステップ1: 認証URLを取得してユーザーに提示する**
+```bash
+# google_auth_get_url スキルを実行
+# → { "url": "https://accounts.google.com/o/oauth2/auth?...", "redirect_uri": "http://localhost:3000" }
+# ユーザーにURLを提示し「ブラウザで開いてGoogleアカウントで認証してください」と伝える
+# 認証後、ブラウザはリダイレクトされURLに?code=XXX が含まれる
+```
+
+**ステップ2: ユーザーからcodeを受け取りトークンに交換する**
+```bash
+# google_auth_exchange スキルを実行（codeパラメータにユーザーが伝えたコードを渡す）
+# → { "ok": true }
+# 成功したらtoken.jsonが保存され、GoogleサービスAPIが使えるようになる
+```
+
+**事前条件**: `keybinder/secrets/client_secret.json` が必要です（Google Cloud ConsoleのOAuth 2.0クライアントID）。
+
 #### Google Drive
 
 ```bash

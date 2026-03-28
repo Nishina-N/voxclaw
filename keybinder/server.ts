@@ -6,6 +6,16 @@ import * as url from 'url';
 
 const SECRETS_PATH = '/secrets/keys.json';
 const TOKEN_PATH = '/secrets/token.json';
+const CLIENT_SECRET_PATH = '/secrets/client_secret.json';
+
+const GOOGLE_SCOPES = [
+    'https://www.googleapis.com/auth/drive',
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/tasks',
+];
+
+const GOOGLE_OAUTH_REDIRECT_URI = process.env.GOOGLE_OAUTH_REDIRECT_URI || 'http://localhost:3000';
 
 // ─── Secrets ─────────────────────────────────────────────────────────────────
 
@@ -728,6 +738,105 @@ const server = http.createServer(async (req, res) => {
 
       res.writeHead(200);
       res.end(JSON.stringify({ charts }));
+      return;
+    }
+
+    // ────────────────────────────────────────────
+    // GET /auth/google/status  — token.json の存在・有効期限を返す
+    // ────────────────────────────────────────────
+    if (pathname === '/auth/google/status' && method === 'GET') {
+      const token = loadGoogleToken();
+      if (!token) {
+        res.writeHead(200);
+        res.end(JSON.stringify({ configured: false, expiry: null, expired: false }));
+        return;
+      }
+      const expired = Date.now() > new Date(token.expiry).getTime();
+      res.writeHead(200);
+      res.end(JSON.stringify({ configured: true, expiry: token.expiry, expired }));
+      return;
+    }
+
+    // ────────────────────────────────────────────
+    // GET /auth/google/url  — OAuth認証URLを生成して返す
+    // ────────────────────────────────────────────
+    if (pathname === '/auth/google/url' && method === 'GET') {
+      let cs: any;
+      try {
+        cs = JSON.parse(fs.readFileSync(CLIENT_SECRET_PATH, 'utf-8'));
+      } catch {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'client_secret.json が見つかりません。keybinder/secrets/client_secret.json に配置してください。' }));
+        return;
+      }
+      const creds = cs.installed || cs.web;
+      const params = new URLSearchParams({
+        client_id:     creds.client_id,
+        redirect_uri:  GOOGLE_OAUTH_REDIRECT_URI,
+        response_type: 'code',
+        scope:         GOOGLE_SCOPES.join(' '),
+        access_type:   'offline',
+        prompt:        'consent',
+      });
+      res.writeHead(200);
+      res.end(JSON.stringify({
+        url: `https://accounts.google.com/o/oauth2/auth?${params}`,
+        redirect_uri: GOOGLE_OAUTH_REDIRECT_URI,
+      }));
+      return;
+    }
+
+    // ────────────────────────────────────────────
+    // POST /auth/google/exchange  body: { code }
+    // ────────────────────────────────────────────
+    if (pathname === '/auth/google/exchange' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { code } = JSON.parse(bodyStr);
+      if (!code) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Missing field: code' }));
+        return;
+      }
+      let cs: any;
+      try {
+        cs = JSON.parse(fs.readFileSync(CLIENT_SECRET_PATH, 'utf-8'));
+      } catch {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'client_secret.json が見つかりません' }));
+        return;
+      }
+      const creds = cs.installed || cs.web;
+      const tokenBody = new URLSearchParams({
+        code,
+        client_id:     creds.client_id,
+        client_secret: creds.client_secret,
+        redirect_uri:  GOOGLE_OAUTH_REDIRECT_URI,
+        grant_type:    'authorization_code',
+      }).toString();
+
+      const result = await httpsRequest('POST', 'https://oauth2.googleapis.com/token', {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      }, tokenBody);
+
+      const parsed = JSON.parse(result.body);
+      if (!parsed.access_token) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'トークン交換に失敗しました', details: parsed }));
+        return;
+      }
+
+      const tokenData = {
+        access_token:  parsed.access_token,
+        refresh_token: parsed.refresh_token,
+        client_id:     creds.client_id,
+        client_secret: creds.client_secret,
+        token_uri:     'https://oauth2.googleapis.com/token',
+        expiry:        new Date(Date.now() + parsed.expires_in * 1000).toISOString(),
+      };
+      fs.mkdirSync(path.dirname(TOKEN_PATH), { recursive: true });
+      fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokenData, null, 2));
+      res.writeHead(200);
+      res.end(JSON.stringify({ ok: true }));
       return;
     }
 

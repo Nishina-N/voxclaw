@@ -1,0 +1,9 @@
+{
+  "name": "google_auth_get_url",
+  "description": "Google OAuth2認証URLを取得します。Googleサービス（Drive/Calendar/Sheets/Tasks）へのアクセス権限を設定する際に使用。URLをユーザーに提示し、ブラウザで開いてもらい、認証後に表示されるコードをgoogle_auth_exchangeに渡します。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {},
+    "required": []
+  }
+}

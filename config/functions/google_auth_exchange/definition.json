@@ -1,0 +1,14 @@
+{
+  "name": "google_auth_exchange",
+  "description": "GoogleのOAuth2認証コードをアクセストークンに交換して保存します。google_auth_get_urlで取得したURLでユーザーが認証した後、リダイレクト先URLのcodeパラメータを受け取り実行します。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "code": {
+        "type": "STRING",
+        "description": "Googleの認証後にリダイレクトURLに含まれるcodeパラメータの値"
+      }
+    },
+    "required": ["code"]
+  }
+}

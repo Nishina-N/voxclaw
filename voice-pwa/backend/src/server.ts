@@ -71,6 +71,33 @@ const server = createServer(async (req, res) => {
         return;
     }
 
+    // ── /api/google-auth/ (JWT required) → keybinder /auth/google/ ──────────
+    if (req.url?.startsWith('/api/google-auth/')) {
+        if (!verifyAuthHeader(req)) {
+            res.writeHead(401);
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+            return;
+        }
+        const keybinderPath = req.url.replace('/api/google-auth/', '/auth/google/');
+        if (req.method === 'GET') {
+            const r = await fetch(`${KEYBINDER_URL}${keybinderPath}`);
+            res.writeHead(r.status);
+            res.end(await r.text());
+            return;
+        }
+        if (req.method === 'POST') {
+            const body = await readBody(req);
+            const r = await fetch(`${KEYBINDER_URL}${keybinderPath}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body,
+            });
+            res.writeHead(r.status);
+            res.end(await r.text());
+            return;
+        }
+    }
+
     // ── /api/keys (JWT required) ──────────────────────────────────────────────
     if (req.url?.startsWith('/api/keys')) {
         if (!verifyAuthHeader(req)) {

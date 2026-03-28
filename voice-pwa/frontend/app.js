@@ -80,7 +80,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
-        if (btn.dataset.tab === 'settings') loadKeys();
+        if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); }
     });
 });
 
@@ -302,6 +302,49 @@ async function apiRequest(path, options = {}) {
         },
     });
 }
+
+async function loadGoogleStatus() {
+    const el = document.getElementById('google-auth-status');
+    if (!el) return;
+    try {
+        const res = await apiRequest('/api/google-auth/status');
+        if (!res.ok) { el.textContent = '取得失敗'; return; }
+        const data = await res.json();
+        if (!data.configured) {
+            el.textContent = '未設定';
+        } else if (data.expired) {
+            el.textContent = '期限切れ';
+            el.style.color = '#e55';
+        } else {
+            const exp = new Date(data.expiry);
+            el.textContent = `設定済み（${exp.getFullYear()}/${exp.getMonth()+1}/${exp.getDate()} まで）`;
+            el.style.color = '#4a4';
+        }
+    } catch { el.textContent = '取得失敗'; }
+}
+
+// Google OAuth コールバック: ?code= が URL に含まれる場合は自動でトークン交換
+(async () => {
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code');
+    if (!code || !getToken()) return;
+    // URLを綺麗にする
+    history.replaceState({}, '', location.pathname);
+    try {
+        const res = await apiRequest('/api/google-auth/exchange', {
+            method: 'POST',
+            body: JSON.stringify({ code }),
+        });
+        if (res.ok) {
+            appendMessage('voxclaw', 'Google認証が完了しました！');
+        } else {
+            const err = await res.json();
+            appendMessage('voxclaw', `⚠️ Google認証に失敗しました: ${err.error}`);
+        }
+    } catch {
+        appendMessage('voxclaw', '⚠️ Google認証中にエラーが発生しました');
+    }
+})();
 
 async function loadKeys() {
     try {

@@ -30,6 +30,8 @@ services:
     build: ./keybinder
     container_name: voxclaw_keybinder
     restart: unless-stopped
+    environment:
+      - GOOGLE_OAUTH_REDIRECT_URI=${GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:3000}
     volumes:
       # secrets はこのコンテナにのみマウント — voxclaw コンテナからはアクセス不可
       # ディレクトリごとマウント: keybinder/secrets/ 配下のファイルはすべて .gitignore 対象
