@@ -1,12 +1,16 @@
 import * as dotenv from 'dotenv';
 import { WebSocketServer, WebSocket } from 'ws';
-import { createServer } from 'http';
+import { createServer, IncomingMessage } from 'http';
+import jwt from 'jsonwebtoken';
 import { createLiveSession, type GeminiLiveSession } from './gemini.js';
 import { sendToVoxclaw } from './voxclaw-client.js';
 
 dotenv.config();
 
 const PORT = parseInt(process.env.VOICE_BACKEND_PORT ?? '8080', 10);
+const PASSWORD = process.env.PWA_PASSWORD ?? '123456';
+const JWT_SECRET = process.env.JWT_SECRET ?? PASSWORD;
+const JWT_EXPIRES_IN = '7d';
 
 // Message types (frontend ↔ backend protocol)
 // Client → Server:
@@ -14,12 +18,83 @@ const PORT = parseInt(process.env.VOICE_BACKEND_PORT ?? '8080', 10);
 //   { type: 'audio_end' }                                  ← user stopped speaking
 //   { type: 'confirm', intent: '...' }                     ← user pressed OK
 // Server → Client:
-//   { type: 'intent', text: '...' }      ← real-time intent from Gemini
+//   { type: 'intent', text: '...' }        ← real-time intent from Gemini
 //   { type: 'voxclaw_reply', text: '...' } ← after confirm
 //   { type: 'error', message: '...' }
 
-const server = createServer();
-const wss = new WebSocketServer({ server });
+// ── JWT helpers ───────────────────────────────────────────────────────────────
+
+function signToken(): string {
+    return jwt.sign({}, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+}
+
+function verifyToken(token: string): boolean {
+    try {
+        jwt.verify(token, JWT_SECRET);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function getTokenFromRequest(req: IncomingMessage): string | null {
+    const url = new URL(req.url ?? '', `http://localhost`);
+    return url.searchParams.get('token');
+}
+
+// ── HTTP server ───────────────────────────────────────────────────────────────
+
+const server = createServer((req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Content-Type', 'application/json');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+
+    if (req.method === 'POST' && req.url === '/auth/login') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', () => {
+            try {
+                const { password } = JSON.parse(body);
+                if (password === PASSWORD) {
+                    res.writeHead(200);
+                    res.end(JSON.stringify({ token: signToken() }));
+                } else {
+                    res.writeHead(401);
+                    res.end(JSON.stringify({ error: 'パスワードが違います' }));
+                }
+            } catch {
+                res.writeHead(400);
+                res.end(JSON.stringify({ error: 'invalid request' }));
+            }
+        });
+        return;
+    }
+
+    res.writeHead(404);
+    res.end(JSON.stringify({ error: 'not found' }));
+});
+
+// ── WebSocket server ──────────────────────────────────────────────────────────
+
+const wss = new WebSocketServer({ noServer: true });
+
+server.on('upgrade', (req, socket, head) => {
+    const token = getTokenFromRequest(req);
+    if (!token || !verifyToken(token)) {
+        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+        socket.destroy();
+        return;
+    }
+    wss.handleUpgrade(req, socket, head, (ws) => {
+        wss.emit('connection', ws, req);
+    });
+});
 
 wss.on('connection', (ws: WebSocket) => {
     console.log('[ws] client connected');

@@ -19,6 +19,69 @@
       overflow: hidden;
     }
 
+    /* ── Login screen ── */
+    #login-screen {
+      position: fixed;
+      inset: 0;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      z-index: 100;
+      padding: 2rem;
+    }
+
+    #login-screen h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    #login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    #login-password {
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      text-align: center;
+      letter-spacing: 0.2em;
+      width: 100%;
+    }
+
+    #login-password:focus { border-color: #1a1a1a; }
+
+    #login-btn {
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    #login-error {
+      font-size: 0.85rem;
+      color: #e53e3e;
+      text-align: center;
+      min-height: 1.2em;
+    }
+
+    #login-screen.hidden { display: none; }
+
     /* ── Tab bar ── */
     #tab-bar {
       display: flex;
@@ -234,6 +297,16 @@
   </style>
 </head>
 <body>
+
+  <!-- Login screen -->
+  <div id="login-screen">
+    <h1>Voxclaw</h1>
+    <div id="login-form">
+      <input id="login-password" type="password" placeholder="パスワード" autocomplete="current-password" />
+      <button id="login-btn">ログイン</button>
+      <p id="login-error"></p>
+    </div>
+  </div>
 
   <!-- Tab bar -->
   <nav id="tab-bar">

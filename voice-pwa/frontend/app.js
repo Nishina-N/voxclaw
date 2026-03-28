@@ -1,6 +1,53 @@
 // --- Config ---
 const WS_PROTOCOL = location.protocol === 'https:' ? 'wss:' : 'ws:';
-const WS_URL = `${WS_PROTOCOL}//${location.host}/ws`;
+const TOKEN_KEY = 'voxclaw_token';
+
+// --- Auth ---
+const loginScreen   = document.getElementById('login-screen');
+const loginPassword = document.getElementById('login-password');
+const loginBtn      = document.getElementById('login-btn');
+const loginError    = document.getElementById('login-error');
+
+function getToken() { return localStorage.getItem(TOKEN_KEY); }
+function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
+function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+
+function wsUrl() {
+    const token = getToken();
+    return `${WS_PROTOCOL}//${location.host}/ws?token=${token}`;
+}
+
+async function tryLogin(password) {
+    loginError.textContent = '';
+    try {
+        const res = await fetch('/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+            setToken(data.token);
+            loginScreen.classList.add('hidden');
+            connectWs();
+        } else {
+            loginError.textContent = data.error ?? 'ログインに失敗しました';
+        }
+    } catch {
+        loginError.textContent = '接続エラーが発生しました';
+    }
+}
+
+loginBtn.addEventListener('click', () => tryLogin(loginPassword.value));
+loginPassword.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') tryLogin(loginPassword.value);
+});
+
+// 起動時：トークンがあればそのまま接続、なければログイン画面を表示
+if (getToken()) {
+    loginScreen.classList.add('hidden');
+    connectWs();
+}
 
 // --- State ---
 let ws = null;
@@ -33,9 +80,15 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // --- WebSocket ---
 function connectWs() {
-    ws = new WebSocket(WS_URL);
+    ws = new WebSocket(wsUrl());
     ws.addEventListener('open', () => console.log('[ws] connected'));
-    ws.addEventListener('close', () => {
+    ws.addEventListener('close', (e) => {
+        if (e.code === 1006 || e.code === 4001) {
+            // 認証エラー：トークン削除してログイン画面へ
+            clearToken();
+            loginScreen.classList.remove('hidden');
+            return;
+        }
         console.log('[ws] disconnected, reconnecting...');
         setTimeout(connectWs, 3000);
     });
