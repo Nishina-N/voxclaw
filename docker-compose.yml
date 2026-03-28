@@ -50,6 +50,9 @@ services:
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - voxclaw
+    volumes:
+      - ./config/skills:/app/config/skills:ro
+      - ./config/functions:/app/config/functions:ro
 
   voice-pwa-frontend:
     build: ./voice-pwa/frontend

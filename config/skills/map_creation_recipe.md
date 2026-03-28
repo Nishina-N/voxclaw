@@ -1,3 +1,7 @@
+---
+name: Map Creation Recipe
+description: How to plot multiple locations on a single Mapbox map with optimized zoom and annotated markers.
+---
 # 地図生成レシピ：複数地点のアノテーション
 
 ## 概要

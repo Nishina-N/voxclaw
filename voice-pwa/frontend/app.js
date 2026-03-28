@@ -81,6 +81,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.add('active');
         document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
         if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); }
+        if (btn.dataset.tab === 'skills') loadSkills();
     });
 });
 
@@ -289,6 +290,53 @@ function arrayBufferToBase64(buffer) {
     let binary = '';
     for (const b of bytes) binary += String.fromCharCode(b);
     return btoa(binary);
+}
+
+// --- Skills ---
+async function loadSkills() {
+    const header = document.getElementById('skills-header');
+    const list   = document.getElementById('skills-list');
+    try {
+        const res = await apiRequest('/api/skills');
+        if (!res.ok) { list.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px">Failed to load</p>'; return; }
+        const { skills, functions } = await res.json();
+
+        header.textContent = `${skills.length} Skill${skills.length !== 1 ? 's' : ''} / ${functions.length} Function${functions.length !== 1 ? 's' : ''}`;
+
+        list.innerHTML = '';
+        renderSkillSection(list, 'Skills', skills);
+        renderSkillSection(list, 'Functions', functions);
+    } catch {
+        list.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px">Failed to load</p>';
+    }
+}
+
+function renderSkillSection(container, title, items) {
+    if (!items.length) return;
+    const heading = document.createElement('p');
+    heading.className = 'skills-section-title';
+    heading.textContent = title;
+    container.appendChild(heading);
+
+    for (const item of items) {
+        const el = document.createElement('div');
+        el.className = 'skill-item';
+        el.innerHTML = `
+            <div class="skill-item-header">
+                <span class="skill-item-name">${escapeHtml(item.name)}</span>
+                <span class="skill-item-chevron">▾</span>
+            </div>
+            ${item.description ? `<div class="skill-item-body">${escapeHtml(item.description)}</div>` : ''}
+        `;
+        if (item.description) {
+            el.querySelector('.skill-item-header').addEventListener('click', () => {
+                el.classList.toggle('open');
+            });
+        } else {
+            el.querySelector('.skill-item-chevron').style.visibility = 'hidden';
+        }
+        container.appendChild(el);
+    }
 }
 
 // --- Settings ---

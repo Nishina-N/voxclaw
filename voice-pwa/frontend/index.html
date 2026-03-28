@@ -295,6 +295,78 @@
       font-size: 0.9rem;
     }
 
+    /* ── Skills panel ── */
+    #panel-skills {
+      overflow-y: auto;
+      padding: 16px;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    #skills-header {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #999;
+      text-align: center;
+      padding: 4px 0 16px;
+      letter-spacing: 0.04em;
+    }
+
+    .skills-section-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 20px 0 8px;
+    }
+
+    .skills-section-title:first-child { margin-top: 0; }
+
+    .skill-item {
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      overflow: hidden;
+    }
+
+    .skill-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .skill-item-name {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      font-family: monospace;
+    }
+
+    .skill-item-chevron {
+      color: #bbb;
+      font-size: 0.8rem;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+
+    .skill-item.open .skill-item-chevron { transform: rotate(180deg); }
+
+    .skill-item-body {
+      display: none;
+      padding: 0 14px 12px;
+      font-size: 0.82rem;
+      color: #555;
+      line-height: 1.55;
+      border-top: 1px solid #f0f0f0;
+      padding-top: 10px;
+    }
+
+    .skill-item.open .skill-item-body { display: block; }
+
     /* ── Settings panel ── */
     #panel-settings {
       overflow-y: auto;
@@ -456,8 +528,11 @@
     </div>
   </div>
 
-  <!-- Placeholder panels -->
-  <div class="tab-panel" id="panel-skills"><div class="panel-placeholder">skills — coming soon</div></div>
+  <!-- Skills panel -->
+  <div class="tab-panel" id="panel-skills">
+    <div id="skills-header"></div>
+    <div id="skills-list"></div>
+  </div>
   <div class="tab-panel" id="panel-cron"><div class="panel-placeholder">cron — coming soon</div></div>
   <div class="tab-panel" id="panel-task"><div class="panel-placeholder">task — coming soon</div></div>
 

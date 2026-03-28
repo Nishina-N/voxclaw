@@ -1,3 +1,7 @@
+---
+name: US Market News
+description: Fetch and summarize US stock market news for the day and post it to a specified Discord channel.
+---
 # 米国相場ニュース取得レシピ
 
 ## 目的

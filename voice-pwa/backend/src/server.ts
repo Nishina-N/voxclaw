@@ -1,4 +1,6 @@
 import * as dotenv from 'dotenv';
+import * as fs from 'fs';
+import * as path from 'path';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer, IncomingMessage } from 'http';
 import jwt from 'jsonwebtoken';
@@ -68,6 +70,60 @@ const server = createServer(async (req, res) => {
     if (req.method === 'OPTIONS') {
         res.writeHead(204);
         res.end();
+        return;
+    }
+
+    // ── /api/skills (JWT required) ───────────────────────────────────────────
+    if (req.method === 'GET' && req.url === '/api/skills') {
+        if (!verifyAuthHeader(req)) {
+            res.writeHead(401);
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+            return;
+        }
+
+        const readFrontmatter = (content: string): { name?: string; description?: string } => {
+            const m = content.match(/^---\n([\s\S]*?)\n---/);
+            if (!m) return {};
+            const result: Record<string, string> = {};
+            for (const line of m[1].split('\n')) {
+                const [k, ...v] = line.split(':');
+                if (k && v.length) result[k.trim()] = v.join(':').trim();
+            }
+            return result;
+        };
+
+        const SKILLS_DIR    = '/app/config/skills';
+        const FUNCTIONS_DIR = '/app/config/functions';
+
+        const skills = fs.existsSync(SKILLS_DIR)
+            ? fs.readdirSync(SKILLS_DIR)
+                .filter(f => f.endsWith('.md'))
+                .map(f => {
+                    const content = fs.readFileSync(path.join(SKILLS_DIR, f), 'utf-8');
+                    const fm = readFrontmatter(content);
+                    return {
+                        name:        fm.name        ?? path.basename(f, '.md'),
+                        description: fm.description ?? '',
+                    };
+                })
+                .sort((a, b) => a.name.localeCompare(b.name))
+            : [];
+
+        const functions = fs.existsSync(FUNCTIONS_DIR)
+            ? fs.readdirSync(FUNCTIONS_DIR)
+                .filter(f => fs.existsSync(path.join(FUNCTIONS_DIR, f, 'definition.json')))
+                .map(f => {
+                    const def = JSON.parse(fs.readFileSync(path.join(FUNCTIONS_DIR, f, 'definition.json'), 'utf-8'));
+                    return {
+                        name:        def.name        ?? f,
+                        description: def.description ?? '',
+                    };
+                })
+                .sort((a, b) => a.name.localeCompare(b.name))
+            : [];
+
+        res.writeHead(200);
+        res.end(JSON.stringify({ skills, functions }));
         return;
     }
 
