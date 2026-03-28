@@ -107,15 +107,15 @@ Use `write_file` with path `/app/config/cron.json` to add, edit, or remove tasks
 
 ---
 
-## Creating New Skills（自己拡張）
+## Creating New Functions（自己拡張）
 
-You can create new tools by adding a skill directory to `/app/config/functions/`. The new tool is available **immediately** on the next message — no restart required.
+You can create new tools by adding a function directory to `/app/config/functions/`. The new tool is available **immediately** on the next message — no restart required.
 
 ### Directory structure
 
 ```
 /app/config/functions/
-  <skill-name>/
+  <function-name>/
     definition.json   ← Gemini FunctionDeclaration (name, description, parameters)
     run.sh            ← Execution script (run.py or run.js are also supported)
 ```
@@ -124,8 +124,8 @@ You can create new tools by adding a skill directory to `/app/config/functions/`
 
 ```json
 {
-  "name": "skill_name",
-  "description": "What this skill does. Be specific so Gemini knows when to use it.",
+  "name": "function_name",
+  "description": "What this function does. Be specific so Gemini knows when to use it.",
   "parameters": {
     "type": "OBJECT",
     "properties": {
@@ -164,9 +164,9 @@ print(f"Result: {args['param1']}")
 - Timeout: 30 seconds.
 - `PYTHONPATH` is automatically set to `/app/config/pip_packages/`, so packages installed via `pip_install` are importable with no extra setup.
 
-### Using pip packages in a skill
+### Using pip packages in a function
 
-If your skill requires a third-party Python library, first call `pip_install` to install it, then reference it in your script:
+If your function requires a third-party Python library, first call `pip_install` to install it, then reference it in your script:
 
 ```python
 #!/usr/bin/env python3
@@ -180,7 +180,7 @@ print(response.text)
 
 Installed packages persist across restarts in `/app/config/pip_packages/` (volume-mounted).
 
-### Example: weather skill
+### Example: weather function
 
 `/app/config/functions/get_weather/definition.json`
 ```json
@@ -208,9 +208,9 @@ curl -s "wttr.in/${CITY}?format=3"
 
 ## Key Binder — External API Proxy
 
-Skills that need external APIs must call the **Key Binder** (`http://keybinder:3001`) instead of holding API keys directly. The keybinder holds all credentials; your skill only receives the result.
+Functions that need external APIs must call the **Key Binder** (`http://keybinder:3001`) instead of holding API keys directly. The keybinder holds all credentials; your function only receives the result.
 
-> Never put API keys in skill scripts. Always route through keybinder.
+> Never put API keys in function scripts. Always route through keybinder.
 
 ### Available endpoints
 
@@ -230,26 +230,26 @@ curl "http://keybinder:3001/mapbox/static?lat=35.68&lon=139.69&zoom=13"
 # Returns: { "image_base64": "...", "content_type": "image/png" }
 ```
 
-#### Google認証セットアップ
+#### Google Authentication Setup
 
-Googleサービス（Drive / Calendar / Sheets / Tasks）を初めて使う際、または認証が切れた際に実行します。
+Run this when using Google services (Drive / Calendar / Sheets / Tasks) for the first time, or when authentication has expired.
 
-**ステップ1: 認証URLを取得してユーザーに提示する**
+**Step 1: Get the authorization URL and present it to the user**
 ```bash
-# google_auth_get_url スキルを実行
+# Call the google_auth_get_url function
 # → { "url": "https://accounts.google.com/o/oauth2/auth?...", "redirect_uri": "http://localhost:3000" }
-# ユーザーにURLを提示し「ブラウザで開いてGoogleアカウントで認証してください」と伝える
-# 認証後、ブラウザはリダイレクトされURLに?code=XXX が含まれる
+# Show the URL to the user and ask them to open it in a browser and sign in with their Google account.
+# After authorization, the browser redirects back and the URL contains ?code=XXX
 ```
 
-**ステップ2: ユーザーからcodeを受け取りトークンに交換する**
+**Step 2: Receive the code from the user and exchange it for a token**
 ```bash
-# google_auth_exchange スキルを実行（codeパラメータにユーザーが伝えたコードを渡す）
+# Call the google_auth_exchange function (pass the code the user provides as the "code" parameter)
 # → { "ok": true }
-# 成功したらtoken.jsonが保存され、GoogleサービスAPIが使えるようになる
+# On success, token.json is saved and Google service APIs become available.
 ```
 
-**事前条件**: `keybinder/secrets/client_secret.json` が必要です（Google Cloud ConsoleのOAuth 2.0クライアントID）。
+**Prerequisite**: `keybinder/secrets/client_secret.json` must be present (OAuth 2.0 client ID downloaded from Google Cloud Console).
 
 #### Google Drive
 

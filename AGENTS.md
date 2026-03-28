@@ -49,9 +49,9 @@ See `TOOLS.md` for what is variable and how to change it.
 
 ---
 
-## Skill Execution Standard
+## Function Execution Standard
 
-All skills must use a shell script (`run.sh`) as their entry point. This ensures consistency and maintainability across all dynamic skills.
+All functions must use a shell script (`run.sh`) as their entry point. This ensures consistency and maintainability across all dynamic functions.
 
 ---
 
