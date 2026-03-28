@@ -16,7 +16,7 @@
 
 スキルは **Gemini がツールとして呼び出せる最小機能単位** です。エージェントが自分で作成・追加でき、リビルド不要で次のメッセージから即有効になります。
 
-スキルは `config/skills/<skill-name>/` に2ファイルで構成されます。
+スキルは `config/functions/<skill-name>/` に2ファイルで構成されます。
 
 | ファイル | 役割 |
 |---|---|
@@ -42,7 +42,7 @@
 
 ## 3. 動的スキル一覧（エージェントが作成）
 
-エージェントが `config/skills/` に自作したスキルです。
+エージェントが `config/functions/` に自作したスキルです。
 
 ### 検索・情報取得
 
@@ -108,7 +108,7 @@
 
 | スキル | 説明 |
 |---|---|
-| `util_update_skills_list` | `config/skills/` を走査して `config/skills_list.md` を更新する |
+| `util_update_skills_list` | `config/functions/` を走査して `config/skills_list.md` を更新する |
 
 ---
 
@@ -117,7 +117,7 @@
 ### ディレクトリ構成
 
 ```
-/app/config/skills/
+/app/config/functions/
   <skill-name>/
     definition.json   ← Gemini FunctionDeclaration
     run.sh            ← 実行スクリプト（run.py / run.js も可）
@@ -182,7 +182,7 @@ print(response.text)
 
 ### 例：天気スキル
 
-`/app/config/skills/get_weather/definition.json`
+`/app/config/functions/get_weather/definition.json`
 ```json
 {
   "name": "get_weather",
@@ -197,7 +197,7 @@ print(response.text)
 }
 ```
 
-`/app/config/skills/get_weather/run.sh`
+`/app/config/functions/get_weather/run.sh`
 ```bash
 #!/bin/bash
 CITY=$(python3 -c "import json,os; print(json.loads(os.environ['SKILL_ARGS'])['city'])")

@@ -16,7 +16,7 @@
 
 A skill is the **minimal functional unit that Gemini can call as a tool**. The agent can create and add skills on its own — no rebuild needed, active from the next message.
 
-Each skill lives in `config/skills/<skill-name>/` as two files:
+Each skill lives in `config/functions/<skill-name>/` as two files:
 
 | File | Purpose |
 |---|---|
@@ -42,7 +42,7 @@ Tools baked into the container image (`src/skills/`):
 
 ## 3. Dynamic Skills (Agent-Created)
 
-Skills the agent has created in `config/skills/`:
+Skills the agent has created in `config/functions/`:
 
 ### Search & Information
 
@@ -108,7 +108,7 @@ Skills the agent has created in `config/skills/`:
 
 | Skill | Description |
 |---|---|
-| `util_update_skills_list` | Scan `config/skills/` and update `config/skills_list.md` |
+| `util_update_skills_list` | Scan `config/functions/` and update `config/skills_list.md` |
 
 ---
 
@@ -117,7 +117,7 @@ Skills the agent has created in `config/skills/`:
 ### Directory structure
 
 ```
-/app/config/skills/
+/app/config/functions/
   <skill-name>/
     definition.json   ← Gemini FunctionDeclaration
     run.sh            ← Execution script (run.py or run.js are also supported)
@@ -182,7 +182,7 @@ print(response.text)
 
 ### Example: weather skill
 
-`/app/config/skills/get_weather/definition.json`
+`/app/config/functions/get_weather/definition.json`
 ```json
 {
   "name": "get_weather",
@@ -197,7 +197,7 @@ print(response.text)
 }
 ```
 
-`/app/config/skills/get_weather/run.sh`
+`/app/config/functions/get_weather/run.sh`
 ```bash
 #!/bin/bash
 CITY=$(python3 -c "import json,os; print(json.loads(os.environ['SKILL_ARGS'])['city'])")

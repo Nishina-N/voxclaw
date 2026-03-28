@@ -2,7 +2,7 @@
   {
     "id": "market_news_summary",
     "cron": "0 23 * * 0-6",
-    "prompt": "マーケット情報のサマリを作成してください。マニュアル（/app/config/manuals/market_news_recipe.md）に従い、米国株式市場のニュースを要約してこのチャンネルに投稿してください。",
+    "prompt": "マーケット情報のサマリを作成してください。スキル（/app/config/skills/market_news_recipe.md）に従い、米国株式市場のニュースを要約してこのチャンネルに投稿してください。",
     "channelId": "1480954792946962432",
     "enabled": true
   }

@@ -19,13 +19,13 @@ export const readFileDef = {
 
 export const writeFileDef = {
     name: 'write_file',
-    description: 'Writes content to a file. Overwrites if it exists. Parent directories are created automatically. Allowed paths: /app/workspace/ (task output), /app/config/ (bot config, including /app/config/skills/ for new skills), /app/USER.md (user info), /app/SOUL.md (personality), /app/IDENTITY.md (identity). Do not write to /app/knowledge/, /app/src/, /app/AGENTS.md, or /app/TOOLS.md.',
+    description: 'Writes content to a file. Overwrites if it exists. Parent directories are created automatically. Allowed paths: /app/workspace/ (task output), /app/config/ (bot config, including /app/config/functions/ for new skills), /app/USER.md (user info), /app/SOUL.md (personality), /app/IDENTITY.md (identity). Do not write to /app/knowledge/, /app/src/, /app/AGENTS.md, or /app/TOOLS.md.',
     parameters: {
         type: Type.OBJECT,
         properties: {
             filePath: {
                 type: Type.STRING,
-                description: "The absolute path to the file to write (e.g., /app/workspace/result.txt, /app/config/skills/my_skill/definition.json, or /app/SOUL.md)",
+                description: "The absolute path to the file to write (e.g., /app/workspace/result.txt, /app/config/functions/my_skill/definition.json, or /app/SOUL.md)",
             },
             content: {
                 type: Type.STRING,
@@ -78,7 +78,7 @@ export const listDirectoryDef = {
         properties: {
             dirPath: {
                 type: Type.STRING,
-                description: 'The absolute directory path to list (e.g., /app/workspace, /app/config, or /app/config/skills)',
+                description: 'The absolute directory path to list (e.g., /app/workspace, /app/config, or /app/config/functions)',
             },
             recursive: {
                 type: Type.BOOLEAN,

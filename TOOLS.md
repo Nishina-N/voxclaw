@@ -109,12 +109,12 @@ Use `write_file` with path `/app/config/cron.json` to add, edit, or remove tasks
 
 ## Creating New Skills（自己拡張）
 
-You can create new tools by adding a skill directory to `/app/config/skills/`. The new tool is available **immediately** on the next message — no restart required.
+You can create new tools by adding a skill directory to `/app/config/functions/`. The new tool is available **immediately** on the next message — no restart required.
 
 ### Directory structure
 
 ```
-/app/config/skills/
+/app/config/functions/
   <skill-name>/
     definition.json   ← Gemini FunctionDeclaration (name, description, parameters)
     run.sh            ← Execution script (run.py or run.js are also supported)
@@ -182,7 +182,7 @@ Installed packages persist across restarts in `/app/config/pip_packages/` (volum
 
 ### Example: weather skill
 
-`/app/config/skills/get_weather/definition.json`
+`/app/config/functions/get_weather/definition.json`
 ```json
 {
   "name": "get_weather",
@@ -197,7 +197,7 @@ Installed packages persist across restarts in `/app/config/pip_packages/` (volum
 }
 ```
 
-`/app/config/skills/get_weather/run.sh`
+`/app/config/functions/get_weather/run.sh`
 ```bash
 #!/bin/bash
 CITY=$(python3 -c "import json,os; print(json.loads(os.environ['SKILL_ARGS'])['city'])")

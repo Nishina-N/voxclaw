@@ -5,7 +5,7 @@ import { promisify } from 'util';
 
 const execFileAsync = promisify(execFile);
 
-const SKILLS_DIR = '/app/config/skills';
+const SKILLS_DIR = '/app/config/functions';
 const PIP_PACKAGES_DIR = '/app/config/pip_packages';
 const SKILL_TIMEOUT_MS = 30_000;
 
@@ -22,7 +22,7 @@ export interface DynamicSkill {
 }
 
 /**
- * Scans /app/config/skills/ and returns all valid skill definitions.
+ * Scans /app/config/functions/ and returns all valid skill definitions.
  * Each skill directory must contain a definition.json.
  */
 export async function loadDynamicSkills(): Promise<DynamicSkill[]> {

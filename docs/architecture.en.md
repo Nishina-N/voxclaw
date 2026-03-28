@@ -34,11 +34,11 @@ Receives messages from Discord, sends them to the Gemini API, invokes tools, and
 
 A proxy server for external APIs (Brave Search, Mapbox, Google APIs). It mounts `secrets_for_skills.json` to itself only — the voxclaw container cannot read it. Adding support for a new external API requires a human to add an endpoint to `keybinder/server.ts` and rebuild (an intentional security constraint).
 
-### Skills (`config/skills/`)
+### Skills (`config/functions/`)
 
 Tools created by the agent. Each skill is two files: `definition.json` (Gemini FunctionDeclaration) and `run.sh` (execution script). No rebuild needed — active from the next message.
 
-### Manuals (`config/manuals/`)
+### Skills (`config/skills/`)
 
 Markdown how-to guides that combine multiple skills. When a manual path is passed in a cron `prompt`, scheduled task quality depends directly on manual quality.
 
@@ -63,11 +63,11 @@ messages.db (SQLite)
           getChannelHistory() → Send to Gemini with history
                  ▼
         [agent.ts — Agent loop (max 20 rounds)]
-          Scans config/skills/ to load dynamic skills
+          Scans config/functions/ to load dynamic skills
           │
           ├─ functionCall → executeTool()
           │   ├─ Built-in tools (src/skills/)
-          │   └─ Dynamic skills (config/skills/<name>/run.sh)
+          │   └─ Dynamic skills (config/functions/<name>/run.sh)
           │       └─ External API call → http://keybinder:3001/...
           │   → Return result to Gemini → Repeat
           └─ Text response → Send to Discord
@@ -76,8 +76,8 @@ messages.db (SQLite)
 ### Three-Layer Structure
 
 ```
-Skills (config/skills/)         ← Minimal functional units. Created by the agent.
-  └─ Manuals (config/manuals/)  ← How-to guides combining multiple skills.
+Skills (config/functions/)         ← Minimal functional units. Created by the agent.
+  └─ Skills (config/skills/)  ← How-to guides combining multiple skills.
        └─ Cron (config/cron.json) ← Triggers that fire manuals on a schedule.
 ```
 
@@ -87,7 +87,7 @@ By passing a manual path in the cron `prompt`, scheduled task quality depends di
 {
   "id": "daily_market_news",
   "cron": "0 23 * * *",
-  "prompt": "Follow the manual at /app/config/manuals/market_news_recipe.md and post US stock market news.",
+  "prompt": "Follow the skill at /app/config/skills/market_news_recipe.md and post US stock market news.",
   "channelId": "YOUR_CHANNEL_ID",
   "enabled": true
 }

@@ -2,8 +2,8 @@
 import os
 import json
 
-SKILLS_DIR = "/app/config/skills"
-OUTPUT_FILE = "/app/config/skills_list.md"
+SKILLS_DIR = "/app/config/functions"
+OUTPUT_FILE = "/app/config/functions_list.md"
 
 def update_skills_list():
     # スキルディレクトリ一覧を取得
