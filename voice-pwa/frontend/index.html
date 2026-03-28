@@ -199,7 +199,7 @@
       display: flex;
       align-items: flex-end;
       gap: 10px;
-      padding: 10px 14px 14px;
+      padding: 6px 14px 14px;
       border-top: 1px solid #e5e5e5;
       background: #fff;
       flex-shrink: 0;
@@ -251,6 +251,7 @@
       background: transparent;
       line-height: 1.5;
       max-height: 120px;
+      overflow-x: hidden;
       overflow-y: auto;
       color: #1a1a1a;
     }
@@ -520,7 +521,7 @@
       <button id="btn-mic">
         <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
       </button>
-      <textarea id="input-text" rows="1" placeholder="What would you like to do?&#10;Press ⌘Enter or Ctrl+Enter to send"></textarea>
+      <textarea id="input-text" rows="2" placeholder="What would you like to do?&#10;Press ⌘Enter or Ctrl+Enter to send"></textarea>
       <button id="btn-send">
         <svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
       </button>
