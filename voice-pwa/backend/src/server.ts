@@ -60,7 +60,7 @@ async function readBody(req: IncomingMessage): Promise<string> {
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
 
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Content-Type', 'application/json');

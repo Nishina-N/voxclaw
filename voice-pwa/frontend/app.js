@@ -112,8 +112,6 @@ function connectWs() {
     });
 }
 
-connectWs();
-
 // --- Input auto-resize & send button state ---
 inputText.addEventListener('input', () => {
     inputText.style.height = 'auto';
