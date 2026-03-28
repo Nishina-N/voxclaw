@@ -66,7 +66,7 @@ messages.db（SQLite）
           config/functions/ をスキャンして動的スキルをロード
           │
           ├─ functionCall → executeTool()
-          │   ├─ 組み込みツール（src/skills/）
+          │   ├─ 組み込みツール（src/functions/）
           │   └─ 動的スキル（config/functions/<name>/run.sh）
           │       └─ 外部API呼び出し → http://keybinder:3001/...
           │   → 結果を Gemini へ返す → 繰り返す

@@ -66,7 +66,7 @@ messages.db (SQLite)
           Scans config/functions/ to load dynamic skills
           │
           ├─ functionCall → executeTool()
-          │   ├─ Built-in tools (src/skills/)
+          │   ├─ Built-in tools (src/functions/)
           │   └─ Dynamic skills (config/functions/<name>/run.sh)
           │       └─ External API call → http://keybinder:3001/...
           │   → Return result to Gemini → Repeat

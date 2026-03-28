@@ -27,7 +27,7 @@ Each skill lives in `config/functions/<skill-name>/` as two files:
 
 ## 2. Built-in Tools
 
-Tools baked into the container image (`src/skills/`):
+Tools baked into the container image (`src/functions/`):
 
 | Tool | Description |
 |---|---|

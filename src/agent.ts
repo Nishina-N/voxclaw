@@ -5,9 +5,9 @@ import { fileURLToPath } from 'url';
 
 import { type Message } from './db.js';
 import { loadDynamicSkills, executeDynamicSkill } from './skill-loader.js';
-import { executeReadFile, executeWriteFile, executeListDirectory, readFileDef, writeFileDef, listDirectoryDef } from './skills/files.js';
-import { executeReadMemory, executeWriteMemory, readMemoryDef, writeMemoryDef } from './skills/memory.js';
-import { executePipInstall, pipInstallDef } from './skills/pip.js';
+import { executeReadFile, executeWriteFile, executeListDirectory, readFileDef, writeFileDef, listDirectoryDef } from './functions/files.js';
+import { executeReadMemory, executeWriteMemory, readMemoryDef, writeMemoryDef } from './functions/memory.js';
+import { executePipInstall, pipInstallDef } from './functions/pip.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
