@@ -766,7 +766,7 @@ const server = http.createServer(async (req, res) => {
         cs = JSON.parse(fs.readFileSync(CLIENT_SECRET_PATH, 'utf-8'));
       } catch {
         res.writeHead(400);
-        res.end(JSON.stringify({ error: 'client_secret.json が見つかりません。keybinder/secrets/client_secret.json に配置してください。' }));
+        res.end(JSON.stringify({ error: 'client_secret.json not found. Place it at keybinder/secrets/client_secret.json' }));
         return;
       }
       const creds = cs.installed || cs.web;
@@ -802,7 +802,7 @@ const server = http.createServer(async (req, res) => {
         cs = JSON.parse(fs.readFileSync(CLIENT_SECRET_PATH, 'utf-8'));
       } catch {
         res.writeHead(400);
-        res.end(JSON.stringify({ error: 'client_secret.json が見つかりません' }));
+        res.end(JSON.stringify({ error: 'client_secret.json not found' }));
         return;
       }
       const creds = cs.installed || cs.web;
@@ -821,7 +821,7 @@ const server = http.createServer(async (req, res) => {
       const parsed = JSON.parse(result.body);
       if (!parsed.access_token) {
         res.writeHead(400);
-        res.end(JSON.stringify({ error: 'トークン交換に失敗しました', details: parsed }));
+        res.end(JSON.stringify({ error: 'Token exchange failed', details: parsed }));
         return;
       }
 

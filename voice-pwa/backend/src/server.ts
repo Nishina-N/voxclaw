@@ -135,7 +135,7 @@ const server = createServer(async (req, res) => {
                     res.end(JSON.stringify({ token: signToken() }));
                 } else {
                     res.writeHead(401);
-                    res.end(JSON.stringify({ error: 'パスワードが違います' }));
+                    res.end(JSON.stringify({ error: 'Incorrect password' }));
                 }
             } catch {
                 res.writeHead(400);

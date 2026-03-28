@@ -31,10 +31,10 @@ async function tryLogin(password) {
             loginScreen.classList.add('hidden');
             connectWs();
         } else {
-            loginError.textContent = data.error ?? 'ログインに失敗しました';
+            loginError.textContent = data.error ?? 'Login failed';
         }
     } catch {
-        loginError.textContent = '接続エラーが発生しました';
+        loginError.textContent = 'Connection error';
     }
 }
 
@@ -155,7 +155,7 @@ async function startRecording() {
     try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-        appendMessage('voxclaw', '⚠️ マイクへのアクセスが拒否されました');
+        appendMessage('voxclaw', '⚠️ Microphone access denied');
         return;
     }
 
@@ -308,19 +308,19 @@ async function loadGoogleStatus() {
     if (!el) return;
     try {
         const res = await apiRequest('/api/google-auth/status');
-        if (!res.ok) { el.textContent = '取得失敗'; return; }
+        if (!res.ok) { el.textContent = 'Failed to load'; return; }
         const data = await res.json();
         if (!data.configured) {
-            el.textContent = '未設定';
+            el.textContent = 'not set';
         } else if (data.expired) {
-            el.textContent = '期限切れ';
+            el.textContent = 'expired';
             el.style.color = '#e55';
         } else {
             const exp = new Date(data.expiry);
-            el.textContent = `設定済み（${exp.getFullYear()}/${exp.getMonth()+1}/${exp.getDate()} まで）`;
+            el.textContent = `valid until ${exp.getFullYear()}/${exp.getMonth()+1}/${exp.getDate()}`;
             el.style.color = '#4a4';
         }
-    } catch { el.textContent = '取得失敗'; }
+    } catch { el.textContent = 'Failed to load'; }
 }
 
 // Google OAuth コールバック: ?code= が URL に含まれる場合は自動でトークン交換
@@ -336,13 +336,13 @@ async function loadGoogleStatus() {
             body: JSON.stringify({ code }),
         });
         if (res.ok) {
-            appendMessage('voxclaw', 'Google認証が完了しました！');
+            appendMessage('voxclaw', 'Google authentication complete!');
         } else {
             const err = await res.json();
-            appendMessage('voxclaw', `⚠️ Google認証に失敗しました: ${err.error}`);
+            appendMessage('voxclaw', `⚠️ Google authentication failed: ${err.error}`);
         }
     } catch {
-        appendMessage('voxclaw', '⚠️ Google認証中にエラーが発生しました');
+        appendMessage('voxclaw', '⚠️ Error during Google authentication');
     }
 })();
 
@@ -355,7 +355,7 @@ async function loadKeys() {
             const service = item.dataset.service;
             const key = item.dataset.key;
             const value = data[service]?.[key];
-            item.querySelector('.key-item-value').textContent = value ?? '未設定';
+            item.querySelector('.key-item-value').textContent = value ?? 'not set';
         });
     } catch {}
 }
@@ -380,7 +380,7 @@ document.querySelectorAll('.key-item').forEach(item => {
     saveBtn.addEventListener('click', async () => {
         const value = input.value.trim();
         if (!value) return;
-        saveBtn.textContent = '保存中...';
+        saveBtn.textContent = 'Saving...';
         saveBtn.disabled = true;
         try {
             const res = await apiRequest('/api/keys', {
@@ -392,7 +392,7 @@ document.querySelectorAll('.key-item').forEach(item => {
                 await loadKeys();
             }
         } finally {
-            saveBtn.textContent = '保存';
+            saveBtn.textContent = 'Save';
             saveBtn.disabled = false;
         }
     });
