@@ -11,6 +11,7 @@ const PORT = parseInt(process.env.VOICE_BACKEND_PORT ?? '8080', 10);
 const PASSWORD = process.env.PWA_PASSWORD ?? '123456';
 const JWT_SECRET = process.env.JWT_SECRET ?? PASSWORD;
 const JWT_EXPIRES_IN = '7d';
+const KEYBINDER_URL = 'http://keybinder:3001';
 
 // Message types (frontend ↔ backend protocol)
 // Client → Server:
@@ -42,6 +43,21 @@ function getTokenFromRequest(req: IncomingMessage): string | null {
     return url.searchParams.get('token');
 }
 
+function verifyAuthHeader(req: IncomingMessage): boolean {
+    const auth = req.headers['authorization'] ?? '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+    return token ? verifyToken(token) : false;
+}
+
+async function readBody(req: IncomingMessage): Promise<string> {
+    return new Promise((resolve, reject) => {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', () => resolve(body));
+        req.on('error', reject);
+    });
+}
+
 // ── HTTP server ───────────────────────────────────────────────────────────────
 
 const server = createServer((req, res) => {
@@ -53,6 +69,32 @@ const server = createServer((req, res) => {
         res.writeHead(204);
         res.end();
         return;
+    }
+
+    // ── /api/keys (JWT required) ──────────────────────────────────────────────
+    if (req.url?.startsWith('/api/keys')) {
+        if (!verifyAuthHeader(req)) {
+            res.writeHead(401);
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+            return;
+        }
+        if (req.method === 'GET') {
+            const r = await fetch(`${KEYBINDER_URL}/keys`);
+            res.writeHead(r.status);
+            res.end(await r.text());
+            return;
+        }
+        if (req.method === 'POST') {
+            const body = await readBody(req);
+            const r = await fetch(`${KEYBINDER_URL}/keys`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body,
+            });
+            res.writeHead(r.status);
+            res.end(await r.text());
+            return;
+        }
     }
 
     if (req.method === 'POST' && req.url === '/auth/login') {

@@ -294,6 +294,116 @@
       color: #ccc;
       font-size: 0.9rem;
     }
+
+    /* ── Settings panel ── */
+    #panel-settings {
+      overflow-y: auto;
+      padding: 20px 16px;
+      gap: 0;
+    }
+
+    .settings-section-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+      margin-top: 24px;
+    }
+
+    .settings-section-title:first-child { margin-top: 0; }
+
+    .key-item {
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+    }
+
+    .key-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .key-item-label {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .key-item-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .key-item-value {
+      font-size: 0.8rem;
+      color: #999;
+      font-family: monospace;
+    }
+
+    .key-edit-btn {
+      border: 1px solid #e5e5e5;
+      border-radius: 6px;
+      background: transparent;
+      padding: 4px 12px;
+      font-size: 0.8rem;
+      color: #555;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .key-edit-area {
+      display: none;
+      margin-top: 12px;
+      gap: 8px;
+      flex-direction: column;
+    }
+
+    .key-edit-area.open { display: flex; }
+
+    .key-edit-input {
+      border: 1px solid #1a1a1a;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      font-family: monospace;
+      outline: none;
+      width: 100%;
+    }
+
+    .key-edit-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .key-save-btn {
+      flex: 1;
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .key-cancel-btn {
+      flex: 1;
+      background: transparent;
+      color: #555;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
   </style>
 </head>
 <body>
@@ -350,7 +460,45 @@
   <div class="tab-panel" id="panel-skills"><div class="panel-placeholder">skills — coming soon</div></div>
   <div class="tab-panel" id="panel-cron"><div class="panel-placeholder">cron — coming soon</div></div>
   <div class="tab-panel" id="panel-task"><div class="panel-placeholder">task — coming soon</div></div>
-  <div class="tab-panel" id="panel-settings"><div class="panel-placeholder">settings — coming soon</div></div>
+
+  <!-- Settings panel -->
+  <div class="tab-panel" id="panel-settings">
+    <p class="settings-section-title">API Keys</p>
+
+    <div class="key-item" data-service="brave" data-key="api_key">
+      <div class="key-item-header">
+        <div class="key-item-label">
+          <span class="key-item-name">Brave Search</span>
+          <span class="key-item-value">未設定</span>
+        </div>
+        <button class="key-edit-btn">編集</button>
+      </div>
+      <div class="key-edit-area">
+        <input class="key-edit-input" type="password" placeholder="API Key" />
+        <div class="key-edit-actions">
+          <button class="key-save-btn">保存</button>
+          <button class="key-cancel-btn">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="key-item" data-service="mapbox" data-key="access_token">
+      <div class="key-item-header">
+        <div class="key-item-label">
+          <span class="key-item-name">Mapbox</span>
+          <span class="key-item-value">未設定</span>
+        </div>
+        <button class="key-edit-btn">編集</button>
+      </div>
+      <div class="key-edit-area">
+        <input class="key-edit-input" type="password" placeholder="Access Token" />
+        <div class="key-edit-actions">
+          <button class="key-save-btn">保存</button>
+          <button class="key-cancel-btn">キャンセル</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="/app.js"></script>
 </body>

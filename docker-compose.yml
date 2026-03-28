@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
     volumes:
       # secrets はこのコンテナにのみマウント — voxclaw コンテナからはアクセス不可
-      - ./keybinder/secrets_for_skills.json:/secrets/keys.json:ro
+      - ./keybinder/secrets_for_skills.json:/secrets/keys.json
       # Google OAuth2 token (run keybinder/setup_google_auth.py first to generate this)
       - ./keybinder/token.json:/secrets/google_token.json
 

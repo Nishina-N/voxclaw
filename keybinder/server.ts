@@ -731,6 +731,41 @@ const server = http.createServer(async (req, res) => {
     }
 
     // ────────────────────────────────────────────
+    // GET /keys  — キー設定状況を返す（値はマスク: 先頭4文字 + "..."）
+    // ────────────────────────────────────────────
+    if (pathname === '/keys' && method === 'GET') {
+      const s = loadSecrets();
+      const mask = (v: string | undefined) =>
+        v ? v.slice(0, 4) + '...' : null;
+      res.writeHead(200);
+      res.end(JSON.stringify({
+        brave:  { api_key:      mask(s?.brave?.api_key) },
+        mapbox: { access_token: mask(s?.mapbox?.access_token) },
+      }));
+      return;
+    }
+
+    // ────────────────────────────────────────────
+    // POST /keys  body: { service, key, value }
+    // ────────────────────────────────────────────
+    if (pathname === '/keys' && method === 'POST') {
+      const bodyStr = await readBody(req);
+      const { service, key, value } = JSON.parse(bodyStr);
+      if (!service || !key || value == null) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Missing fields: service, key, value' }));
+        return;
+      }
+      const s = loadSecrets();
+      if (!s[service]) s[service] = {};
+      s[service][key] = value;
+      fs.writeFileSync(SECRETS_PATH, JSON.stringify(s, null, 2));
+      res.writeHead(200);
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    // ────────────────────────────────────────────
     // 404
     // ────────────────────────────────────────────
     res.writeHead(404);

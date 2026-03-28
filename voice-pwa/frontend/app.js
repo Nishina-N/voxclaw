@@ -75,6 +75,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
+        if (btn.dataset.tab === 'settings') loadKeys();
     });
 });
 
@@ -280,3 +281,67 @@ function arrayBufferToBase64(buffer) {
     for (const b of bytes) binary += String.fromCharCode(b);
     return btoa(binary);
 }
+
+// --- Settings ---
+async function apiRequest(path, options = {}) {
+    return fetch(path, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}`,
+            ...(options.headers ?? {}),
+        },
+    });
+}
+
+async function loadKeys() {
+    try {
+        const res = await apiRequest('/api/keys');
+        if (!res.ok) return;
+        const data = await res.json();
+        document.querySelectorAll('.key-item').forEach(item => {
+            const service = item.dataset.service;
+            const key = item.dataset.key;
+            const value = data[service]?.[key];
+            item.querySelector('.key-item-value').textContent = value ?? '未設定';
+        });
+    } catch {}
+}
+
+document.querySelectorAll('.key-item').forEach(item => {
+    const editBtn   = item.querySelector('.key-edit-btn');
+    const editArea  = item.querySelector('.key-edit-area');
+    const input     = item.querySelector('.key-edit-input');
+    const saveBtn   = item.querySelector('.key-save-btn');
+    const cancelBtn = item.querySelector('.key-cancel-btn');
+
+    editBtn.addEventListener('click', () => {
+        editArea.classList.add('open');
+        input.value = '';
+        input.focus();
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        editArea.classList.remove('open');
+    });
+
+    saveBtn.addEventListener('click', async () => {
+        const value = input.value.trim();
+        if (!value) return;
+        saveBtn.textContent = '保存中...';
+        saveBtn.disabled = true;
+        try {
+            const res = await apiRequest('/api/keys', {
+                method: 'POST',
+                body: JSON.stringify({ service: item.dataset.service, key: item.dataset.key, value }),
+            });
+            if (res.ok) {
+                editArea.classList.remove('open');
+                await loadKeys();
+            }
+        } finally {
+            saveBtn.textContent = '保存';
+            saveBtn.disabled = false;
+        }
+    });
+});
