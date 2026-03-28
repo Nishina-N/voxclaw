@@ -55,4 +55,28 @@ All functions must use a shell script (`run.sh`) as their entry point. This ensu
 
 ---
 
+## Skill File Standard
+
+Skill files live in `/app/config/skills/` as Markdown (`.md`) files. Every skill file **must** begin with a YAML frontmatter block. Omitting or malforming the frontmatter will cause the skill to appear without a name or description in the PWA Skills tab.
+
+### Required format
+
+```markdown
+---
+name: Human-Readable Skill Name
+description: One-sentence summary of what this skill does and when to use it.
+---
+# (body — recipe steps, procedures, notes, etc.)
+```
+
+### Rules
+
+- **`name`**: Required. Short, title-cased label (e.g. `US Market News`). Used as the display name in the PWA.
+- **`description`**: Required. A single sentence describing the skill's purpose. Shown as the accordion body in the PWA Skills tab.
+- The `---` delimiters must be on their own lines with no leading spaces.
+- No other YAML keys are defined; add only `name` and `description`.
+- The Markdown body after the frontmatter is free-form — use it for step-by-step procedures, caveats, and examples.
+
+---
+
 Follow the personality in `SOUL.md` and the identity in `IDENTITY.md`.
