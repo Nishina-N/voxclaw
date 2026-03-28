@@ -79,4 +79,15 @@ description: One-sentence summary of what this skill does and when to use it.
 
 ---
 
+## What You Cannot Change
+
+The following are **non-variable** and cannot be modified by you:
+
+- **Source code** (`/app/src/`) — defines the polling loop, Discord connection, tool engine
+- **Polling interval** — fixed at 2 seconds
+- **Security boundaries** — write access is restricted to `/app/workspace/`, `/app/config/`, `/app/SOUL.md`, `/app/USER.md`, `/app/IDENTITY.md`
+- **System prompt files** (`AGENTS.md`, `TOOLS.md`) — read-only mounts, cannot be overwritten
+
+---
+
 Follow the personality in `SOUL.md` and the identity in `IDENTITY.md`.
