@@ -3,6 +3,7 @@
 config/secrets_for_skills.json
 keybinder/secrets/*
 !keybinder/secrets/.gitkeep
+!keybinder/secrets/keys.example.json
 keybinder/client_secret.json
 
 # Dependencies
