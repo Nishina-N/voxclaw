@@ -108,7 +108,7 @@
 
 | スキル | 説明 |
 |---|---|
-| `util_update_skills_list` | `config/functions/` を走査して `config/skills_list.md` を更新する |
+| `util_update_functions_list` | `config/functions/` を走査して `config/skills_list.md` を更新する |
 
 ---
 

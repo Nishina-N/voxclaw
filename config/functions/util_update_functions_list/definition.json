@@ -1,5 +1,5 @@
 {
-  "name": "util_update_skills_list",
+  "name": "util_update_functions_list",
   "description": "スキルのディレクトリから一覧を取得し、/app/config/functions_list.md を更新する",
   "parameters": {
     "type": "OBJECT",

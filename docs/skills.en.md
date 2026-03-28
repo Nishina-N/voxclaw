@@ -108,7 +108,7 @@ Skills the agent has created in `config/functions/`:
 
 | Skill | Description |
 |---|---|
-| `util_update_skills_list` | Scan `config/functions/` and update `config/skills_list.md` |
+| `util_update_functions_list` | Scan `config/functions/` and update `config/skills_list.md` |
 
 ---
 
