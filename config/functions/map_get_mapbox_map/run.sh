@@ -1,3 +1,3 @@
 #!/bin/bash
 # 実行スクリプト: Pythonファイルを呼び出す
-python3 /app/config/functions/get_mapbox_map/run.py
+python3 /app/config/functions/map_get_mapbox_map/run.py
