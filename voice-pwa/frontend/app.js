@@ -43,17 +43,6 @@ loginPassword.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') tryLogin(loginPassword.value);
 });
 
-// 起動時：トークンがあればそのまま接続、なければログイン画面を表示
-if (getToken()) {
-    loginScreen.classList.add('hidden');
-    connectWs();
-}
-
-// bfcache復元時（戻る/進む）: WSが死んでいるので再接続
-window.addEventListener('pageshow', (e) => {
-    if (e.persisted) connectWs();
-});
-
 // --- State ---
 let ws = null;
 let audioContext = null;
@@ -67,6 +56,17 @@ const chatMessages  = document.getElementById('chat-messages');
 const btnMic        = document.getElementById('btn-mic');
 const inputText     = document.getElementById('input-text');
 const btnSend       = document.getElementById('btn-send');
+
+// 起動時：トークンがあればそのまま接続、なければログイン画面を表示
+if (getToken()) {
+    loginScreen.classList.add('hidden');
+    connectWs();
+}
+
+// bfcache復元時（戻る/進む）: WSが死んでいるので再接続
+window.addEventListener('pageshow', (e) => {
+    if (e.persisted) connectWs();
+});
 
 // --- PWA ---
 if ('serviceWorker' in navigator) {
