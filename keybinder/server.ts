@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as url from 'url';
 
 const SECRETS_PATH = '/secrets/keys.json';
-const TOKEN_PATH = '/secrets/google_token.json';
+const TOKEN_PATH = '/secrets/token.json';
 
 // ─── Secrets ─────────────────────────────────────────────────────────────────
 

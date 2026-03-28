@@ -1,9 +1,9 @@
 # Environment / Secrets
 .env
 config/secrets_for_skills.json
-keybinder/secrets_for_skills.json
+keybinder/secrets/*
+!keybinder/secrets/.gitkeep
 keybinder/client_secret.json
-keybinder/token.json
 
 # Dependencies
 node_modules/
