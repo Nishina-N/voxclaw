@@ -68,7 +68,7 @@ inputText.addEventListener('input', () => {
 });
 
 inputText.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         sendMessage();
     }
