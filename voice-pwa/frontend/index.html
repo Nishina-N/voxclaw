@@ -435,18 +435,32 @@
 
     .cron-time-input:focus { border-color: #1a1a1a; }
 
-    .cron-repeat-row {
+    .cron-repeat-row, .cron-dest-row {
       display: flex;
       flex-wrap: wrap;
       gap: 14px;
     }
 
-    .cron-repeat-row label {
+    .cron-repeat-row label, .cron-dest-row label {
       display: flex;
       align-items: center;
       gap: 5px;
       font-size: 0.85rem;
       cursor: pointer;
+    }
+
+    .cron-discord-row {
+      display: flex;
+    }
+
+    .cron-discord-row .cron-channel-input {
+      flex: 1;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.85rem;
+      font-family: monospace;
+      outline: none;
     }
 
     .cron-days-row {

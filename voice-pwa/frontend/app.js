@@ -547,6 +547,10 @@ function renderCronItem(skill, entry) {
     const s = entry ? (parseCronSchedule(entry.cron) ?? { hour: 9, minute: 0, mode: 'daily', days: [] })
                     : { hour: 9, minute: 0, mode: 'daily', days: [] };
 
+    // Destination: 'voice' = Voxclaw Chat (default), anything else = Discord channel ID
+    const isVoice = !entry?.channelId || entry.channelId === 'voice';
+    const discordChannelId = isVoice ? '' : (entry?.channelId ?? '');
+
     const el = document.createElement('div');
     el.className = 'skill-item';
 
@@ -575,9 +579,15 @@ function renderCronItem(skill, entry) {
             <div class="cron-days-row" style="display:${s.mode==='custom'?'flex':'none'}">
                 ${DAY_LABELS.map((d,i) => `<label class="cron-day-label"><input type="checkbox" value="${i}" ${s.days.includes(i)?'checked':''}> ${d}</label>`).join('')}
             </div>
-            <span class="cron-field-label">Channel ID</span>
-            <input class="cron-channel-input" type="text" placeholder="Discord channel ID"
-                value="${escapeHtml(entry?.channelId ?? '')}" />
+            <span class="cron-field-label">Destination</span>
+            <div class="cron-dest-row">
+                <label><input type="radio" name="dest_${id}" value="voice"   ${isVoice?'checked':''}> Voxclaw Chat</label>
+                <label><input type="radio" name="dest_${id}" value="discord" ${!isVoice?'checked':''}> Discord</label>
+            </div>
+            <div class="cron-discord-row" style="display:${isVoice?'none':'flex'}">
+                <input class="cron-channel-input" type="text" placeholder="Discord channel ID"
+                    value="${escapeHtml(discordChannelId)}" />
+            </div>
             <div class="cron-enabled-row">
                 <span class="cron-field-label">Enabled</span>
                 <label class="cron-toggle">
@@ -602,6 +612,13 @@ function renderCronItem(skill, entry) {
         });
     });
 
+    // Show/hide Discord channel input
+    el.querySelectorAll(`input[name="dest_${id}"]`).forEach(r => {
+        r.addEventListener('change', () => {
+            el.querySelector('.cron-discord-row').style.display = r.value === 'discord' ? 'flex' : 'none';
+        });
+    });
+
     // Save
     el.querySelector('.cron-save-btn').addEventListener('click', async () => {
         const hour    = Math.min(23, Math.max(0, parseInt(el.querySelector('.cron-hour').value, 10) || 0));
@@ -610,9 +627,12 @@ function renderCronItem(skill, entry) {
         const days    = mode === 'custom'
             ? [...el.querySelectorAll('.cron-days-row input:checked')].map(c => parseInt(c.value, 10))
             : [];
-        const channel = el.querySelector('.cron-channel-input').value.trim();
+        const dest    = el.querySelector(`input[name="dest_${id}"]:checked`).value;
+        const channelId = dest === 'voice'
+            ? 'voice'
+            : el.querySelector('.cron-channel-input').value.trim();
         const enabled = el.querySelector('.cron-enabled-check').checked;
-        if (!channel) { alert('Channel ID is required'); return; }
+        if (dest === 'discord' && !channelId) { alert('Discord channel ID is required'); return; }
 
         const btn = el.querySelector('.cron-save-btn');
         btn.textContent = 'Saving...'; btn.disabled = true;
@@ -623,7 +643,7 @@ function renderCronItem(skill, entry) {
                     id,
                     cron: buildCronExpr(hour, minute, mode, days),
                     prompt: `[Scheduled task] Execute the '${skill.name}' skill now. This is an automated run — complete the skill from /app/skills/ in full, independent of any prior conversation.`,
-                    channelId: channel,
+                    channelId,
                     enabled,
                 }),
             });

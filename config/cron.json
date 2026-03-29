@@ -2,8 +2,8 @@
   {
     "id": "cron_us_market_news",
     "cron": "0 23 * * 0-6",
-    "prompt": "[Scheduled task] Execute the 'US Market News' skill now. This is an automated run — complete the skill from /app/config/skills/ in full, independent of any prior conversation.",
-    "channelId": "1480954792946962432",
+    "prompt": "[Scheduled task] Execute the 'US Market News' skill now. This is an automated run — complete the skill from /app/skills/ in full, independent of any prior conversation.",
+    "channelId": "voice",
     "enabled": true
   }
 ]
