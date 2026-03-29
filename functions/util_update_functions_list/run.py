@@ -2,7 +2,7 @@
 import os
 import json
 
-SKILLS_DIR = "/app/config/functions"
+SKILLS_DIR = "/app/functions"
 OUTPUT_FILE = "/app/config/functions_list.md"
 
 def update_skills_list():
