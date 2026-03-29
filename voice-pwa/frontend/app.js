@@ -441,6 +441,7 @@ async function loadKeys() {
 
 document.querySelectorAll('.key-item').forEach(item => {
     const editBtn   = item.querySelector('.key-edit-btn');
+    if (!editBtn) return;
     const editArea  = item.querySelector('.key-edit-area');
     const input     = item.querySelector('.key-edit-input');
     const saveBtn   = item.querySelector('.key-save-btn');
