@@ -213,6 +213,20 @@ function sendMessage() {
 }
 
 // --- Chat rendering ---
+function renderMessageBody(text) {
+    // Replace [image:filename] with <img> tags; escape everything else
+    const parts = text.split(/(\[image:[^\]]+\])/g);
+    return parts.map(part => {
+        const m = part.match(/^\[image:([^\]]+)\]$/);
+        if (m) {
+            const filename = m[1];
+            const src = `/api/media/${encodeURIComponent(filename)}`;
+            return `<img class="chat-image" src="${src}" alt="${escapeHtml(filename)}" loading="lazy">`;
+        }
+        return `<span>${escapeHtml(part)}</span>`;
+    }).join('');
+}
+
 function appendMessage(role, text, date) {
     const name = role === 'user' ? 'User' : 'Voxclaw';
     const time = formatTime(date ?? new Date());
@@ -225,7 +239,7 @@ function appendMessage(role, text, date) {
             <span class="message-name">${name}</span>
             <span class="message-time">${time}</span>
         </div>
-        <div class="message-body">${escapeHtml(text)}</div>
+        <div class="message-body">${renderMessageBody(text)}</div>
     `;
     chatMessages.appendChild(el);
     scrollToBottom();
@@ -604,7 +618,7 @@ function renderCronItem(skill, entry) {
                 body: JSON.stringify({
                     id,
                     cron: buildCronExpr(hour, minute, mode, days),
-                    prompt: `[Scheduled task] Execute the '${skill.name}' skill now. This is an automated run — complete the skill from /app/config/skills/ in full, independent of any prior conversation.`,
+                    prompt: `[Scheduled task] Execute the '${skill.name}' skill now. This is an automated run — complete the skill from /app/skills/ in full, independent of any prior conversation.`,
                     channelId: channel,
                     enabled,
                 }),

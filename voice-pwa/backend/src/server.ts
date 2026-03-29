@@ -15,6 +15,16 @@ const JWT_SECRET = process.env.JWT_SECRET ?? PASSWORD;
 const JWT_EXPIRES_IN = '7d';
 const KEYBINDER_URL = 'http://keybinder:3001';
 const CRON_PATH = '/app/config/cron.json';
+const MEDIA_DIR = '/app/media';
+
+const MIME_TYPES: Record<string, string> = {
+    '.jpg':  'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png':  'image/png',
+    '.gif':  'image/gif',
+    '.webp': 'image/webp',
+    '.svg':  'image/svg+xml',
+};
 
 function readCron(): any[] {
     if (!fs.existsSync(CRON_PATH)) return [];
@@ -256,6 +266,34 @@ const server = createServer(async (req, res) => {
                 res.end(JSON.stringify({ error: 'invalid request' }));
             }
         });
+        return;
+    }
+
+    // ── /api/media/:filename (JWT required) ──────────────────────────────────
+    if (req.method === 'GET' && req.url?.startsWith('/api/media/')) {
+        if (!verifyAuthHeader(req)) {
+            res.writeHead(401);
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+            return;
+        }
+        const filename = decodeURIComponent(req.url.slice('/api/media/'.length));
+        // Prevent path traversal
+        if (filename.includes('/') || filename.includes('..')) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'Invalid filename' }));
+            return;
+        }
+        const filePath = path.join(MEDIA_DIR, filename);
+        if (!fs.existsSync(filePath)) {
+            res.writeHead(404);
+            res.end(JSON.stringify({ error: 'Not found' }));
+            return;
+        }
+        const ext = path.extname(filename).toLowerCase();
+        const mime = MIME_TYPES[ext] ?? 'application/octet-stream';
+        res.setHeader('Content-Type', mime);
+        res.writeHead(200);
+        fs.createReadStream(filePath).pipe(res);
         return;
     }
 

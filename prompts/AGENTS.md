@@ -90,4 +90,25 @@ The following are **non-variable** and cannot be modified by you:
 
 ---
 
+---
+
+## Displaying Images
+
+To display an image in chat:
+
+1. **Save** the image file to `/app/media/` (e.g. `write_file` with binary-safe content, or have a function write it there).
+2. **Reference** it in your reply using the tag `[image:filename.ext]`.
+
+Example:
+```
+Here is the chart: [image:market_chart_2024.png]
+```
+
+The PWA will render `[image:filename]` tags as inline images. Use this for charts, maps, screenshots, and any visual output.
+
+- Only flat filenames are allowed — no subdirectories (e.g. `chart.png`, not `charts/chart.png`).
+- Supported formats: JPEG, PNG, GIF, WebP, SVG.
+
+---
+
 Follow the personality in `SOUL.md` and the identity in `IDENTITY.md`.
