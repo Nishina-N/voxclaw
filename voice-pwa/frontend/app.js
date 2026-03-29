@@ -82,6 +82,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
         if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); }
         if (btn.dataset.tab === 'skills') loadSkills();
+        if (btn.dataset.tab === 'cron') loadCronTab();
     });
 });
 
@@ -445,3 +446,169 @@ document.querySelectorAll('.key-item').forEach(item => {
         }
     });
 });
+
+// --- Cron ---
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function skillToId(name) {
+    return 'cron_' + name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+}
+
+function parseCronSchedule(expr) {
+    const parts = expr.trim().split(/\s+/);
+    if (parts.length !== 5) return null;
+    const [mm, hh, , , dow] = parts;
+    const minute = parseInt(mm, 10);
+    const hour   = parseInt(hh, 10);
+    if (dow === '*')   return { hour, minute, mode: 'daily',    days: [] };
+    if (dow === '1-5') return { hour, minute, mode: 'weekdays', days: [] };
+    return { hour, minute, mode: 'custom', days: dow.split(',').map(Number) };
+}
+
+function cronLabel(entry) {
+    if (!entry) return 'not scheduled';
+    const s = parseCronSchedule(entry.cron);
+    if (!s) return entry.cron;
+    const t = `${String(s.hour).padStart(2,'0')}:${String(s.minute).padStart(2,'0')}`;
+    if (!entry.enabled) return `off (${t})`;
+    if (s.mode === 'daily')    return `Daily ${t}`;
+    if (s.mode === 'weekdays') return `Weekdays ${t}`;
+    return s.days.map(d => DAY_LABELS[d]).join('/') + ' ' + t;
+}
+
+function buildCronExpr(hour, minute, mode, customDays) {
+    if (mode === 'daily')    return `${minute} ${hour} * * *`;
+    if (mode === 'weekdays') return `${minute} ${hour} * * 1-5`;
+    const dow = (customDays.length ? customDays : [0]).sort((a,b) => a-b).join(',');
+    return `${minute} ${hour} * * ${dow}`;
+}
+
+async function loadCronTab() {
+    const list = document.getElementById('cron-list');
+    list.innerHTML = '';
+    try {
+        const [skillsRes, cronRes] = await Promise.all([
+            apiRequest('/api/skills'),
+            apiRequest('/api/cron'),
+        ]);
+        if (!skillsRes.ok || !cronRes.ok) throw new Error();
+        const { skills } = await skillsRes.json();
+        const entries = await cronRes.json();
+
+        const heading = document.createElement('p');
+        heading.className = 'skills-section-title';
+        heading.textContent = 'Skills';
+        list.appendChild(heading);
+
+        for (const skill of skills) {
+            const entry = entries.find(e => e.id === skillToId(skill.name)) ?? null;
+            list.appendChild(renderCronItem(skill, entry));
+        }
+    } catch {
+        list.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px">Failed to load</p>';
+    }
+}
+
+function renderCronItem(skill, entry) {
+    const id = skillToId(skill.name);
+    const s = entry ? (parseCronSchedule(entry.cron) ?? { hour: 9, minute: 0, mode: 'daily', days: [] })
+                    : { hour: 9, minute: 0, mode: 'daily', days: [] };
+
+    const el = document.createElement('div');
+    el.className = 'skill-item';
+
+    const statusClass = entry ? 'cron-item-status scheduled' : 'cron-item-status';
+    el.innerHTML = `
+        <div class="skill-item-header">
+            <span class="skill-item-name">${escapeHtml(skill.name)}</span>
+            <span class="${statusClass}">${escapeHtml(cronLabel(entry))}</span>
+            <span class="skill-item-chevron">▾</span>
+        </div>
+        <div class="skill-item-body cron-form">
+            <span class="cron-field-label">Time</span>
+            <div class="cron-time-row">
+                <input class="cron-time-input cron-hour" type="number" min="0" max="23"
+                    value="${s.hour}" />
+                <span>:</span>
+                <input class="cron-time-input cron-minute" type="number" min="0" max="59"
+                    value="${String(s.minute).padStart(2,'0')}" />
+            </div>
+            <span class="cron-field-label">Repeat</span>
+            <div class="cron-repeat-row">
+                <label><input type="radio" name="rep_${id}" value="daily"    ${s.mode==='daily'?'checked':''}> Every day</label>
+                <label><input type="radio" name="rep_${id}" value="weekdays" ${s.mode==='weekdays'?'checked':''}> Weekdays</label>
+                <label><input type="radio" name="rep_${id}" value="custom"   ${s.mode==='custom'?'checked':''}> Custom</label>
+            </div>
+            <div class="cron-days-row" style="display:${s.mode==='custom'?'flex':'none'}">
+                ${DAY_LABELS.map((d,i) => `<label class="cron-day-label"><input type="checkbox" value="${i}" ${s.days.includes(i)?'checked':''}> ${d}</label>`).join('')}
+            </div>
+            <span class="cron-field-label">Channel ID</span>
+            <input class="cron-channel-input" type="text" placeholder="Discord channel ID"
+                value="${escapeHtml(entry?.channelId ?? '')}" />
+            <div class="cron-enabled-row">
+                <span class="cron-field-label">Enabled</span>
+                <label class="cron-toggle">
+                    <input type="checkbox" class="cron-enabled-check" ${(entry?.enabled ?? true)?'checked':''}>
+                    <span class="cron-toggle-slider"></span>
+                </label>
+            </div>
+            <div class="cron-actions">
+                <button class="cron-save-btn">Save</button>
+                ${entry ? '<button class="cron-delete-btn">Delete</button>' : ''}
+            </div>
+        </div>
+    `;
+
+    // Accordion
+    el.querySelector('.skill-item-header').addEventListener('click', () => el.classList.toggle('open'));
+
+    // Show/hide custom days
+    el.querySelectorAll(`input[name="rep_${id}"]`).forEach(r => {
+        r.addEventListener('change', () => {
+            el.querySelector('.cron-days-row').style.display = r.value === 'custom' ? 'flex' : 'none';
+        });
+    });
+
+    // Save
+    el.querySelector('.cron-save-btn').addEventListener('click', async () => {
+        const hour    = Math.min(23, Math.max(0, parseInt(el.querySelector('.cron-hour').value, 10) || 0));
+        const minute  = Math.min(59, Math.max(0, parseInt(el.querySelector('.cron-minute').value, 10) || 0));
+        const mode    = el.querySelector(`input[name="rep_${id}"]:checked`).value;
+        const days    = mode === 'custom'
+            ? [...el.querySelectorAll('.cron-days-row input:checked')].map(c => parseInt(c.value, 10))
+            : [];
+        const channel = el.querySelector('.cron-channel-input').value.trim();
+        const enabled = el.querySelector('.cron-enabled-check').checked;
+        if (!channel) { alert('Channel ID is required'); return; }
+
+        const btn = el.querySelector('.cron-save-btn');
+        btn.textContent = 'Saving...'; btn.disabled = true;
+        try {
+            const res = await apiRequest('/api/cron', {
+                method: 'POST',
+                body: JSON.stringify({
+                    id,
+                    cron: buildCronExpr(hour, minute, mode, days),
+                    prompt: `Please run the skill: ${skill.name}`,
+                    channelId: channel,
+                    enabled,
+                }),
+            });
+            if (res.ok) loadCronTab();
+        } finally { btn.textContent = 'Save'; btn.disabled = false; }
+    });
+
+    // Delete
+    const delBtn = el.querySelector('.cron-delete-btn');
+    if (delBtn) {
+        delBtn.addEventListener('click', async () => {
+            delBtn.textContent = 'Deleting...'; delBtn.disabled = true;
+            try {
+                await apiRequest(`/api/cron/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                loadCronTab();
+            } finally { delBtn.textContent = 'Delete'; delBtn.disabled = false; }
+        });
+    }
+
+    return el;
+}

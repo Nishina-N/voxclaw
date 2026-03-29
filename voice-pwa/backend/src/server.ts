@@ -14,6 +14,17 @@ const PASSWORD = process.env.PWA_PASSWORD ?? '123456';
 const JWT_SECRET = process.env.JWT_SECRET ?? PASSWORD;
 const JWT_EXPIRES_IN = '7d';
 const KEYBINDER_URL = 'http://keybinder:3001';
+const CRON_PATH = '/app/config/cron.json';
+
+function readCron(): any[] {
+    if (!fs.existsSync(CRON_PATH)) return [];
+    try { return JSON.parse(fs.readFileSync(CRON_PATH, 'utf-8')); } catch { return []; }
+}
+
+function writeCron(entries: any[]) {
+    fs.mkdirSync(path.dirname(CRON_PATH), { recursive: true });
+    fs.writeFileSync(CRON_PATH, JSON.stringify(entries, null, 2));
+}
 
 // Message types (frontend ↔ backend protocol)
 // Client → Server:
@@ -125,6 +136,38 @@ const server = createServer(async (req, res) => {
         res.writeHead(200);
         res.end(JSON.stringify({ skills, functions }));
         return;
+    }
+
+    // ── /api/cron (JWT required) ─────────────────────────────────────────────
+    if (req.url === '/api/cron' || req.url?.startsWith('/api/cron/')) {
+        if (!verifyAuthHeader(req)) {
+            res.writeHead(401);
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+            return;
+        }
+        if (req.method === 'GET' && req.url === '/api/cron') {
+            res.writeHead(200);
+            res.end(JSON.stringify(readCron()));
+            return;
+        }
+        if (req.method === 'POST' && req.url === '/api/cron') {
+            const entry = JSON.parse(await readBody(req));
+            const entries = readCron();
+            const idx = entries.findIndex((e: any) => e.id === entry.id);
+            if (idx >= 0) entries[idx] = entry;
+            else entries.push(entry);
+            writeCron(entries);
+            res.writeHead(200);
+            res.end(JSON.stringify({ ok: true }));
+            return;
+        }
+        if (req.method === 'DELETE' && req.url?.startsWith('/api/cron/')) {
+            const id = decodeURIComponent(req.url.slice('/api/cron/'.length));
+            writeCron(readCron().filter((e: any) => e.id !== id));
+            res.writeHead(200);
+            res.end(JSON.stringify({ ok: true }));
+            return;
+        }
     }
 
     // ── /api/google-auth/ (JWT required) → keybinder /auth/google/ ──────────

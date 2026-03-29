@@ -7,6 +7,7 @@ services:
       - .env
     environment:
       - HTTP_API_PORT=3001
+      - TZ=${TZ:-Asia/Tokyo}
     depends_on:
       - keybinder
     volumes:
@@ -53,6 +54,7 @@ services:
     volumes:
       - ./config/skills:/app/config/skills:ro
       - ./config/functions:/app/config/functions:ro
+      - ./config/cron.json:/app/config/cron.json
 
   voice-pwa-frontend:
     build: ./voice-pwa/frontend
