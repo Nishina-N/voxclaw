@@ -13,6 +13,7 @@ node_modules/
 memory/
 workspace/
 knowledge/
+media/
 
 # pip packages installed at runtime (platform-specific, can be large)
 config/pip_packages/

@@ -5,7 +5,7 @@ import { promisify } from 'util';
 
 const execFileAsync = promisify(execFile);
 
-const SKILLS_DIR = '/app/config/functions';
+const SKILLS_DIR = '/app/functions';
 const PIP_PACKAGES_DIR = '/app/config/pip_packages';
 const SKILL_TIMEOUT_MS = 30_000;
 

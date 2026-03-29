@@ -13,19 +13,24 @@ services:
     volumes:
       # Persistent storage: SQLite DB and memory logs
       - ./memory:/app/memory
-      # Bot behavior config (channels.json etc.): read/write by the agent
+      # Bot behavior config (channels.json, cron.json): read/write by the agent
       - ./config:/app/config
+      # Dynamic functions and skill recipes: read/write by the agent
+      - ./functions:/app/functions
+      - ./skills:/app/skills
       # Agent workspace: read/write by the agent
       - ./workspace:/app/workspace
+      # Media output (generated images etc.): read/write by the agent
+      - ./media:/app/media
       # Knowledge base: read-only reference documents
       - ./knowledge:/app/knowledge:ro
       # Prompt files (system rules — read-only)
-      - ./AGENTS.md:/app/AGENTS.md:ro
-      - ./TOOLS.md:/app/TOOLS.md:ro
+      - ./prompts/AGENTS.md:/app/prompts/AGENTS.md:ro
+      - ./prompts/TOOLS.md:/app/prompts/TOOLS.md:ro
       # Prompt files (personality/user info — writable by the agent)
-      - ./SOUL.md:/app/SOUL.md
-      - ./USER.md:/app/USER.md
-      - ./IDENTITY.md:/app/IDENTITY.md
+      - ./prompts/SOUL.md:/app/prompts/SOUL.md
+      - ./prompts/USER.md:/app/prompts/USER.md
+      - ./prompts/IDENTITY.md:/app/prompts/IDENTITY.md
 
   keybinder:
     build: ./keybinder
@@ -52,9 +57,10 @@ services:
     depends_on:
       - voxclaw
     volumes:
-      - ./config/skills:/app/config/skills:ro
-      - ./config/functions:/app/config/functions:ro
+      - ./skills:/app/skills:ro
+      - ./functions:/app/functions:ro
       - ./config/cron.json:/app/config/cron.json
+      - ./media:/app/media
 
   voice-pwa-frontend:
     build: ./voice-pwa/frontend

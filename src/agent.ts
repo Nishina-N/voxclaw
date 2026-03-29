@@ -61,7 +61,7 @@ async function loadSystemInstructions(): Promise<string> {
     let instructions = '';
     for (const file of files) {
         try {
-            const content = await fs.readFile(path.join(__dirname, '..', file), 'utf-8');
+            const content = await fs.readFile(path.join(__dirname, '..', 'prompts', file), 'utf-8');
             instructions += content + '\n\n';
         } catch {
             // Optional files — skip if missing

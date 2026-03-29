@@ -22,11 +22,29 @@ You have access to the following tools as Gemini function calls.
 ├── src/           # ❌ NON-VARIABLE — source code baked into the container image
 │                  #    Never read or write here. Changes have no effect until rebuild.
 │
+├── prompts/       # ✅ VARIABLE (partial) — system prompt files
+│   ├── AGENTS.md  #    📖 Read-only (rules)
+│   ├── TOOLS.md   #    📖 Read-only (tool reference)
+│   ├── SOUL.md    #    ✅ Writable (personality)
+│   ├── USER.md    #    ✅ Writable (user info)
+│   └── IDENTITY.md #   ✅ Writable (self-identity)
+│
 ├── config/        # ✅ VARIABLE — bot behavior settings
-│   └── channels.json   # Per-channel config (requireMention, name, etc.)
+│   ├── channels.json    # Per-channel config (requireMention, name, etc.)
+│   ├── cron.json        # Scheduled tasks
+│   └── pip_packages/    # Python packages installed via pip_install
+│
+├── functions/     # ✅ VARIABLE — dynamic function definitions (auto-loaded)
+│   └── <name>/
+│       ├── definition.json
+│       └── run.sh
+│
+├── skills/        # ✅ VARIABLE — skill recipe documents (Markdown)
 │
 ├── workspace/     # ✅ VARIABLE — your working area for task output
 │                  #    Create, edit, and delete files freely here.
+│
+├── media/         # ✅ VARIABLE — generated images and media files
 │
 ├── memory/        # ✅ VARIABLE — persistent memory logs (managed via read/write_memory)
 │
@@ -105,7 +123,7 @@ Use `write_file` with path `/app/config/cron.json` to add, edit, or remove tasks
 
 ### Skill-based cron naming convention
 
-When scheduling a skill (a recipe in `/app/config/skills/`), you **must** follow this convention to ensure the PWA Cron tab recognises and can manage the entry.
+When scheduling a skill (a recipe in `/app/skills/`), you **must** follow this convention to ensure the PWA Cron tab recognises and can manage the entry.
 
 **ID format:** `cron_` + skill name lowercased, spaces replaced with `_`, non-alphanumeric characters removed.
 
@@ -116,7 +134,7 @@ When scheduling a skill (a recipe in `/app/config/skills/`), you **must** follow
 
 **Prompt format:**
 ```
-[Scheduled task] Execute the '{skill name}' skill now. This is an automated run — complete the skill from /app/config/skills/ in full, independent of any prior conversation.
+[Scheduled task] Execute the '{skill name}' skill now. This is an automated run — complete the skill from /app/skills/ in full, independent of any prior conversation.
 ```
 
 **Full example:**
@@ -124,7 +142,7 @@ When scheduling a skill (a recipe in `/app/config/skills/`), you **must** follow
 {
   "id": "cron_us_market_news",
   "cron": "0 23 * * *",
-  "prompt": "[Scheduled task] Execute the 'US Market News' skill now. This is an automated run — complete the skill from /app/config/skills/ in full, independent of any prior conversation.",
+  "prompt": "[Scheduled task] Execute the 'US Market News' skill now. This is an automated run — complete the skill from /app/skills/ in full, independent of any prior conversation.",
   "channelId": "CHANNEL_ID_HERE",
   "enabled": true
 }
@@ -138,12 +156,12 @@ When scheduling a skill (a recipe in `/app/config/skills/`), you **must** follow
 
 ## Creating New Functions（自己拡張）
 
-You can create new tools by adding a function directory to `/app/config/functions/`. The new tool is available **immediately** on the next message — no restart required.
+You can create new tools by adding a function directory to `/app/functions/`. The new tool is available **immediately** on the next message — no restart required.
 
 ### Directory structure
 
 ```
-/app/config/functions/
+/app/functions/
   <function-name>/
     definition.json   ← Gemini FunctionDeclaration (name, description, parameters)
     run.sh            ← Execution script (run.py or run.js are also supported)
@@ -211,7 +229,7 @@ Installed packages persist across restarts in `/app/config/pip_packages/` (volum
 
 ### Example: weather function
 
-`/app/config/functions/get_weather/definition.json`
+`/app/functions/get_weather/definition.json`
 ```json
 {
   "name": "get_weather",
@@ -226,7 +244,7 @@ Installed packages persist across restarts in `/app/config/pip_packages/` (volum
 }
 ```
 
-`/app/config/functions/get_weather/run.sh`
+`/app/functions/get_weather/run.sh`
 ```bash
 #!/bin/bash
 CITY=$(python3 -c "import json,os; print(json.loads(os.environ['SKILL_ARGS'])['city'])")

@@ -103,8 +103,8 @@ const server = createServer(async (req, res) => {
             return result;
         };
 
-        const SKILLS_DIR    = '/app/config/skills';
-        const FUNCTIONS_DIR = '/app/config/functions';
+        const SKILLS_DIR    = '/app/skills';
+        const FUNCTIONS_DIR = '/app/functions';
 
         const skills = fs.existsSync(SKILLS_DIR)
             ? fs.readdirSync(SKILLS_DIR)
