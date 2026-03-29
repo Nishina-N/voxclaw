@@ -17,6 +17,7 @@ export interface Message {
     content: string;
     timestamp: string;
     is_bot: number;
+    media?: string;
 }
 
 export function initDatabase(): void {
@@ -30,7 +31,8 @@ export function initDatabase(): void {
             sender_name TEXT NOT NULL,
             content     TEXT NOT NULL,
             timestamp   TEXT NOT NULL,
-            is_bot      INTEGER DEFAULT 0
+            is_bot      INTEGER DEFAULT 0,
+            media       TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_channel_ts ON messages(channel_id, timestamp);
 
@@ -39,14 +41,20 @@ export function initDatabase(): void {
             value TEXT NOT NULL
         );
     `);
+    // Migration: add media column to existing databases
+    try {
+        db.exec(`ALTER TABLE messages ADD COLUMN media TEXT`);
+    } catch {
+        // Column already exists — ignore
+    }
 }
 
 export function storeMessage(msg: Message): void {
     db.prepare(
         `INSERT OR REPLACE INTO messages
-         (id, channel_id, sender_id, sender_name, content, timestamp, is_bot)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).run(msg.id, msg.channel_id, msg.sender_id, msg.sender_name, msg.content, msg.timestamp, msg.is_bot);
+         (id, channel_id, sender_id, sender_name, content, timestamp, is_bot, media)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(msg.id, msg.channel_id, msg.sender_id, msg.sender_name, msg.content, msg.timestamp, msg.is_bot, msg.media ?? null);
 }
 
 /**
