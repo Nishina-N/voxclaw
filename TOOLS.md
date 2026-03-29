@@ -103,6 +103,35 @@ You can register recurring tasks by editing `/app/config/cron.json`. Changes tak
 
 Use `write_file` with path `/app/config/cron.json` to add, edit, or remove tasks.
 
+### Skill-based cron naming convention
+
+When scheduling a skill (a recipe in `/app/config/skills/`), you **must** follow this convention to ensure the PWA Cron tab recognises and can manage the entry.
+
+**ID format:** `cron_` + skill name lowercased, spaces replaced with `_`, non-alphanumeric characters removed.
+
+| Skill name | Correct `id` |
+|---|---|
+| `US Market News` | `cron_us_market_news` |
+| `Map Creation Recipe` | `cron_map_creation_recipe` |
+
+**Prompt format:**
+```
+[Scheduled task] Execute the '{skill name}' skill now. This is an automated run — complete the skill from /app/config/skills/ in full, independent of any prior conversation.
+```
+
+**Full example:**
+```json
+{
+  "id": "cron_us_market_news",
+  "cron": "0 23 * * *",
+  "prompt": "[Scheduled task] Execute the 'US Market News' skill now. This is an automated run — complete the skill from /app/config/skills/ in full, independent of any prior conversation.",
+  "channelId": "CHANNEL_ID_HERE",
+  "enabled": true
+}
+```
+
+> Never invent a free-form `id` for skill-based tasks. Always derive it from the skill name using the formula above.
+
 ---
 
 ---

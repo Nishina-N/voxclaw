@@ -589,7 +589,7 @@ function renderCronItem(skill, entry) {
                 body: JSON.stringify({
                     id,
                     cron: buildCronExpr(hour, minute, mode, days),
-                    prompt: `Please run the skill: ${skill.name}`,
+                    prompt: `[Scheduled task] Execute the '${skill.name}' skill now. This is an automated run — complete the skill from /app/config/skills/ in full, independent of any prior conversation.`,
                     channelId: channel,
                     enabled,
                 }),

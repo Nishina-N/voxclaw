@@ -1,8 +1,8 @@
 [
   {
-    "id": "market_news_summary",
+    "id": "cron_us_market_news",
     "cron": "0 23 * * 0-6",
-    "prompt": "マーケット情報のサマリを作成してください。スキル（/app/config/skills/market_news_recipe.md）に従い、米国株式市場のニュースを要約してこのチャンネルに投稿してください。",
+    "prompt": "[Scheduled task] Execute the 'US Market News' skill now. This is an automated run — complete the skill from /app/config/skills/ in full, independent of any prior conversation.",
     "channelId": "1480954792946962432",
     "enabled": true
   }
