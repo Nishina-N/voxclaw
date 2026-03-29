@@ -559,6 +559,11 @@ function renderCronItem(skill, entry) {
         <div class="skill-item-header">
             <span class="skill-item-name">${escapeHtml(skill.name)}</span>
             <span class="${statusClass}">${escapeHtml(cronLabel(entry))}</span>
+            ${entry ? `
+            <label class="cron-toggle" title="Enable / disable">
+                <input type="checkbox" class="cron-enabled-check" ${entry.enabled ? 'checked' : ''}>
+                <span class="cron-toggle-slider"></span>
+            </label>` : ''}
             <span class="skill-item-chevron">▾</span>
         </div>
         <div class="skill-item-body cron-form">
@@ -588,13 +593,6 @@ function renderCronItem(skill, entry) {
                 <input class="cron-channel-input" type="text" placeholder="Discord channel ID"
                     value="${escapeHtml(discordChannelId)}" />
             </div>
-            <div class="cron-enabled-row">
-                <span class="cron-field-label">Enabled</span>
-                <label class="cron-toggle">
-                    <input type="checkbox" class="cron-enabled-check" ${(entry?.enabled ?? true)?'checked':''}>
-                    <span class="cron-toggle-slider"></span>
-                </label>
-            </div>
             <div class="cron-actions">
                 <button class="cron-save-btn">Save</button>
                 ${entry ? '<button class="cron-delete-btn">Delete</button>' : ''}
@@ -602,8 +600,29 @@ function renderCronItem(skill, entry) {
         </div>
     `;
 
-    // Accordion
-    el.querySelector('.skill-item-header').addEventListener('click', () => el.classList.toggle('open'));
+    // Accordion (ignore clicks on the toggle)
+    el.querySelector('.skill-item-header').addEventListener('click', (e) => {
+        if (e.target.closest('.cron-toggle')) return;
+        el.classList.toggle('open');
+    });
+
+    // Header toggle → auto-save enabled state immediately
+    const headerToggle = el.querySelector('.cron-enabled-check');
+    if (headerToggle && entry) {
+        headerToggle.addEventListener('change', async () => {
+            try {
+                await apiRequest('/api/cron', {
+                    method: 'POST',
+                    body: JSON.stringify({ ...entry, enabled: headerToggle.checked }),
+                });
+                // Update the status badge text without full reload
+                const badge = el.querySelector('.cron-item-status');
+                const updated = { ...entry, enabled: headerToggle.checked };
+                badge.textContent = cronLabel(updated);
+                entry.enabled = headerToggle.checked;
+            } catch {}
+        });
+    }
 
     // Show/hide custom days
     el.querySelectorAll(`input[name="rep_${id}"]`).forEach(r => {
@@ -631,7 +650,7 @@ function renderCronItem(skill, entry) {
         const channelId = dest === 'voice'
             ? 'voice'
             : el.querySelector('.cron-channel-input').value.trim();
-        const enabled = el.querySelector('.cron-enabled-check').checked;
+        const enabled = headerToggle ? headerToggle.checked : true;
         if (dest === 'discord' && !channelId) { alert('Discord channel ID is required'); return; }
 
         const btn = el.querySelector('.cron-save-btn');
