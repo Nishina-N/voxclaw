@@ -644,38 +644,21 @@ function renderCronItem(skill, entry) {
 }
 
 // --- Tasks ---
-let currentTasklistId = '@default';
 
 async function loadTaskTab() {
-    await loadTaskLists();
     await loadTasks();
-}
-
-async function loadTaskLists() {
-    const sel = document.getElementById('task-list-select');
-    try {
-        const res = await apiRequest('/api/tasks/lists');
-        if (!res.ok) return;
-        const data = await res.json();
-        const lists = data.items ?? [];
-        sel.innerHTML = lists.map(l =>
-            `<option value="${escapeHtml(l.id)}"${l.id === currentTasklistId ? ' selected' : ''}>${escapeHtml(l.title)}</option>`
-        ).join('');
-        if (lists.length) currentTasklistId = sel.value;
-    } catch {}
 }
 
 async function loadTasks() {
     const container = document.getElementById('task-items');
     container.innerHTML = '<p class="task-empty">Loading…</p>';
     try {
-        const res = await apiRequest(`/api/tasks/list?tasklistId=${encodeURIComponent(currentTasklistId)}&showCompleted=true&maxResults=100`);
+        const res = await apiRequest('/api/tasks');
         if (!res.ok) throw new Error();
-        const data = await res.json();
-        const tasks = data.items ?? [];
+        const tasks = await res.json();
         container.innerHTML = '';
         if (!tasks.length) {
-            container.innerHTML = '<p class="task-empty">No tasks</p>';
+            container.innerHTML = '<p class="task-empty">No tasks yet</p>';
             return;
         }
         // Incomplete first, then completed
@@ -690,7 +673,7 @@ async function loadTasks() {
 
 function formatTaskDue(due) {
     if (!due) return null;
-    const d = new Date(due);
+    const d = new Date(due + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return {
@@ -704,40 +687,74 @@ function renderTaskItem(task) {
     const due = formatTaskDue(task.due);
 
     const el = document.createElement('div');
-    el.className = `task-item${done ? ' completed' : ''}`;
+    el.className = `skill-item task-item${done ? ' completed' : ''}`;
 
-    const dueHtml = due
-        ? `<div class="task-due${due.isOverdue && !done ? ' overdue' : ''}">${escapeHtml(due.label)}</div>`
+    const dueChip = due
+        ? `<span class="task-item-due${due.isOverdue && !done ? ' overdue' : ''}">${escapeHtml(due.label)}</span>`
         : '';
 
     el.innerHTML = `
-        <div class="task-check${done ? ' done' : ''}"></div>
-        <div class="task-body">
-            <div class="task-title">${escapeHtml(task.title ?? '')}</div>
-            ${dueHtml}
+        <div class="task-item-header">
+            <div class="task-check${done ? ' done' : ''}"></div>
+            <span class="task-item-title">${escapeHtml(task.title)}</span>
+            ${dueChip}
+            <span class="skill-item-chevron">▾</span>
         </div>
-        <button class="task-delete-btn" title="Delete">\xd7</button>
+        <div class="skill-item-body" style="display:none">
+            <span class="task-field-label">Notes</span>
+            <textarea class="task-notes-input" placeholder="Add notes…">${escapeHtml(task.notes ?? '')}</textarea>
+            <span class="task-field-label">Due date</span>
+            <input class="task-due-input" type="date" value="${escapeHtml(task.due ?? '')}">
+            <div class="task-actions">
+                <button class="task-save-btn">Save</button>
+                <button class="task-delete-btn">Delete</button>
+            </div>
+        </div>
     `;
 
+    // Accordion toggle (header click, but not on check circle)
+    el.querySelector('.task-item-header').addEventListener('click', (e) => {
+        if (e.target.closest('.task-check')) return;
+        el.classList.toggle('open');
+        const body = el.querySelector('.skill-item-body');
+        body.style.display = el.classList.contains('open') ? 'flex' : 'none';
+    });
+
+    // Toggle completion
     el.querySelector('.task-check').addEventListener('click', async () => {
         const newStatus = done ? 'needsAction' : 'completed';
         try {
-            await apiRequest('/api/tasks/update', {
-                method: 'POST',
-                body: JSON.stringify({ tasklistId: currentTasklistId, taskId: task.id, status: newStatus }),
+            await apiRequest(`/api/tasks/${encodeURIComponent(task.id)}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: newStatus }),
             });
             loadTasks();
         } catch {}
     });
 
-    el.querySelector('.task-delete-btn').addEventListener('click', async () => {
+    // Save (notes + due)
+    el.querySelector('.task-save-btn').addEventListener('click', async () => {
+        const notes = el.querySelector('.task-notes-input').value.trim() || null;
+        const due   = el.querySelector('.task-due-input').value || null;
+        const btn   = el.querySelector('.task-save-btn');
+        btn.textContent = 'Saving…'; btn.disabled = true;
         try {
-            await apiRequest('/api/tasks/delete', {
-                method: 'POST',
-                body: JSON.stringify({ tasklistId: currentTasklistId, taskId: task.id }),
+            await apiRequest(`/api/tasks/${encodeURIComponent(task.id)}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ notes, due }),
             });
+            loadTasks();
+        } finally { btn.textContent = 'Save'; btn.disabled = false; }
+    });
+
+    // Delete
+    el.querySelector('.task-delete-btn').addEventListener('click', async () => {
+        const btn = el.querySelector('.task-delete-btn');
+        btn.textContent = 'Deleting…'; btn.disabled = true;
+        try {
+            await apiRequest(`/api/tasks/${encodeURIComponent(task.id)}`, { method: 'DELETE' });
             el.remove();
-        } catch {}
+        } finally { btn.textContent = 'Delete'; btn.disabled = false; }
     });
 
     return el;
@@ -755,18 +772,10 @@ async function addTask() {
     if (!title) return;
     input.value = '';
     try {
-        await apiRequest('/api/tasks/create', {
+        await apiRequest('/api/tasks', {
             method: 'POST',
-            body: JSON.stringify({ tasklistId: currentTasklistId, title }),
+            body: JSON.stringify({ title }),
         });
         loadTasks();
     } catch {}
 }
-
-// Task list selector change + refresh
-document.getElementById('task-list-select').addEventListener('change', (e) => {
-    currentTasklistId = e.target.value;
-    loadTasks();
-});
-
-document.getElementById('task-refresh-btn').addEventListener('click', loadTasks);

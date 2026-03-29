@@ -16,6 +16,10 @@ import {
     type Message,
     setRouterState,
     storeMessage,
+    getTasks,
+    createTask,
+    updateTask,
+    deleteTask,
 } from './db.js';
 
 dotenv.config();
@@ -166,6 +170,62 @@ function startHttpApi(): void {
             const messages = getChannelHistory(channelId, since, limit);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(messages));
+            return;
+        }
+
+        // --- /api/tasks ---
+        if (req.url?.startsWith('/api/tasks')) {
+            const url = new URL(req.url, 'http://localhost');
+            const taskId = url.pathname.replace('/api/tasks', '').replace(/^\//, '');
+
+            if (req.method === 'GET') {
+                const status = url.searchParams.get('status') ?? undefined;
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(getTasks(status)));
+                return;
+            }
+
+            let body = '';
+            req.on('data', (c) => { body += c; });
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    if (req.method === 'POST') {
+                        const now = new Date().toISOString();
+                        const task = {
+                            id: generateId('task'),
+                            title: String(data.title ?? '').trim(),
+                            notes: data.notes ?? null,
+                            due: data.due ?? null,
+                            status: 'needsAction',
+                            created_at: now,
+                            updated_at: now,
+                        };
+                        if (!task.title) {
+                            res.writeHead(400, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ error: 'title is required' }));
+                            return;
+                        }
+                        createTask(task);
+                        res.writeHead(201, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify(task));
+                    } else if (req.method === 'PATCH' && taskId) {
+                        const ok = updateTask(taskId, data);
+                        res.writeHead(ok ? 200 : 404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ ok }));
+                    } else if (req.method === 'DELETE' && taskId) {
+                        const ok = deleteTask(taskId);
+                        res.writeHead(ok ? 200 : 404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ ok }));
+                    } else {
+                        res.writeHead(405, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'method not allowed' }));
+                    }
+                } catch {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'invalid JSON' }));
+                }
+            });
             return;
         }
 

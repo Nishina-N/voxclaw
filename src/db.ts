@@ -20,6 +20,16 @@ export interface Message {
     media?: string;
 }
 
+export interface Task {
+    id: string;
+    title: string;
+    notes?: string;
+    due?: string;       // ISO date string e.g. "2026-04-01"
+    status: string;     // 'needsAction' | 'completed'
+    created_at: string;
+    updated_at: string;
+}
+
 export function initDatabase(): void {
     fs.mkdirSync(DB_DIR, { recursive: true });
     db = new Database(DB_PATH);
@@ -39,6 +49,16 @@ export function initDatabase(): void {
         CREATE TABLE IF NOT EXISTS router_state (
             key   TEXT PRIMARY KEY,
             value TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS tasks (
+            id         TEXT PRIMARY KEY,
+            title      TEXT NOT NULL,
+            notes      TEXT,
+            due        TEXT,
+            status     TEXT NOT NULL DEFAULT 'needsAction',
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
     `);
     // Migration: add media column to existing databases
@@ -126,4 +146,40 @@ export function getRouterState(key: string): string | undefined {
 
 export function setRouterState(key: string, value: string): void {
     db.prepare('INSERT OR REPLACE INTO router_state (key, value) VALUES (?, ?)').run(key, value);
+}
+
+// --- Tasks ---
+
+export function getTasks(status?: string): Task[] {
+    if (status) {
+        return db.prepare('SELECT * FROM tasks WHERE status = ? ORDER BY created_at ASC').all(status) as Task[];
+    }
+    return db.prepare('SELECT * FROM tasks ORDER BY created_at ASC').all() as Task[];
+}
+
+export function createTask(task: Task): void {
+    db.prepare(
+        `INSERT INTO tasks (id, title, notes, due, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(task.id, task.title, task.notes ?? null, task.due ?? null, task.status, task.created_at, task.updated_at);
+}
+
+export function updateTask(id: string, fields: Partial<Pick<Task, 'title' | 'notes' | 'due' | 'status'>>): boolean {
+    const sets: string[] = [];
+    const vals: unknown[] = [];
+    for (const [k, v] of Object.entries(fields)) {
+        sets.push(`${k} = ?`);
+        vals.push(v ?? null);
+    }
+    if (!sets.length) return false;
+    sets.push('updated_at = ?');
+    vals.push(new Date().toISOString());
+    vals.push(id);
+    const result = db.prepare(`UPDATE tasks SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+    return result.changes > 0;
+}
+
+export function deleteTask(id: string): boolean {
+    const result = db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
+    return result.changes > 0;
 }

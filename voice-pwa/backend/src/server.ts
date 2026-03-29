@@ -269,28 +269,28 @@ const server = createServer(async (req, res) => {
         return;
     }
 
-    // ── /api/tasks/* (JWT required) → keybinder /google/tasks/* ─────────────
+    // ── /api/tasks/* (JWT required) → voxclaw /api/tasks/* ──────────────────
     if (req.url?.startsWith('/api/tasks')) {
         if (!verifyAuthHeader(req)) {
             res.writeHead(401);
             res.end(JSON.stringify({ error: 'Unauthorized' }));
             return;
         }
-        const keybinderPath = req.url.replace('/api/tasks', '/google/tasks');
+        const voxclawUrl = `${process.env.VOXCLAW_API_URL}${req.url}`;
         if (req.method === 'GET') {
-            const r = await fetch(`${KEYBINDER_URL}${keybinderPath}`);
-            res.writeHead(r.status);
+            const r = await fetch(voxclawUrl);
+            res.writeHead(r.status, { 'Content-Type': 'application/json' });
             res.end(await r.text());
             return;
         }
-        if (req.method === 'POST') {
+        if (req.method === 'POST' || req.method === 'PATCH' || req.method === 'DELETE') {
             const body = await readBody(req);
-            const r = await fetch(`${KEYBINDER_URL}${keybinderPath}`, {
-                method: 'POST',
+            const r = await fetch(voxclawUrl, {
+                method: req.method,
                 headers: { 'Content-Type': 'application/json' },
-                body,
+                body: body || undefined,
             });
-            res.writeHead(r.status);
+            res.writeHead(r.status, { 'Content-Type': 'application/json' });
             res.end(await r.text());
             return;
         }
