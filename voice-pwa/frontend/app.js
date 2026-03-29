@@ -85,6 +85,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); }
         if (btn.dataset.tab === 'skills') loadSkills();
         if (btn.dataset.tab === 'cron') loadCronTab();
+        if (btn.dataset.tab === 'task') loadTaskTab();
     });
 });
 
@@ -641,3 +642,131 @@ function renderCronItem(skill, entry) {
 
     return el;
 }
+
+// --- Tasks ---
+let currentTasklistId = '@default';
+
+async function loadTaskTab() {
+    await loadTaskLists();
+    await loadTasks();
+}
+
+async function loadTaskLists() {
+    const sel = document.getElementById('task-list-select');
+    try {
+        const res = await apiRequest('/api/tasks/lists');
+        if (!res.ok) return;
+        const data = await res.json();
+        const lists = data.items ?? [];
+        sel.innerHTML = lists.map(l =>
+            `<option value="${escapeHtml(l.id)}"${l.id === currentTasklistId ? ' selected' : ''}>${escapeHtml(l.title)}</option>`
+        ).join('');
+        if (lists.length) currentTasklistId = sel.value;
+    } catch {}
+}
+
+async function loadTasks() {
+    const container = document.getElementById('task-items');
+    container.innerHTML = '<p class="task-empty">Loading…</p>';
+    try {
+        const res = await apiRequest(`/api/tasks/list?tasklistId=${encodeURIComponent(currentTasklistId)}&showCompleted=true&maxResults=100`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const tasks = data.items ?? [];
+        container.innerHTML = '';
+        if (!tasks.length) {
+            container.innerHTML = '<p class="task-empty">No tasks</p>';
+            return;
+        }
+        // Incomplete first, then completed
+        tasks.sort((a, b) => (a.status === 'completed' ? 1 : 0) - (b.status === 'completed' ? 1 : 0));
+        for (const task of tasks) {
+            container.appendChild(renderTaskItem(task));
+        }
+    } catch {
+        container.innerHTML = '<p class="task-empty">Failed to load</p>';
+    }
+}
+
+function formatTaskDue(due) {
+    if (!due) return null;
+    const d = new Date(due);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return {
+        label: `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`,
+        isOverdue: d < today,
+    };
+}
+
+function renderTaskItem(task) {
+    const done = task.status === 'completed';
+    const due = formatTaskDue(task.due);
+
+    const el = document.createElement('div');
+    el.className = `task-item${done ? ' completed' : ''}`;
+
+    const dueHtml = due
+        ? `<div class="task-due${due.isOverdue && !done ? ' overdue' : ''}">${escapeHtml(due.label)}</div>`
+        : '';
+
+    el.innerHTML = `
+        <div class="task-check${done ? ' done' : ''}"></div>
+        <div class="task-body">
+            <div class="task-title">${escapeHtml(task.title ?? '')}</div>
+            ${dueHtml}
+        </div>
+        <button class="task-delete-btn" title="Delete">\xd7</button>
+    `;
+
+    el.querySelector('.task-check').addEventListener('click', async () => {
+        const newStatus = done ? 'needsAction' : 'completed';
+        try {
+            await apiRequest('/api/tasks/update', {
+                method: 'POST',
+                body: JSON.stringify({ tasklistId: currentTasklistId, taskId: task.id, status: newStatus }),
+            });
+            loadTasks();
+        } catch {}
+    });
+
+    el.querySelector('.task-delete-btn').addEventListener('click', async () => {
+        try {
+            await apiRequest('/api/tasks/delete', {
+                method: 'POST',
+                body: JSON.stringify({ tasklistId: currentTasklistId, taskId: task.id }),
+            });
+            el.remove();
+        } catch {}
+    });
+
+    return el;
+}
+
+// Add task
+document.getElementById('task-add-btn').addEventListener('click', addTask);
+document.getElementById('task-add-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addTask();
+});
+
+async function addTask() {
+    const input = document.getElementById('task-add-input');
+    const title = input.value.trim();
+    if (!title) return;
+    input.value = '';
+    try {
+        await apiRequest('/api/tasks/create', {
+            method: 'POST',
+            body: JSON.stringify({ tasklistId: currentTasklistId, title }),
+        });
+        loadTasks();
+    } catch {}
+}
+
+// Task list selector change + refresh
+document.getElementById('task-list-select').addEventListener('change', (e) => {
+    currentTasklistId = e.target.value;
+    loadTasks();
+});
+
+document.getElementById('task-refresh-btn').addEventListener('click', loadTasks);

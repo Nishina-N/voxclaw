@@ -269,6 +269,33 @@ const server = createServer(async (req, res) => {
         return;
     }
 
+    // ── /api/tasks/* (JWT required) → keybinder /google/tasks/* ─────────────
+    if (req.url?.startsWith('/api/tasks')) {
+        if (!verifyAuthHeader(req)) {
+            res.writeHead(401);
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+            return;
+        }
+        const keybinderPath = req.url.replace('/api/tasks', '/google/tasks');
+        if (req.method === 'GET') {
+            const r = await fetch(`${KEYBINDER_URL}${keybinderPath}`);
+            res.writeHead(r.status);
+            res.end(await r.text());
+            return;
+        }
+        if (req.method === 'POST') {
+            const body = await readBody(req);
+            const r = await fetch(`${KEYBINDER_URL}${keybinderPath}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body,
+            });
+            res.writeHead(r.status);
+            res.end(await r.text());
+            return;
+        }
+    }
+
     // ── /api/media/:filename (JWT required) ──────────────────────────────────
     if (req.method === 'GET' && req.url?.startsWith('/api/media/')) {
         if (!verifyAuthHeader(req)) {
