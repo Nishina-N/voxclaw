@@ -158,6 +158,17 @@ const VOICE_CHANNEL_ID = 'voice';
 
 function startHttpApi(): void {
     const server = http.createServer((req, res) => {
+        if (req.method === 'GET' && req.url?.startsWith('/api/history')) {
+            const url = new URL(req.url, `http://localhost`);
+            const channelId = url.searchParams.get('channelId') ?? VOICE_CHANNEL_ID;
+            const limit = Math.min(200, parseInt(url.searchParams.get('limit') ?? '50', 10));
+            const since = historySince();
+            const messages = getChannelHistory(channelId, since, limit);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(messages));
+            return;
+        }
+
         if (req.method === 'POST' && req.url === '/api/message') {
             let body = '';
             req.on('data', (chunk) => { body += chunk; });
@@ -223,6 +234,7 @@ async function main(): Promise<void> {
 
     if (!process.env.DISCORD_TOKEN) {
         console.log('[voxclaw] DISCORD_TOKEN not set — running in HTTP-API-only mode');
+        startCronRunner(null);
         return;
     }
 

@@ -29,6 +29,7 @@ async function tryLogin(password) {
         if (res.ok) {
             setToken(data.token);
             loginScreen.classList.add('hidden');
+            loadHistory();
             connectWs();
         } else {
             loginError.textContent = data.error ?? 'Login failed';
@@ -60,6 +61,7 @@ const btnSend       = document.getElementById('btn-send');
 // 起動時：トークンがあればそのまま接続、なければログイン画面を表示
 if (getToken()) {
     loginScreen.classList.add('hidden');
+    loadHistory();
     connectWs();
 }
 
@@ -211,9 +213,9 @@ function sendMessage() {
 }
 
 // --- Chat rendering ---
-function appendMessage(role, text) {
+function appendMessage(role, text, date) {
     const name = role === 'user' ? 'User' : 'Voxclaw';
-    const time = formatTime(new Date());
+    const time = formatTime(date ?? new Date());
 
     const el = document.createElement('div');
     el.className = `message ${role}`;
@@ -291,6 +293,19 @@ function arrayBufferToBase64(buffer) {
     let binary = '';
     for (const b of bytes) binary += String.fromCharCode(b);
     return btoa(binary);
+}
+
+// --- Chat history ---
+async function loadHistory() {
+    try {
+        const res = await apiRequest('/api/chat/history?limit=50');
+        if (!res.ok) return;
+        const messages = await res.json();
+        for (const msg of messages) {
+            appendMessage(msg.is_bot ? 'voxclaw' : 'user', msg.content, new Date(msg.timestamp));
+        }
+        scrollToBottom();
+    } catch { /* ignore — history is best-effort */ }
 }
 
 // --- Skills ---

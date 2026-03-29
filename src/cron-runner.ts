@@ -4,8 +4,8 @@ import cron from 'node-cron';
 
 import { type Channel } from './channels/types.js';
 import { processMessage } from './agent.js';
-import { getChannelHistory } from './db.js';
-import { truncateForDiscord, historySince } from './utils.js';
+import { getChannelHistory, storeMessage } from './db.js';
+import { truncateForDiscord, historySince, generateId } from './utils.js';
 
 const CRON_CONFIG_PATH = '/app/config/cron.json';
 
@@ -28,7 +28,7 @@ function loadConfig(): CronTask[] {
     }
 }
 
-function scheduleAll(tasks: CronTask[], channel: Channel): void {
+function scheduleAll(tasks: CronTask[], channel: Channel | null): void {
     // Stop and clear all existing tasks
     for (const task of scheduledTasks.values()) task.stop();
     scheduledTasks.clear();
@@ -43,12 +43,37 @@ function scheduleAll(tasks: CronTask[], channel: Channel): void {
 
         const scheduled = cron.schedule(task.cron, async () => {
             console.log(`[cron] Firing "${task.id}"`);
+            const now = new Date().toISOString();
             try {
                 const since = historySince();
                 const history = getChannelHistory(task.channelId, since);
+
+                storeMessage({
+                    id: generateId('cron'),
+                    channel_id: task.channelId,
+                    sender_id: 'cron',
+                    sender_name: 'cron',
+                    content: task.prompt,
+                    timestamp: now,
+                    is_bot: 0,
+                });
+
                 const reply = await processMessage(task.prompt, history, 'cron', task.channelId);
-                const text = truncateForDiscord(reply);
-                await channel.sendMessage(task.channelId, text);
+
+                storeMessage({
+                    id: generateId('bot'),
+                    channel_id: task.channelId,
+                    sender_id: 'voxclaw',
+                    sender_name: 'voxclaw',
+                    content: reply,
+                    timestamp: new Date().toISOString(),
+                    is_bot: 1,
+                });
+
+                if (channel) {
+                    const text = truncateForDiscord(reply);
+                    await channel.sendMessage(task.channelId, text);
+                }
             } catch (e) {
                 console.error(`[cron] Task "${task.id}" failed:`, e);
             }
@@ -59,7 +84,7 @@ function scheduleAll(tasks: CronTask[], channel: Channel): void {
     }
 }
 
-export function startCronRunner(channel: Channel): void {
+export function startCronRunner(channel: Channel | null): void {
     // Initial load
     scheduleAll(loadConfig(), channel);
 

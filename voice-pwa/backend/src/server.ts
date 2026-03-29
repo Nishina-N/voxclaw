@@ -138,6 +138,21 @@ const server = createServer(async (req, res) => {
         return;
     }
 
+    // ── /api/chat/history (JWT required) → voxclaw /api/history ─────────────
+    if (req.method === 'GET' && req.url?.startsWith('/api/chat/history')) {
+        if (!verifyAuthHeader(req)) {
+            res.writeHead(401);
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+            return;
+        }
+        const url = new URL(req.url, 'http://localhost');
+        const limit = url.searchParams.get('limit') ?? '50';
+        const r = await fetch(`${process.env.VOXCLAW_API_URL}/api/history?channelId=voice&limit=${limit}`);
+        res.writeHead(r.status);
+        res.end(await r.text());
+        return;
+    }
+
     // ── /api/cron (JWT required) ─────────────────────────────────────────────
     if (req.url === '/api/cron' || req.url?.startsWith('/api/cron/')) {
         if (!verifyAuthHeader(req)) {
