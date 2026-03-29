@@ -2,7 +2,7 @@ import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
 import { WebSocketServer, WebSocket } from 'ws';
-import { createServer, IncomingMessage } from 'http';
+import { createServer, IncomingMessage, ServerResponse } from 'http';
 import jwt from 'jsonwebtoken';
 import { createLiveSession, type GeminiLiveSession } from './gemini.js';
 import { sendToVoxclaw } from './voxclaw-client.js';
@@ -83,11 +83,21 @@ async function readBody(req: IncomingMessage): Promise<string> {
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
 
-const server = createServer(async (req, res) => {
+const server = createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Content-Type', 'application/json');
 
+    handleRequest(req, res).catch(err => {
+        console.error('[server] unhandled error:', err);
+        if (!res.headersSent) {
+            res.writeHead(500);
+            res.end(JSON.stringify({ error: 'internal server error' }));
+        }
+    });
+});
+
+async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     if (req.method === 'OPTIONS') {
         res.writeHead(204);
         res.end();
@@ -326,7 +336,7 @@ const server = createServer(async (req, res) => {
 
     res.writeHead(404);
     res.end(JSON.stringify({ error: 'not found' }));
-});
+}
 
 // ── WebSocket server ──────────────────────────────────────────────────────────
 

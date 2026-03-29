@@ -521,7 +521,8 @@ async function loadCronTab() {
             apiRequest('/api/skills'),
             apiRequest('/api/cron'),
         ]);
-        if (!skillsRes.ok || !cronRes.ok) throw new Error();
+        if (!skillsRes.ok) throw new Error(`skills ${skillsRes.status}`);
+        if (!cronRes.ok)   throw new Error(`cron ${cronRes.status}`);
         const { skills } = await skillsRes.json();
         const entries = await cronRes.json();
 
@@ -534,7 +535,8 @@ async function loadCronTab() {
             const entry = entries.find(e => e.id === skillToId(skill.name)) ?? null;
             list.appendChild(renderCronItem(skill, entry));
         }
-    } catch {
+    } catch (err) {
+        console.error('[cron] load failed:', err);
         list.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px">Failed to load</p>';
     }
 }
