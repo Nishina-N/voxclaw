@@ -485,6 +485,12 @@ function skillToId(name) {
     return 'cron_' + name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 }
 
+// Extract skill name from cron entry prompt
+function skillNameFromEntry(entry) {
+    const m = entry?.prompt?.match(/Execute the '(.+)' skill now/);
+    return m ? m[1] : null;
+}
+
 function parseCronSchedule(expr) {
     const parts = expr.trim().split(/\s+/);
     if (parts.length !== 5) return null;
@@ -514,6 +520,17 @@ function buildCronExpr(hour, minute, mode, customDays) {
     return `${minute} ${hour} * * ${dow}`;
 }
 
+function formatCronHeaderTime(s, entry) {
+    if (!entry) return '';
+    const h12 = s.hour % 12 || 12;
+    const ampm = s.hour < 12 ? 'AM' : 'PM';
+    const t = `${String(h12).padStart(2,'0')}:${String(s.minute).padStart(2,'0')} ${ampm}`;
+    const modeLabel = s.mode === 'daily' ? 'Everyday'
+                    : s.mode === 'weekdays' ? 'Weekdays'
+                    : 'Custom';
+    return `${t} / ${modeLabel}`;
+}
+
 async function loadCronTab() {
     const list = document.getElementById('cron-list');
     list.innerHTML = '';
@@ -527,66 +544,126 @@ async function loadCronTab() {
         const { skills } = await skillsRes.json();
         const entries = await cronRes.json();
 
-        const heading = document.createElement('p');
-        heading.className = 'skills-section-title';
-        heading.textContent = 'Skills';
-        list.appendChild(heading);
+        // Match entries to skills (by prompt extraction, with skillToId fallback)
+        const matchSkill = (entry) =>
+            skills.find(s => skillNameFromEntry(entry) === s.name || skillToId(s.name) === entry.id) ?? null;
 
-        for (const skill of skills) {
-            const entry = entries.find(e => e.id === skillToId(skill.name)) ?? null;
+        // Only render entries that match a known skill
+        const scheduled = entries.filter(e => matchSkill(e));
+        const enabledCount  = scheduled.filter(e => e.enabled).length;
+        const disabledCount = scheduled.filter(e => !e.enabled).length;
+        if (scheduled.length > 0) {
+            const summary = document.createElement('p');
+            summary.className = 'cron-summary';
+            summary.textContent =
+                `${enabledCount} Enable Cron${enabledCount !== 1 ? 's' : ''} / ${disabledCount} Disable Cron${disabledCount !== 1 ? 's' : ''}`;
+            list.appendChild(summary);
+        }
+
+        for (const entry of scheduled) {
+            const skill = matchSkill(entry);
             list.appendChild(renderCronItem(skill, entry));
         }
+
+        // "+" add button
+        const addBar = document.createElement('div');
+        addBar.id = 'cron-add-bar';
+        addBar.innerHTML = `<button id="cron-add-btn">+</button>`;
+        list.appendChild(addBar);
+
+        document.getElementById('cron-add-btn').addEventListener('click', () => {
+            showCronAddPicker(skills, list);
+        });
     } catch (err) {
         console.error('[cron] load failed:', err);
         list.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px">Failed to load</p>';
     }
 }
 
+function showCronAddPicker(skills, list) {
+    document.querySelector('.cron-add-picker')?.remove();
+    const overlay = document.createElement('div');
+    overlay.className = 'cron-add-picker';
+    overlay.innerHTML = `
+        <div class="cron-add-picker-inner">
+            <p class="cron-add-picker-title">Select a skill to schedule</p>
+            ${skills.map(s => `<div class="cron-add-skill-opt" data-name="${escapeHtml(s.name)}">${escapeHtml(s.name)}</div>`).join('')}
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', (e) => {
+        if (!e.target.closest('.cron-add-picker-inner')) { overlay.remove(); return; }
+        const opt = e.target.closest('.cron-add-skill-opt');
+        if (!opt) return;
+        const skill = skills.find(s => s.name === opt.dataset.name);
+        if (!skill) return;
+        overlay.remove();
+        const addBar = document.getElementById('cron-add-bar');
+        const newCard = renderCronItem(skill, null);
+        list.insertBefore(newCard, addBar);
+        // Auto-open accordion for new card
+        const body = newCard.querySelector('.cron-body');
+        const chevron = newCard.querySelector('.cron-chevron');
+        body.style.display = 'flex';
+        chevron.textContent = '\u25b4';
+        newCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+}
+
 function renderCronItem(skill, entry) {
-    const id = skillToId(skill.name);
+    // For existing entries, use their ID; for new ones, generate a unique ID
+    const id = entry ? entry.id : (skillToId(skill.name) + '_' + Date.now());
     const s = entry ? (parseCronSchedule(entry.cron) ?? { hour: 9, minute: 0, mode: 'daily', days: [] })
                     : { hour: 9, minute: 0, mode: 'daily', days: [] };
 
-    // Destination: 'voice' = Voxclaw Chat (default), anything else = Discord channel ID
     const isVoice = !entry?.channelId || entry.channelId === 'voice';
     const discordChannelId = isVoice ? '' : (entry?.channelId ?? '');
 
     const el = document.createElement('div');
-    el.className = 'skill-item';
+    el.className = 'cron-card';
 
-    const statusClass = entry ? 'cron-item-status scheduled' : 'cron-item-status';
+    const timeLabel   = entry ? formatCronHeaderTime(s, entry) : 'Not scheduled';
+    const enableLabel = entry ? (entry.enabled ? 'Enable' : 'Disable') : '';
+
     el.innerHTML = `
-        <div class="skill-item-header">
-            <span class="skill-item-name">${escapeHtml(skill.name)}</span>
-            <span class="${statusClass}">${escapeHtml(cronLabel(entry))}</span>
-            ${entry ? `
-            <label class="cron-toggle" title="Enable / disable">
-                <input type="checkbox" class="cron-enabled-check" ${entry.enabled ? 'checked' : ''}>
-                <span class="cron-toggle-slider"></span>
-            </label>` : ''}
-            <span class="skill-item-chevron">▾</span>
+        <div class="cron-card-header">
+            <div class="cron-header-row1">
+                <span class="cron-time-label">${escapeHtml(timeLabel)}</span>
+                ${entry ? `
+                <div class="cron-enable-ctrl">
+                    <span class="cron-enable-text${entry.enabled ? ' on' : ''}">${enableLabel}</span>
+                    <label class="cron-toggle">
+                        <input type="checkbox" class="cron-enabled-check" ${entry.enabled ? 'checked' : ''}>
+                        <span class="cron-toggle-slider"></span>
+                    </label>
+                </div>` : ''}
+            </div>
+            <div class="cron-header-row2">
+                <span class="cron-skill-name">${escapeHtml(skill.name)}</span>
+                <span class="cron-chevron">\u25be</span>
+            </div>
         </div>
-        <div class="skill-item-body cron-form">
+        <div class="cron-body" style="display:none">
             <span class="cron-field-label">Time</span>
             <div class="cron-time-row">
-                <input class="cron-time-input cron-hour" type="number" min="0" max="23"
+                <input class="cron-time-input cron-hour"   type="number" min="0" max="23" placeholder="HH"
                     value="${s.hour}" />
-                <span>:</span>
-                <input class="cron-time-input cron-minute" type="number" min="0" max="59"
+                <input class="cron-time-input cron-minute" type="number" min="0" max="59" placeholder="MM"
                     value="${String(s.minute).padStart(2,'0')}" />
             </div>
             <span class="cron-field-label">Repeat</span>
             <div class="cron-repeat-row">
-                <label><input type="radio" name="rep_${id}" value="daily"    ${s.mode==='daily'?'checked':''}> Every day</label>
+                <label><input type="radio" name="rep_${id}" value="daily"    ${s.mode==='daily'   ?'checked':''}> Every day</label>
                 <label><input type="radio" name="rep_${id}" value="weekdays" ${s.mode==='weekdays'?'checked':''}> Weekdays</label>
-                <label><input type="radio" name="rep_${id}" value="custom"   ${s.mode==='custom'?'checked':''}> Custom</label>
+                <label><input type="radio" name="rep_${id}" value="custom"   ${s.mode==='custom'  ?'checked':''}> Custom</label>
             </div>
             <div class="cron-days-row" style="display:${s.mode==='custom'?'flex':'none'}">
                 ${DAY_LABELS.map((d,i) => `<label class="cron-day-label"><input type="checkbox" value="${i}" ${s.days.includes(i)?'checked':''}> ${d}</label>`).join('')}
             </div>
             <span class="cron-field-label">Destination</span>
             <div class="cron-dest-row">
-                <label><input type="radio" name="dest_${id}" value="voice"   ${isVoice?'checked':''}> Voxclaw Chat</label>
+                <label><input type="radio" name="dest_${id}" value="voice"   ${isVoice ?'checked':''}> Voxclaw Chat</label>
                 <label><input type="radio" name="dest_${id}" value="discord" ${!isVoice?'checked':''}> Discord</label>
             </div>
             <div class="cron-discord-row" style="display:${isVoice?'none':'flex'}">
@@ -600,26 +677,32 @@ function renderCronItem(skill, entry) {
         </div>
     `;
 
-    // Accordion (ignore clicks on the toggle)
-    el.querySelector('.skill-item-header').addEventListener('click', (e) => {
+    // Accordion toggle (ignore toggle clicks)
+    el.querySelector('.cron-card-header').addEventListener('click', (e) => {
         if (e.target.closest('.cron-toggle')) return;
-        el.classList.toggle('open');
+        const body    = el.querySelector('.cron-body');
+        const chevron = el.querySelector('.cron-chevron');
+        const open    = body.style.display !== 'none';
+        body.style.display = open ? 'none' : 'flex';
+        chevron.textContent = open ? '\u25be' : '\u25b4';
     });
 
-    // Header toggle → auto-save enabled state immediately
-    const headerToggle = el.querySelector('.cron-enabled-check');
-    if (headerToggle && entry) {
-        headerToggle.addEventListener('change', async () => {
+    // Header toggle: auto-save enabled state
+    const toggle = el.querySelector('.cron-enabled-check');
+    if (toggle && entry) {
+        toggle.addEventListener('change', async () => {
+            const enabled = toggle.checked;
+            const enableCtrl = el.querySelector('.cron-enable-text');
+            enableCtrl.textContent = enabled ? 'Enable' : 'Disable';
+            enableCtrl.classList.toggle('on', enabled);
+            el.querySelector('.cron-time-label').textContent =
+                formatCronHeaderTime(s, { ...entry, enabled });
+            entry.enabled = enabled;
             try {
                 await apiRequest('/api/cron', {
                     method: 'POST',
-                    body: JSON.stringify({ ...entry, enabled: headerToggle.checked }),
+                    body: JSON.stringify({ ...entry, enabled }),
                 });
-                // Update the status badge text without full reload
-                const badge = el.querySelector('.cron-item-status');
-                const updated = { ...entry, enabled: headerToggle.checked };
-                badge.textContent = cronLabel(updated);
-                entry.enabled = headerToggle.checked;
             } catch {}
         });
     }
@@ -631,7 +714,7 @@ function renderCronItem(skill, entry) {
         });
     });
 
-    // Show/hide Discord channel input
+    // Show/hide Discord input
     el.querySelectorAll(`input[name="dest_${id}"]`).forEach(r => {
         r.addEventListener('change', () => {
             el.querySelector('.cron-discord-row').style.display = r.value === 'discord' ? 'flex' : 'none';
@@ -640,28 +723,26 @@ function renderCronItem(skill, entry) {
 
     // Save
     el.querySelector('.cron-save-btn').addEventListener('click', async () => {
-        const hour    = Math.min(23, Math.max(0, parseInt(el.querySelector('.cron-hour').value, 10) || 0));
-        const minute  = Math.min(59, Math.max(0, parseInt(el.querySelector('.cron-minute').value, 10) || 0));
-        const mode    = el.querySelector(`input[name="rep_${id}"]:checked`).value;
-        const days    = mode === 'custom'
+        const hour   = Math.min(23, Math.max(0, parseInt(el.querySelector('.cron-hour').value, 10) || 0));
+        const minute = Math.min(59, Math.max(0, parseInt(el.querySelector('.cron-minute').value, 10) || 0));
+        const mode   = el.querySelector(`input[name="rep_${id}"]:checked`).value;
+        const days   = mode === 'custom'
             ? [...el.querySelectorAll('.cron-days-row input:checked')].map(c => parseInt(c.value, 10))
             : [];
-        const dest    = el.querySelector(`input[name="dest_${id}"]:checked`).value;
-        const channelId = dest === 'voice'
-            ? 'voice'
-            : el.querySelector('.cron-channel-input').value.trim();
-        const enabled = headerToggle ? headerToggle.checked : true;
+        const dest      = el.querySelector(`input[name="dest_${id}"]:checked`).value;
+        const channelId = dest === 'voice' ? 'voice' : el.querySelector('.cron-channel-input').value.trim();
+        const enabled   = toggle ? toggle.checked : true;
         if (dest === 'discord' && !channelId) { alert('Discord channel ID is required'); return; }
 
         const btn = el.querySelector('.cron-save-btn');
-        btn.textContent = 'Saving...'; btn.disabled = true;
+        btn.textContent = 'Saving\u2026'; btn.disabled = true;
         try {
             const res = await apiRequest('/api/cron', {
                 method: 'POST',
                 body: JSON.stringify({
                     id,
                     cron: buildCronExpr(hour, minute, mode, days),
-                    prompt: `[Scheduled task] Execute the '${skill.name}' skill now. This is an automated run — complete the skill from /app/skills/ in full, independent of any prior conversation.`,
+                    prompt: `[Scheduled task] Execute the '${skill.name}' skill now. This is an automated run \u2014 complete the skill from /app/skills/ in full, independent of any prior conversation.`,
                     channelId,
                     enabled,
                 }),
@@ -674,7 +755,7 @@ function renderCronItem(skill, entry) {
     const delBtn = el.querySelector('.cron-delete-btn');
     if (delBtn) {
         delBtn.addEventListener('click', async () => {
-            delBtn.textContent = 'Deleting...'; delBtn.disabled = true;
+            delBtn.textContent = 'Deleting\u2026'; delBtn.disabled = true;
             try {
                 await apiRequest(`/api/cron/${encodeURIComponent(id)}`, { method: 'DELETE' });
                 loadCronTab();
