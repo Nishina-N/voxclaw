@@ -1066,6 +1066,24 @@
       </div>
     </div>
 
+    <p class="settings-section-title">Intent Mode</p>
+    <div class="settings-info-item">
+      <div class="key-item-header">
+        <div class="key-item-label">
+          <span class="key-item-name">音声認識モード</span>
+          <span class="key-item-value" id="intent-mode-label">標準</span>
+        </div>
+        <label class="cron-toggle" id="intent-mode-toggle-wrap">
+          <input type="checkbox" id="intent-mode-toggle" />
+          <span class="cron-toggle-slider"></span>
+        </label>
+      </div>
+      <p style="font-size:0.75rem;color:#888;margin:8px 0 0;line-height:1.6">
+        <b>標準</b>: Geminiが意図を要約して抽出<br>
+        <b>発話忠実</b>: 条件・否定・背景をそのまま保持。文字起こしベース。
+      </p>
+    </div>
+
     <p class="settings-section-title">Google</p>
     <div class="settings-info-item">
       <div class="key-item-header">

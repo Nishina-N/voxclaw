@@ -1,6 +1,7 @@
 // --- Config ---
 const WS_PROTOCOL = location.protocol === 'https:' ? 'wss:' : 'ws:';
 const TOKEN_KEY = 'voxclaw_token';
+const INTENT_MODE_KEY = 'voxclaw_intent_mode';
 
 // --- Auth ---
 const loginScreen   = document.getElementById('login-screen');
@@ -83,7 +84,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
-        if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); }
+        if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); initIntentModeUI(); }
         if (btn.dataset.tab === 'skills') loadSkills();
         if (btn.dataset.tab === 'cron') loadCronTab();
         if (btn.dataset.tab === 'task') loadTaskTab();
@@ -99,7 +100,10 @@ function connectWs() {
         ws = null;
     }
     ws = new WebSocket(wsUrl());
-    ws.addEventListener('open', () => console.log('[ws] connected'));
+    ws.addEventListener('open', () => {
+        console.log('[ws] connected');
+        sendModeToServer(getIntentMode());
+    });
     ws.addEventListener('close', (e) => {
         if (e.code === 4001) {
             // 認証エラー（サーバー明示）：ログアウト
@@ -384,6 +388,33 @@ function renderSkillSection(container, title, items) {
         }
         container.appendChild(el);
     }
+}
+
+// --- Intent mode ---
+function getIntentMode() { return localStorage.getItem(INTENT_MODE_KEY) ?? 'standard'; }
+function setIntentMode(mode) { localStorage.setItem(INTENT_MODE_KEY, mode); }
+
+function sendModeToServer(mode) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'set_mode', mode }));
+    }
+}
+
+function initIntentModeUI() {
+    const toggle = document.getElementById('intent-mode-toggle');
+    const label  = document.getElementById('intent-mode-label');
+    if (!toggle || !label) return;
+
+    const mode = getIntentMode();
+    toggle.checked = mode === 'faithful';
+    label.textContent = mode === 'faithful' ? '発話忠実' : '標準';
+
+    toggle.addEventListener('change', () => {
+        const newMode = toggle.checked ? 'faithful' : 'standard';
+        setIntentMode(newMode);
+        label.textContent = newMode === 'faithful' ? '発話忠実' : '標準';
+        sendModeToServer(newMode);
+    });
 }
 
 // --- Settings ---

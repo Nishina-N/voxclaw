@@ -4,7 +4,7 @@ import * as path from 'path';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import jwt from 'jsonwebtoken';
-import { createLiveSession, type GeminiLiveSession } from './gemini.js';
+import { createLiveSession, type GeminiLiveSession, type IntentMode } from './gemini.js';
 import { sendToVoxclaw } from './voxclaw-client.js';
 
 dotenv.config();
@@ -359,6 +359,7 @@ wss.on('connection', (ws: WebSocket) => {
 
     let geminiSession: GeminiLiveSession | null = null;
     let sessionCreating: Promise<GeminiLiveSession> | null = null;
+    let intentMode: IntentMode = 'standard';
 
     async function getOrCreateSession(): Promise<GeminiLiveSession> {
         if (geminiSession) return geminiSession;
@@ -367,7 +368,7 @@ wss.on('connection', (ws: WebSocket) => {
                 if (ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({ type: 'intent', text: intent }));
                 }
-            }).then(s => {
+            }, intentMode).then(s => {
                 geminiSession = s;
                 return s;
             }).catch(err => {
@@ -399,6 +400,17 @@ wss.on('connection', (ws: WebSocket) => {
         } else if (msg.type === 'audio_end') {
             const s = geminiSession ?? (sessionCreating ? await sessionCreating.catch(() => null) : null);
             s?.endTurn();
+
+        } else if (msg.type === 'set_mode') {
+            const newMode: IntentMode = msg.mode === 'faithful' ? 'faithful' : 'standard';
+            if (newMode !== intentMode) {
+                intentMode = newMode;
+                // Reset session so next recording uses the new mode
+                geminiSession?.close();
+                geminiSession = null;
+                sessionCreating = null;
+                console.log('[ws] intent mode changed to:', intentMode);
+            }
 
         } else if (msg.type === 'confirm') {
             const intent: string = msg.intent;
