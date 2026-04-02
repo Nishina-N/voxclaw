@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#ffffff" />
   <link rel="manifest" href="/manifest.json" />
   <title>Voxclaw</title>
@@ -168,6 +168,9 @@
       color: #333;
       padding-left: 14px;
       white-space: pre-wrap;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      overflow-x: hidden;
     }
 
     .message-body .chat-image {
