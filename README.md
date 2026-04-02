@@ -1,72 +1,114 @@
-# voxclaw 🐾
+# Voxclaw 🐾
 
-🇯🇵 日本語 | [🇺🇸 English](README.en.md)
+🇺🇸 English | [🇯🇵 日本語](README.ja.md)
 
-**Google Gemini API × Discord の自律エージェント。** エージェントが自分でスキルを作り・マニュアルを育て・cron で自律動作する三層構造が特徴です。Docker 上で動作し、リビルド不要で即座に拡張できます。軽量、セキュアかつ自己拡張可能であることを主眼に置いて開発しています。
+**A voice-first AI assistant PWA with real-time intent estimation.**
+Speak naturally — Gemini infers your intent and fills the input box. Review, edit if needed, then execute. All in your browser.
 
-> 制作背景と設計思想は [このZenn記事](https://zenn.dev/nishina__n/articles/69587684b36113) で詳しく書いています。
-> APIキーの隠匿化については[こちらの記事](https://zenn.dev/nishina__n/articles/2fd0f90086841b)に記載しています。
-
----
-
-## 何ができるか
-
-- Discord でメンションして話しかけると Gemini が応答する
-- 「〇〇するスキルを作って」と言うだけでエージェントが自分でツールを追加する
-- cron × マニュアルで定時タスクを自動実行する（例: 毎日の株式市場ニュース投稿）
-- Google Drive・Calendar・Tasks・Sheets・Web検索・地図画像生成などが使える
-- .envファイルにTALK_CHANNEL_IDを指定すると、そのチャンネルではメンションなしで応答する
-- ボイスメッセージで話しかけると音声を解析し、意図を確認しながら実行する(メンションなしで応答するチャンネル)
+> ⚠️ **Patent pending (2026):** *Method and System for Intent Estimation from Voice Input and Personally Adaptive Information Processing*
 
 ---
 
-## 主要な特徴
+## How It Works
 
-| 特徴 | 説明 |
+```
+[Mic] ──► audio stream ──► Gemini Live API ──► intent text (editable)
+                                                       │
+                                              [User reviews / edits]
+                                                       │
+                                                   [Send] ──► skill execution ──► reply
+```
+
+1. **Speak** — tap the mic and talk naturally
+2. **Review** — Gemini infers your intent and fills the text box in real time
+3. **Edit** — refine the inferred text if needed
+4. **Execute** — press send; voxclaw runs the appropriate skill and replies
+
+The editable intent step is the core differentiator: you stay in control of what the AI actually does.
+
+---
+
+## Key Features
+
+| Feature | Description |
 |---|---|
-| **自己拡張（動的スキル）** | `config/skills/` にスキルを自作。リビルド不要で次のメッセージから即有効 |
-| **三層構造** | スキル（最小機能）→ マニュアル（組み合わせ手順）→ cron（定時トリガー）|
-| **Key Binder** | APIキーを別コンテナで隔離。エージェントがキーに直接触れない設計 |
-| **SQLite + ポーリング** | 2秒間隔でメッセージを処理。クラッシュ後も取りこぼしなし |
-| **可変 / 非可変の分離** | ループ・接続はコンテナに焼き込み。スキル・設定はボリュームマウントで永続化 |
-| **ボイスメッセージ対応** | Discord の音声を Gemini File API で解析。意図確認→修正→実行の確認フロー付き |
+| **Real-time intent estimation** | Voice is streamed to Gemini Live API; inferred intent appears as editable text before execution |
+| **Dynamic skills** | Drop a JS file into `skills/` — active immediately, no rebuild needed |
+| **Cron scheduling** | Schedule skills to run automatically via the in-app Cron tab |
+| **Key Binder** | API keys isolated in a separate container; the skill engine never holds credentials directly |
+| **PWA** | Installable on mobile/desktop; UI shell works offline |
+| **JWT auth** | Password-protected single-user access with 7-day sessions |
 
 ---
 
-## クイックスタート
+## Tabs
+
+| Tab | Description |
+|---|---|
+| **Chat** | Main interface — voice or text input, skill results displayed here |
+| **Skills** | Browse all available skills and their descriptions |
+| **Cron** | Configure scheduled skill execution (time, days, destination) |
+| **Task** | *(Work in progress)* |
+| **Settings** | Manage API keys (Brave Search, Mapbox) and Google auth |
+
+---
+
+## Quickstart
 
 ```bash
-# 1. クローン
+# 1. Clone
 git clone https://github.com/Nishina-N/voxclaw
 cd voxclaw
 
-# 2. 環境変数を設定
+# 2. Set environment variables
 cp .env.example .env
-# .env を開いて DISCORD_TOKEN と GEMINI_API_KEY を記入
+# Fill in: GEMINI_API_KEY, PWA_PASSWORD, JWT_SECRET
 
-# 3. Key Binder のAPIキーを設定
+# 3. Configure API keys for skills (optional)
 cp keybinder/secrets_for_skills.example.json keybinder/secrets_for_skills.json
-# keybinder/secrets_for_skills.json に使用するAPIキーを記入
+# Add keys for Brave Search, Mapbox, Google, etc. as needed
 
-# 4. 起動
+# 4. Start
 docker-compose up -d --build
 
-# 5. 動作確認
-docker-compose logs -f
-```
-
-Discord でボットをメンションして話しかけてください。
-
-```
-@voxclaw こんにちは！
+# 5. Open
+# Visit http://localhost:8080 and log in with your PWA_PASSWORD
 ```
 
 ---
 
-## ドキュメント
+## Architecture
 
-| ページ | 内容 |
-|---|---|
-| [セットアップガイド](docs/setup.md) | 前提条件・各APIキーの取得・Google API設定・Docker起動手順 |
-| [アーキテクチャ](docs/architecture.md) | 設計思想・コンポーネント構成・データフロー・可変/非可変の分離 |
-| [スキルガイド](docs/skills.md) | スキル一覧・スキルの作り方・Key Binder エンドポイント仕様 |
+```
+Browser (PWA)
+└─ voice-pwa/frontend/        Single-page app
+     index.html               UI: chat / skills / cron / task / settings tabs
+     app.js                   WebSocket client, audio capture, rendering
+
+voice-pwa/backend/            Node.js + TypeScript WebSocket server
+  ├─ Gemini Live API          Real-time audio → intent text
+  └─ voxclaw-client           Forwards confirmed intent to the skill engine
+
+voxclaw core (src/)           Skill execution engine
+└─ skills/                    Skill definitions (JS, hot-reloadable)
+
+keybinder/                    Isolated API key service (port 3001)
+config/cron.json              Persisted cron schedule
+media/                        Images and files returned by skills
+```
+
+---
+
+## Adding Skills
+
+Skills are plain JavaScript files in `skills/`. Each file exports a function the engine can call. Drop a new file in and it's available immediately — no server restart needed.
+
+See [docs/skills.md](docs/skills.md) for the skill interface and examples.
+
+---
+
+## License
+
+Source code is released under [MIT](LICENSE) for personal and research use.
+
+> Commercial use of the voice → intent estimation → user editing → execution pipeline is subject to the pending patent. Please get in touch before building commercial products on this architecture.

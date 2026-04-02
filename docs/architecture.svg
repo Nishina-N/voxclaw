@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1060 680" xmlns="http://www.w3.org/2000/svg"
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif">
+
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arr-gray" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0,9 3.5,0 7" fill="#94A3B8"/>
+    </marker>
+    <marker id="arr-orange" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0,9 3.5,0 7" fill="#EA580C"/>
+    </marker>
+    <marker id="arr-orange-rev" markerWidth="9" markerHeight="7" refX="1" refY="3.5" orient="auto">
+      <polygon points="9 0,0 3.5,9 7" fill="#EA580C"/>
+    </marker>
+    <marker id="arr-gray-rev" markerWidth="9" markerHeight="7" refX="1" refY="3.5" orient="auto">
+      <polygon points="9 0,0 3.5,9 7" fill="#94A3B8"/>
+    </marker>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000018"/>
+    </filter>
+  </defs>
+
+  <!-- ═══ Background ═══ -->
+  <rect width="1060" height="680" fill="#F8FAFC"/>
+
+  <!-- Title -->
+  <text x="530" y="24" text-anchor="middle" font-size="16" font-weight="700" fill="#1E293B"
+        letter-spacing="0.02em">Voxclaw — System Architecture</text>
+
+  <!-- ═══ Docker Compose boundary ═══ -->
+  <rect x="208" y="38" width="826" height="628" rx="12"
+        fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="8 4"/>
+  <text x="220" y="54" font-size="10" font-weight="700" fill="#94A3B8" letter-spacing="0.1em">DOCKER COMPOSE</text>
+
+  <!-- ═══ External label zone (left) ═══ -->
+  <text x="105" y="54" text-anchor="middle" font-size="10" font-weight="700"
+        fill="#94A3B8" letter-spacing="0.1em">EXTERNAL</text>
+
+  <!-- ─────────────────────────────────────────
+       COMPONENT: Browser (PWA)
+  ───────────────────────────────────────── -->
+  <rect x="12" y="60" width="188" height="370" rx="10"
+        fill="white" stroke="#3B82F6" stroke-width="1.5" filter="url(#shadow)"/>
+
+  <!-- header band -->
+  <rect x="12" y="60" width="188" height="32" rx="10" fill="#3B82F6"/>
+  <rect x="12" y="82" width="188" height="10" fill="#3B82F6"/>
+  <text x="106" y="81" text-anchor="middle" font-size="12" font-weight="700" fill="white">Browser (PWA)</text>
+
+  <!-- mic row -->
+  <rect x="24" y="102" width="164" height="26" rx="5" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+  <text x="106" y="119" text-anchor="middle" font-size="10" fill="#1D4ED8">🎤  Audio capture  (PCM16 · 16 kHz)</text>
+
+  <!-- Tabs -->
+  <text x="24" y="148" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.08em">TABS</text>
+  <rect x="24" y="155" width="164" height="18" rx="4" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="106" y="168" text-anchor="middle" font-size="9.5" fill="#334155">Chat</text>
+  <rect x="24" y="176" width="164" height="18" rx="4" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="106" y="189" text-anchor="middle" font-size="9.5" fill="#334155">Skills</text>
+  <rect x="24" y="197" width="164" height="18" rx="4" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="106" y="210" text-anchor="middle" font-size="9.5" fill="#334155">Cron</text>
+  <rect x="24" y="218" width="164" height="18" rx="4" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="106" y="231" text-anchor="middle" font-size="9.5" fill="#334155">Task</text>
+  <rect x="24" y="239" width="164" height="18" rx="4" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="106" y="252" text-anchor="middle" font-size="9.5" fill="#334155">Settings</text>
+
+  <!-- Editable intent box — patent highlight -->
+  <rect x="24" y="278" width="164" height="72" rx="6"
+        fill="#FFF7ED" stroke="#EA580C" stroke-width="1.8"/>
+  <text x="106" y="296" text-anchor="middle" font-size="9.5" font-weight="700" fill="#C2410C">✏️  Editable Intent Input</text>
+  <text x="106" y="312" text-anchor="middle" font-size="8.5" fill="#92400E">Gemini's inferred intent</text>
+  <text x="106" y="325" text-anchor="middle" font-size="8.5" fill="#92400E">is placed here as editable</text>
+  <text x="106" y="338" text-anchor="middle" font-size="8.5" fill="#92400E">text before execution</text>
+
+  <!-- send row -->
+  <rect x="24" y="362" width="164" height="26" rx="5" fill="#FEF3C7" stroke="#FCD34D" stroke-width="1"/>
+  <text x="106" y="379" text-anchor="middle" font-size="9.5" fill="#92400E">[ Send ] → confirm message</text>
+
+  <!-- ─────────────────────────────────────────
+       COMPONENT: voice-pwa/backend
+  ───────────────────────────────────────── -->
+  <rect x="225" y="60" width="278" height="570" rx="10"
+        fill="white" stroke="#7C3AED" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="225" y="60" width="278" height="32" rx="10" fill="#7C3AED"/>
+  <rect x="225" y="82" width="278" height="10" fill="#7C3AED"/>
+  <text x="364" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="white">voice-pwa / backend</text>
+  <text x="364" y="90" text-anchor="middle" font-size="9.5" fill="#DDD6FE">Node.js + TypeScript  ·  port 8080</text>
+
+  <!-- HTTP section -->
+  <text x="237" y="112" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.08em">HTTP ENDPOINTS</text>
+  <text x="245" y="127" font-size="9" fill="#475569" font-family="monospace, monospace">POST  /auth/login</text>
+  <text x="245" y="141" font-size="9" fill="#475569" font-family="monospace, monospace">GET   /api/skills</text>
+  <text x="245" y="155" font-size="9" fill="#475569" font-family="monospace, monospace">GET   /api/chat/history</text>
+  <text x="245" y="169" font-size="9" fill="#475569" font-family="monospace, monospace">*     /api/cron</text>
+  <text x="245" y="183" font-size="9" fill="#475569" font-family="monospace, monospace">*     /api/keys  →  keybinder</text>
+  <text x="245" y="197" font-size="9" fill="#475569" font-family="monospace, monospace">*     /api/google-auth  →  keybinder</text>
+  <text x="245" y="211" font-size="9" fill="#475569" font-family="monospace, monospace">GET   /api/media/:filename</text>
+  <text x="245" y="225" font-size="9" fill="#475569" font-family="monospace, monospace">*     /api/tasks  →  voxclaw</text>
+
+  <!-- Divider -->
+  <line x1="237" y1="238" x2="491" y2="238" stroke="#E2E8F0" stroke-width="1"/>
+
+  <!-- WebSocket section -->
+  <text x="237" y="254" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.08em">WEBSOCKET  (JWT-authenticated)</text>
+
+  <rect x="237" y="262" width="242" height="95" rx="6" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="1"/>
+  <text x="358" y="279" text-anchor="middle" font-size="9.5" font-weight="600" fill="#5B21B6">Client → Server</text>
+  <text x="245" y="295" font-size="9" fill="#6D28D9" font-family="monospace, monospace">{ type: "audio", data: base64 }</text>
+  <text x="245" y="309" font-size="9" fill="#6D28D9" font-family="monospace, monospace">{ type: "audio_end" }</text>
+  <text x="245" y="323" font-size="9" fill="#6D28D9" font-family="monospace, monospace">{ type: "confirm", intent }</text>
+  <text x="358" y="346" text-anchor="middle" font-size="9.5" font-weight="600" fill="#5B21B6">Server → Client</text>
+  <text x="245" y="362" font-size="9" fill="#EA580C" font-family="monospace, monospace">{ type: "intent",  text }  ←  Gemini</text>
+  <text x="245" y="376" font-size="9" fill="#6D28D9" font-family="monospace, monospace">{ type: "voxclaw_reply", text }</text>
+  <text x="245" y="390" font-size="9" fill="#6D28D9" font-family="monospace, monospace">{ type: "error", message }</text>
+  <!-- closing rect already at 237+95=357... let me fix -->
+
+  <!-- Divider -->
+  <line x1="237" y1="406" x2="491" y2="406" stroke="#E2E8F0" stroke-width="1"/>
+
+  <!-- Gemini session -->
+  <text x="237" y="422" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.08em">GEMINI LIVE SESSION  (per client)</text>
+  <text x="245" y="439" font-size="9" fill="#475569">• createLiveSession() on first audio chunk</text>
+  <text x="245" y="454" font-size="9" fill="#475569">• sendAudio(pcm16) for each chunk</text>
+  <text x="245" y="469" font-size="9" fill="#475569">• endTurn() on audio_end</text>
+  <text x="245" y="484" font-size="9" fill="#475569">• Gemini calls report_intent → emit intent</text>
+  <text x="245" y="499" font-size="9" fill="#475569">• session.close() on WS disconnect</text>
+
+  <!-- Divider -->
+  <line x1="237" y1="513" x2="491" y2="513" stroke="#E2E8F0" stroke-width="1"/>
+
+  <!-- Auth note -->
+  <text x="237" y="529" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.08em">AUTH</text>
+  <text x="245" y="545" font-size="9" fill="#475569">JWT  ·  7-day sessions  ·  PWA_PASSWORD</text>
+
+  <!-- Divider -->
+  <line x1="237" y1="560" x2="491" y2="560" stroke="#E2E8F0" stroke-width="1"/>
+
+  <!-- Cron note -->
+  <text x="237" y="576" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.08em">CRON</text>
+  <text x="245" y="592" font-size="9" fill="#475569">Reads/writes  config/cron.json</text>
+  <text x="245" y="607" font-size="9" fill="#475569">Schedule management via Cron tab</text>
+
+  <!-- ─────────────────────────────────────────
+       COMPONENT: voxclaw core
+  ───────────────────────────────────────── -->
+  <rect x="570" y="60" width="228" height="202" rx="10"
+        fill="white" stroke="#059669" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="570" y="60" width="228" height="32" rx="10" fill="#059669"/>
+  <rect x="570" y="82" width="228" height="10" fill="#059669"/>
+  <text x="684" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="white">voxclaw core</text>
+  <text x="684" y="90" text-anchor="middle" font-size="9.5" fill="#A7F3D0">Skill execution engine</text>
+
+  <text x="582" y="112" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.08em">API ENDPOINTS</text>
+  <text x="590" y="128" font-size="9" fill="#475569" font-family="monospace, monospace">POST  /api/message  →  exec skill</text>
+  <text x="590" y="143" font-size="9" fill="#475569" font-family="monospace, monospace">GET   /api/history</text>
+  <text x="590" y="158" font-size="9" fill="#475569" font-family="monospace, monospace">*     /api/tasks/*</text>
+
+  <text x="582" y="178" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.08em">VOLUME MOUNTS</text>
+  <text x="590" y="194" font-size="9" fill="#475569">skills/  ·  functions/  ·  prompts/</text>
+  <text x="590" y="208" font-size="9" fill="#475569">media/  ·  config/cron.json</text>
+  <text x="590" y="222" font-size="9" fill="#475569">keybinder/secrets_for_skills.json</text>
+  <text x="590" y="238" font-size="9" fill="#475569">keybinder/secrets/  (OAuth)</text>
+
+  <!-- ─────────────────────────────────────────
+       COMPONENT: keybinder
+  ───────────────────────────────────────── -->
+  <rect x="570" y="285" width="228" height="176" rx="10"
+        fill="white" stroke="#0D9488" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="570" y="285" width="228" height="32" rx="10" fill="#0D9488"/>
+  <rect x="570" y="307" width="228" height="10" fill="#0D9488"/>
+  <text x="684" y="303" text-anchor="middle" font-size="12" font-weight="700" fill="white">keybinder</text>
+  <text x="684" y="315" text-anchor="middle" font-size="9.5" fill="#99F6E4">API key isolation  ·  port 3001</text>
+
+  <text x="582" y="337" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.08em">ENDPOINTS</text>
+  <text x="590" y="353" font-size="9" fill="#475569" font-family="monospace, monospace">GET/POST  /keys</text>
+  <text x="590" y="368" font-size="9" fill="#475569" font-family="monospace, monospace">GET/POST  /auth/google/*</text>
+
+  <text x="582" y="390" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.08em">STORES</text>
+  <text x="590" y="406" font-size="9" fill="#475569">secrets_for_skills.json</text>
+  <text x="590" y="421" font-size="9" fill="#475569">Google OAuth tokens</text>
+  <text x="590" y="436" font-size="9" fill="#475569">client_secret.json</text>
+  <text x="590" y="451" font-size="9" fill="#475569">Brave Search  ·  Mapbox  ·  etc.</text>
+
+  <!-- ─────────────────────────────────────────
+       COMPONENT: Gemini Live API (external cloud)
+  ───────────────────────────────────────── -->
+  <rect x="800" y="60" width="228" height="176" rx="10"
+        fill="#FFFBEB" stroke="#D97706" stroke-width="1.5" stroke-dasharray="5 3" filter="url(#shadow)"/>
+  <rect x="800" y="60" width="228" height="32" rx="10" fill="#D97706"/>
+  <rect x="800" y="82" width="228" height="10" fill="#D97706"/>
+  <text x="914" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="white">Gemini Live API  ☁</text>
+  <text x="914" y="90" text-anchor="middle" font-size="9.5" fill="#FEF3C7">Google Cloud  ·  external</text>
+
+  <text x="812" y="112" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.08em">MODEL</text>
+  <text x="820" y="128" font-size="8.5" fill="#78350F" font-family="monospace, monospace">gemini-2.5-flash-</text>
+  <text x="820" y="143" font-size="8.5" fill="#78350F" font-family="monospace, monospace">native-audio-preview</text>
+
+  <text x="812" y="163" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.08em">INPUT</text>
+  <text x="820" y="179" font-size="9" fill="#78350F">audio/pcm;rate=16000 (streamed)</text>
+
+  <text x="812" y="199" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.08em">OUTPUT  (function call)</text>
+  <text x="820" y="215" font-size="9" fill="#EA580C" font-family="monospace, monospace">report_intent(intent: string)</text>
+  <text x="820" y="230" font-size="9" fill="#78350F">→ fires as soon as intent clear</text>
+
+  <!-- ─────────────────────────────────────────
+       COMPONENT: Volumes / shared files
+  ───────────────────────────────────────── -->
+  <rect x="225" y="648" width="803" height="22" rx="6"
+        fill="#F1F5F9" stroke="#94A3B8" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="626" y="663" text-anchor="middle" font-size="9" fill="#64748B">
+    📁 skills/  ·  functions/  ·  prompts/  ·  config/cron.json  ·  media/  ·  keybinder/secrets
+  </text>
+
+  <!-- ═══════════════════════════════════════
+       ARROWS
+  ════════════════════════════════════════ -->
+
+  <!-- ── 1. Browser ↔ backend  (WebSocket, orange — patent pipeline) ── -->
+  <!-- → audio / confirm -->
+  <line x1="200" y1="280" x2="222" y2="280"
+        stroke="#EA580C" stroke-width="2.2" marker-end="url(#arr-orange)"/>
+  <!-- ← intent / reply -->
+  <line x1="222" y1="298" x2="200" y2="298"
+        stroke="#EA580C" stroke-width="2.2" marker-end="url(#arr-orange-rev)"/>
+
+  <!-- WS badge -->
+  <rect x="193" y="264" width="32" height="46" rx="4" fill="#FFF7ED" stroke="#EA580C" stroke-width="1"/>
+  <text x="209" y="279" text-anchor="middle" font-size="7.5" font-weight="700" fill="#C2410C">WS</text>
+  <text x="209" y="291" text-anchor="middle" font-size="6.5" fill="#C2410C">audio</text>
+  <text x="209" y="301" text-anchor="middle" font-size="6.5" fill="#C2410C">intent</text>
+  <text x="209" y="311" text-anchor="middle" font-size="6.5" fill="#C2410C">reply</text>
+
+  <!-- ── 2. backend → Gemini  (audio stream, orange) ── -->
+  <!-- Exits from top of backend, curves to left side of Gemini -->
+  <path d="M 364,60 C 364,15 800,15 800,120"
+        stroke="#EA580C" stroke-width="2" fill="none" marker-end="url(#arr-orange)"/>
+  <!-- label -->
+  <text x="530" y="12" text-anchor="middle" font-size="9" font-weight="600" fill="#C2410C">audio stream (PCM16)</text>
+
+  <!-- ── 3. Gemini → backend  (report_intent, orange dashed) ── -->
+  <path d="M 800,150 C 730,150 650,165 503,380"
+        stroke="#EA580C" stroke-width="1.8" fill="none" stroke-dasharray="5 3"
+        marker-end="url(#arr-orange)"/>
+  <!-- label -->
+  <text x="720" y="215" text-anchor="middle" font-size="9" font-weight="600" fill="#C2410C">report_intent()</text>
+  <text x="720" y="228" text-anchor="middle" font-size="8.5" fill="#92400E">→ { type:"intent", text }</text>
+
+  <!-- ── 4. backend → voxclaw  POST /api/message ── -->
+  <line x1="503" y1="148" x2="568" y2="148"
+        stroke="#94A3B8" stroke-width="1.8" marker-end="url(#arr-gray)"/>
+  <text x="534" y="141" text-anchor="middle" font-size="8" fill="#64748B">POST /api/message</text>
+
+  <!-- ── 5. voxclaw → backend  reply ── -->
+  <line x1="568" y1="165" x2="503" y2="165"
+        stroke="#94A3B8" stroke-width="1.8" marker-end="url(#arr-gray-rev)"/>
+  <text x="534" y="180" text-anchor="middle" font-size="8" fill="#64748B">reply</text>
+
+  <!-- ── 6. backend → keybinder  (keys / google-auth proxy) ── -->
+  <line x1="503" y1="395" x2="568" y2="395"
+        stroke="#94A3B8" stroke-width="1.8" marker-end="url(#arr-gray)"/>
+  <text x="534" y="388" text-anchor="middle" font-size="8" fill="#64748B">/keys · /auth/google</text>
+
+  <!-- ── 7. voxclaw → keybinder  vertical ── -->
+  <line x1="684" y1="262" x2="684" y2="283"
+        stroke="#94A3B8" stroke-width="1.8" marker-end="url(#arr-gray)"/>
+  <text x="695" y="276" font-size="8" fill="#64748B">/keys</text>
+
+  <!-- ── 8. backend/voxclaw → volumes  (dashed mounts) ── -->
+  <line x1="364" y1="630" x2="364" y2="646"
+        stroke="#94A3B8" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr-gray)"/>
+  <line x1="684" y1="461" x2="684" y2="640"
+        stroke="#94A3B8" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr-gray)"/>
+
+  <!-- ═══ Legend ═══ -->
+  <rect x="830" y="285" width="198" height="88" rx="8"
+        fill="white" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="928" y="302" text-anchor="middle" font-size="9" font-weight="700" fill="#64748B" letter-spacing="0.06em">LEGEND</text>
+  <line x1="844" y1="320" x2="876" y2="320" stroke="#EA580C" stroke-width="2.2"/>
+  <text x="882" y="324" font-size="9" fill="#334155">Intent pipeline (patent)</text>
+  <line x1="844" y1="340" x2="876" y2="340" stroke="#EA580C" stroke-width="1.8" stroke-dasharray="5 3"/>
+  <text x="882" y="344" font-size="9" fill="#334155">report_intent callback</text>
+  <line x1="844" y1="360" x2="876" y2="360" stroke="#94A3B8" stroke-width="1.8"/>
+  <text x="882" y="364" font-size="9" fill="#334155">HTTP / internal call</text>
+
+  <!-- ═══ Patent flow annotation ═══ -->
+  <rect x="12" y="442" width="188" height="38" rx="6"
+        fill="#FFF7ED" stroke="#EA580C" stroke-width="1.2" stroke-dasharray="4 2"/>
+  <text x="106" y="458" text-anchor="middle" font-size="8.5" font-weight="700" fill="#C2410C">⚠ Patent Pending</text>
+  <text x="106" y="471" text-anchor="middle" font-size="8" fill="#92400E">voice→intent→edit→execute</text>
+
+</svg>
