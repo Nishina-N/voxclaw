@@ -11,6 +11,7 @@ const loginError    = document.getElementById('login-error');
 function getToken() { return localStorage.getItem(TOKEN_KEY); }
 function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
 function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+function forceLogout() { clearToken(); loginScreen.classList.remove('hidden'); }
 
 function wsUrl() {
     const token = getToken();
@@ -100,12 +101,12 @@ function connectWs() {
     ws = new WebSocket(wsUrl());
     ws.addEventListener('open', () => console.log('[ws] connected'));
     ws.addEventListener('close', (e) => {
-        if (e.code === 1006 || e.code === 4001) {
-            // 認証エラー：トークン削除してログイン画面へ
-            clearToken();
-            loginScreen.classList.remove('hidden');
+        if (e.code === 4001) {
+            // 認証エラー（サーバー明示）：ログアウト
+            forceLogout();
             return;
         }
+        // 1006はネットワーク切断・スリープ復帰など。再接続を試みる
         console.log('[ws] disconnected, reconnecting...');
         setTimeout(connectWs, 3000);
     });
@@ -387,7 +388,7 @@ function renderSkillSection(container, title, items) {
 
 // --- Settings ---
 async function apiRequest(path, options = {}) {
-    return fetch(path, {
+    const res = await fetch(path, {
         ...options,
         headers: {
             'Content-Type': 'application/json',
@@ -395,6 +396,10 @@ async function apiRequest(path, options = {}) {
             ...(options.headers ?? {}),
         },
     });
+    if (res.status === 401) {
+        forceLogout();
+    }
+    return res;
 }
 
 async function loadGoogleStatus() {
