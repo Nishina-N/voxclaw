@@ -215,17 +215,31 @@ function sendMessage() {
 
 // --- Chat rendering ---
 function renderMessageBody(text) {
-    // Replace [image:filename] with <img> tags; escape everything else
+    // Replace [image:filename] with <img> tags (src loaded async via JWT fetch); escape everything else
     const parts = text.split(/(\[image:[^\]]+\])/g);
     return parts.map(part => {
         const m = part.match(/^\[image:([^\]]+)\]$/);
         if (m) {
             const filename = m[1];
-            const src = `/api/media/${encodeURIComponent(filename)}`;
-            return `<img class="chat-image" src="${src}" alt="${escapeHtml(filename)}" loading="lazy">`;
+            return `<img class="chat-image" data-media="${encodeURIComponent(filename)}" alt="${escapeHtml(filename)}" loading="lazy">`;
         }
         return `<span>${escapeHtml(part)}</span>`;
     }).join('');
+}
+
+async function loadMediaImages(container) {
+    const imgs = container.querySelectorAll('img[data-media]');
+    for (const img of imgs) {
+        const filename = img.dataset.media;
+        try {
+            const res = await fetch(`/api/media/${filename}`, {
+                headers: { 'Authorization': `Bearer ${getToken()}` },
+            });
+            if (!res.ok) continue;
+            const blob = await res.blob();
+            img.src = URL.createObjectURL(blob);
+        } catch { /* ignore */ }
+    }
 }
 
 function appendMessage(role, text, date) {
@@ -243,6 +257,7 @@ function appendMessage(role, text, date) {
         <div class="message-body">${renderMessageBody(text)}</div>
     `;
     chatMessages.appendChild(el);
+    loadMediaImages(el);
     scrollToBottom();
     return el;
 }
