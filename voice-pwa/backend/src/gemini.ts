@@ -50,15 +50,13 @@ export async function createLiveSession(
                 console.log('[gemini] session opened, mode:', mode);
             },
             onmessage: (msg: any) => {
-                // Capture real-time transcription in faithful mode
-                if (mode === 'faithful') {
-                    const transcript = msg?.serverContent?.inputTranscript;
-                    if (transcript?.text) {
-                        latestTranscript = transcript.text;
-                        if (!transcript.finished) {
-                            onIntent(latestTranscript);
-                        }
-                    }
+                // Capture real-time transcription and show immediately in both modes.
+                // - Faithful: transcript IS the final intent (report_intent will also confirm it)
+                // - Standard: transcript is a preview; report_intent will overwrite with interpreted intent
+                const transcript = msg?.serverContent?.inputTranscript;
+                if (transcript?.text) {
+                    latestTranscript = transcript.text;
+                    onIntent(latestTranscript);
                 }
 
                 // Function calling: report_intent
