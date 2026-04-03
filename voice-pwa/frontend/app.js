@@ -331,6 +331,8 @@ function arrayBufferToBase64(buffer) {
 }
 
 // --- Chat history ---
+let lastSeenTimestamp = null;
+
 async function loadHistory() {
     try {
         const res = await apiRequest('/api/chat/history?limit=50');
@@ -338,10 +340,34 @@ async function loadHistory() {
         const messages = await res.json();
         for (const msg of messages) {
             appendMessage(msg.is_bot ? 'voxclaw' : 'user', msg.content, new Date(msg.timestamp));
+            if (!lastSeenTimestamp || msg.timestamp > lastSeenTimestamp) {
+                lastSeenTimestamp = msg.timestamp;
+            }
         }
         scrollToBottom();
     } catch { /* ignore — history is best-effort */ }
 }
+
+async function pollNewMessages() {
+    if (!getToken()) return;
+    try {
+        const res = await apiRequest('/api/chat/history?limit=50');
+        if (!res.ok) return;
+        const messages = await res.json();
+        let hasNew = false;
+        for (const msg of messages) {
+            if (lastSeenTimestamp && msg.timestamp <= lastSeenTimestamp) continue;
+            appendMessage(msg.is_bot ? 'voxclaw' : 'user', msg.content, new Date(msg.timestamp));
+            if (!lastSeenTimestamp || msg.timestamp > lastSeenTimestamp) {
+                lastSeenTimestamp = msg.timestamp;
+            }
+            hasNew = true;
+        }
+        if (hasNew) scrollToBottom();
+    } catch { /* ignore */ }
+}
+
+setInterval(pollNewMessages, 15000);
 
 // --- Skills ---
 async function loadSkills() {
