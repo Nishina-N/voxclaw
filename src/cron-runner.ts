@@ -4,8 +4,8 @@ import cron from 'node-cron';
 
 import { type Channel } from './channels/types.js';
 import { processMessage } from './agent.js';
-import { getChannelHistory, storeMessage } from './db.js';
-import { truncateForDiscord, historySince, generateId } from './utils.js';
+import { storeMessage } from './db.js';
+import { truncateForDiscord, generateId } from './utils.js';
 
 const CRON_CONFIG_PATH = '/app/config/cron.json';
 
@@ -45,8 +45,8 @@ function scheduleAll(tasks: CronTask[], channel: Channel | null): void {
             console.log(`[cron] Firing "${task.id}"`);
             const now = new Date().toISOString();
             try {
-                const since = historySince();
-                const history = getChannelHistory(task.channelId, since);
+                // Cron tasks run independently of prior conversation
+                const history: never[] = [];
 
                 storeMessage({
                     id: generateId('cron'),
@@ -100,11 +100,16 @@ export function startCronRunner(channel: Channel | null): void {
     scheduleAll(loadConfig(), channel);
 
     // Watch for file changes — agent edits take effect immediately
+    // Debounce to avoid multiple rapid firings (common on macOS fs.watch)
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     try {
         fs.watch(path.dirname(CRON_CONFIG_PATH), (_, filename) => {
             if (filename === path.basename(CRON_CONFIG_PATH)) {
-                console.log('[cron] Config changed, reloading...');
-                scheduleAll(loadConfig(), channel);
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    console.log('[cron] Config changed, reloading...');
+                    scheduleAll(loadConfig(), channel);
+                }, 500);
             }
         });
     } catch {
