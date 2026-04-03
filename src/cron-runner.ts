@@ -69,6 +69,7 @@ function scheduleAll(tasks: CronTask[], channel: Channel | null): void {
                     timestamp: new Date().toISOString(),
                     is_bot: 1,
                 });
+                console.log(`[cron] Task "${task.id}" completed, reply length: ${reply.length}`);
 
                 if (channel) {
                     const text = truncateForDiscord(reply);
