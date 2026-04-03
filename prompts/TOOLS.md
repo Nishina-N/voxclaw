@@ -429,45 +429,6 @@ curl "http://keybinder:3001/google/sheets/charts/list?spreadsheetId=abc123"
 # Returns: { "charts": [ { "chartId": 123456789, "title": "Sales", "chartType": "BAR", "sheetTitle": "Sheet1" }, ... ] }
 ```
 
-#### Google Tasks
-
-```bash
-# List all task lists ("マイタスク" etc.)
-# GET /google/tasks/lists
-curl "http://keybinder:3001/google/tasks/lists"
-# Returns: { items: [ { id, title, ... } ] }
-
-# List tasks in a task list
-# GET /google/tasks/list?tasklistId=<id>&showCompleted=<bool>&maxResults=<n>
-# tasklistId defaults to "@default" (primary task list)
-curl "http://keybinder:3001/google/tasks/list?showCompleted=false&maxResults=20"
-# Returns: { items: [ { id, title, notes, due, status, ... } ] }
-
-# Create a task
-# POST /google/tasks/create  body: { tasklistId?, title, notes?, due? }
-#   due: RFC 3339 e.g. "2026-03-20T00:00:00.000Z"
-curl -X POST http://keybinder:3001/google/tasks/create \
-  -H 'Content-Type: application/json' \
-  -d '{"title": "レポートを提出する", "due": "2026-03-20T00:00:00.000Z"}'
-# Returns: created task JSON
-
-# Update a task (rename, change due date, mark complete, etc.)
-# POST /google/tasks/update  body: { tasklistId?, taskId, title?, notes?, due?, status? }
-#   status: "needsAction" (未完了) or "completed" (完了)
-curl -X POST http://keybinder:3001/google/tasks/update \
-  -H 'Content-Type: application/json' \
-  -d '{"taskId": "abc123", "status": "completed"}'
-# Returns: updated task JSON
-
-# Delete a task
-# POST /google/tasks/delete  body: { tasklistId?, taskId }
-curl -X POST http://keybinder:3001/google/tasks/delete \
-  -H 'Content-Type: application/json' \
-  -d '{"taskId": "abc123"}'
-# Returns: { "success": true }
-```
-
-
 ---
 
 ## Local Tasks (Voxclaw built-in)
