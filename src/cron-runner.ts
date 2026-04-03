@@ -76,6 +76,16 @@ function scheduleAll(tasks: CronTask[], channel: Channel | null): void {
                 }
             } catch (e) {
                 console.error(`[cron] Task "${task.id}" failed:`, e);
+                const errMsg = e instanceof Error ? e.message : String(e);
+                storeMessage({
+                    id: generateId('bot'),
+                    channel_id: task.channelId,
+                    sender_id: 'voxclaw',
+                    sender_name: 'voxclaw',
+                    content: `⚠️ [cron: ${task.id}] 実行中にエラーが発生しました: ${errMsg}`,
+                    timestamp: new Date().toISOString(),
+                    is_bot: 1,
+                });
             }
         });
 
