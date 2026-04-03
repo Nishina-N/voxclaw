@@ -467,3 +467,39 @@ curl -X POST http://keybinder:3001/google/tasks/delete \
 # Returns: { "success": true }
 ```
 
+
+---
+
+## Local Tasks (Voxclaw built-in)
+
+ユーザーがPWAのTaskタブで管理するローカルタスク。Google Tasks とは独立した保存先（SQLite）。
+`http://localhost:3001` に直接アクセスして操作する。
+
+```bash
+# タスク一覧を取得
+# GET /api/tasks?status=<needsAction|completed>  (status省略で全件)
+curl "http://localhost:3001/api/tasks"
+curl "http://localhost:3001/api/tasks?status=needsAction"
+# Returns: [ { id, title, notes, due, status, created_at, updated_at }, ... ]
+
+# タスクを作成
+# POST /api/tasks  body: { title, notes?, due? }
+#   due: ISO 8601 e.g. "2026-04-10"
+curl -X POST http://localhost:3001/api/tasks \
+  -H 'Content-Type: application/json' \
+  -d '{"title": "買い物リストを作る", "due": "2026-04-10"}'
+# Returns: created task JSON (status は "needsAction" で作成される)
+
+# タスクを更新（完了・タイトル変更・期日変更など）
+# PATCH /api/tasks/<id>  body: { title?, notes?, due?, status? }
+#   status: "needsAction" (未完了) or "completed" (完了)
+curl -X PATCH http://localhost:3001/api/tasks/task_abc123 \
+  -H 'Content-Type: application/json' \
+  -d '{"status": "completed"}'
+# Returns: { ok: true }
+
+# タスクを削除
+# DELETE /api/tasks/<id>
+curl -X DELETE http://localhost:3001/api/tasks/task_abc123
+# Returns: { ok: true }
+```
