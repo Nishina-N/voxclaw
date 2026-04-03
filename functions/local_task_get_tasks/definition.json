@@ -1,0 +1,14 @@
+{
+  "name": "local_task_get_tasks",
+  "description": "ローカルタスク一覧を取得します。statusで絞り込み可能。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "status": {
+        "type": "STRING",
+        "description": "絞り込みステータス: 'needsAction'（未完了）または 'completed'（完了）。省略で全件取得。"
+      }
+    },
+    "required": []
+  }
+}

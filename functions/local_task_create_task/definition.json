@@ -1,0 +1,22 @@
+{
+  "name": "local_task_create_task",
+  "description": "ローカルタスクを新規作成します。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "title": {
+        "type": "STRING",
+        "description": "タスクのタイトル（必須）"
+      },
+      "notes": {
+        "type": "STRING",
+        "description": "メモ・詳細（省略可）"
+      },
+      "due": {
+        "type": "STRING",
+        "description": "期日 (ISO 8601形式: 2026-04-10)（省略可）"
+      }
+    },
+    "required": ["title"]
+  }
+}

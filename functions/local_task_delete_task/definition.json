@@ -1,0 +1,14 @@
+{
+  "name": "local_task_delete_task",
+  "description": "ローカルタスクを削除します。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "id": {
+        "type": "STRING",
+        "description": "タスクID（local_task_get_tasksで取得）"
+      }
+    },
+    "required": ["id"]
+  }
+}

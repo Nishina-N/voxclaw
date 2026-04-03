@@ -1,0 +1,30 @@
+{
+  "name": "local_task_update_task",
+  "description": "ローカルタスクを更新します。完了・タイトル変更・期日変更などに使用。",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "id": {
+        "type": "STRING",
+        "description": "タスクID（local_task_get_tasksで取得）"
+      },
+      "title": {
+        "type": "STRING",
+        "description": "新しいタイトル（省略可）"
+      },
+      "notes": {
+        "type": "STRING",
+        "description": "新しいメモ（省略可）"
+      },
+      "due": {
+        "type": "STRING",
+        "description": "新しい期日 (ISO 8601形式: 2026-04-10)（省略可）"
+      },
+      "status": {
+        "type": "STRING",
+        "description": "'needsAction'（未完了に戻す）または 'completed'（完了にする）"
+      }
+    },
+    "required": ["id"]
+  }
+}
