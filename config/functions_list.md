@@ -17,10 +17,10 @@
 * **gsheet_read_spreadsheet**: Google スプレッドシートの指定範囲のセル値を取得します。rangeはA1記法で指定します（例: 'Sheet1!A1:C10'、'A1:B5'）。
 * **gsheet_update_chart**: Google スプレッドシートの既存グラフのスペック（タイトル・凡例・軸・色など）を更新します。【重要】updateChartSpec はスペック全体の置き換えになるため、先に gsheet_list_charts でスペックを取得し、変更したいフィールドをマージして渡してください。代表的なフィールド: title（タイトル）、basicChart.legendPosition（凡例位置: BOTTOM_LEGEND / TOP_LEGEND / RIGHT_LEGEND / NO_LEGEND）、basicChart.stackedType（積み上げ: NOT_STACKED / STACKED / PERCENT_STACKED）、basicChart.series[].color（系列の色 { red, green, blue }）、pieChart.pieHole（ドーナツ比率 0.0〜1.0）。
 * **gsheet_write_spreadsheet**: Google スプレッドシートの指定範囲にデータを書き込みます（既存のデータを上書き）。valuesは2次元配列で指定します。数式や日付を自動解釈したい場合はvalue_input_optionを'USER_ENTERED'に設定してください（デフォルト）。
-* **gtask_create_task**: Googleタスクに新しいタスクを追加します。タイトルは必須。期限・メモは省略可。
-* **gtask_delete_task**: Googleタスクを削除します。task_idは必須。削除前にユーザーに確認を取ってください。
-* **gtask_get_tasks**: Googleタスクの一覧を取得します。未完了タスクのみ、または完了済みも含めて取得できます。
-* **gtask_update_task**: Googleタスクを更新します。タスクの完了マーク・タイトル変更・期限変更などに使います。task_idは必須。
+* **local_task_create_task**: ローカルタスクを新規作成します。タイトルは必須。メモ・期日は省略可。
+* **local_task_delete_task**: ローカルタスクを削除します。idは必須。削除前にユーザーに確認を取ってください。
+* **local_task_get_tasks**: ローカルタスクの一覧を取得します。statusで未完了／完了済みの絞り込みが可能。省略で全件取得。
+* **local_task_update_task**: ローカルタスクを更新します。完了マーク・タイトル変更・期日変更などに使います。idは必須。
 * **map_get_location**: 場所名や住所から緯度と経度を取得するツール。実行: 指定された文字列をGeocoding APIで検索。成功時: 緯度経度のデータオブジェクトを返却。失敗時: 理由を含んだエラーメッセージを出力。このツールはステートレスであり、正常終了時は再実行不要。
 * **map_get_mapbox_map**: Mapbox APIを使用して地図画像を取得する。マーカーは `pin-l-数字+色(経度,緯度)` の形式で指定する。複数のピンを一度にマッピングする場合、それらをカンマ区切りで一度の呼び出しに含めること（例: pin-l-1+ff0000(135.75,34.98),pin-l-2+ff0000(135.76,34.99)）。成功時: 画像をローカルの絶対パス(文字列)に保存し、パスを返却。APIエラー時は422等の原因を含めてレポート。正常終了時は画像が指定パスに保存されている。再実行は不要。
 * **util_get_today_date**: 現在の日付（UTC基準、YYYY年MM月DD日）を取得する。
