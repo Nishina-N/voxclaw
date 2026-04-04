@@ -4,8 +4,8 @@ import cron from 'node-cron';
 
 import { type Channel } from './channels/types.js';
 import { processMessage } from './agent.js';
-import { getChannelHistory, storeMessage } from './db.js';
-import { truncateForDiscord, historySince, generateId } from './utils.js';
+import { storeMessage } from './db.js';
+import { truncateForDiscord, generateId } from './utils.js';
 
 const CRON_CONFIG_PATH = '/app/config/cron.json';
 
@@ -45,8 +45,8 @@ function scheduleAll(tasks: CronTask[], channel: Channel | null): void {
             console.log(`[cron] Firing "${task.id}"`);
             const now = new Date().toISOString();
             try {
-                const since = historySince();
-                const history = getChannelHistory(task.channelId, since);
+                // Cron tasks run independently of prior conversation
+                const history: never[] = [];
 
                 storeMessage({
                     id: generateId('cron'),
@@ -69,6 +69,7 @@ function scheduleAll(tasks: CronTask[], channel: Channel | null): void {
                     timestamp: new Date().toISOString(),
                     is_bot: 1,
                 });
+                console.log(`[cron] Task "${task.id}" completed, reply length: ${reply.length}`);
 
                 if (channel) {
                     const text = truncateForDiscord(reply);
@@ -76,6 +77,16 @@ function scheduleAll(tasks: CronTask[], channel: Channel | null): void {
                 }
             } catch (e) {
                 console.error(`[cron] Task "${task.id}" failed:`, e);
+                const errMsg = e instanceof Error ? e.message : String(e);
+                storeMessage({
+                    id: generateId('bot'),
+                    channel_id: task.channelId,
+                    sender_id: 'voxclaw',
+                    sender_name: 'voxclaw',
+                    content: `⚠️ [cron: ${task.id}] 実行中にエラーが発生しました: ${errMsg}`,
+                    timestamp: new Date().toISOString(),
+                    is_bot: 1,
+                });
             }
         });
 
@@ -89,11 +100,16 @@ export function startCronRunner(channel: Channel | null): void {
     scheduleAll(loadConfig(), channel);
 
     // Watch for file changes — agent edits take effect immediately
+    // Debounce to avoid multiple rapid firings (common on macOS fs.watch)
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     try {
         fs.watch(path.dirname(CRON_CONFIG_PATH), (_, filename) => {
             if (filename === path.basename(CRON_CONFIG_PATH)) {
-                console.log('[cron] Config changed, reloading...');
-                scheduleAll(loadConfig(), channel);
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    console.log('[cron] Config changed, reloading...');
+                    scheduleAll(loadConfig(), channel);
+                }, 500);
             }
         });
     } catch {

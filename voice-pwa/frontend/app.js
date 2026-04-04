@@ -1,6 +1,8 @@
 // --- Config ---
 const WS_PROTOCOL = location.protocol === 'https:' ? 'wss:' : 'ws:';
 const TOKEN_KEY = 'voxclaw_token';
+const INTENT_MODE_KEY = 'voxclaw_intent_mode';
+const SPEECH_LANG_KEY = 'voxclaw_speech_lang';
 
 // --- Auth ---
 const loginScreen   = document.getElementById('login-screen');
@@ -11,6 +13,7 @@ const loginError    = document.getElementById('login-error');
 function getToken() { return localStorage.getItem(TOKEN_KEY); }
 function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
 function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+function forceLogout() { clearToken(); loginScreen.classList.remove('hidden'); }
 
 function wsUrl() {
     const token = getToken();
@@ -51,12 +54,14 @@ let mediaStream = null;
 let processor = null;
 let isRecording = false;
 let typingMessageEl = null;
+let speechRecognition = null;
 
 // --- DOM ---
 const chatMessages  = document.getElementById('chat-messages');
 const btnMic        = document.getElementById('btn-mic');
 const inputText     = document.getElementById('input-text');
 const btnSend       = document.getElementById('btn-send');
+const intentContext = document.getElementById('intent-context');
 
 // 起動時：トークンがあればそのまま接続、なければログイン画面を表示
 if (getToken()) {
@@ -82,7 +87,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
-        if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); }
+        if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); initIntentModeUI(); initSpeechLangUI(); }
         if (btn.dataset.tab === 'skills') loadSkills();
         if (btn.dataset.tab === 'cron') loadCronTab();
         if (btn.dataset.tab === 'task') loadTaskTab();
@@ -98,14 +103,18 @@ function connectWs() {
         ws = null;
     }
     ws = new WebSocket(wsUrl());
-    ws.addEventListener('open', () => console.log('[ws] connected'));
+    ws.addEventListener('open', () => {
+        console.log('[ws] connected');
+        sendModeToServer(getIntentMode());
+        sendLanguageToServer(getSpeechLanguage());
+    });
     ws.addEventListener('close', (e) => {
-        if (e.code === 1006 || e.code === 4001) {
-            // 認証エラー：トークン削除してログイン画面へ
-            clearToken();
-            loginScreen.classList.remove('hidden');
+        if (e.code === 4001) {
+            // 認証エラー（サーバー明示）：ログアウト
+            forceLogout();
             return;
         }
+        // 1006はネットワーク切断・スリープ復帰など。再接続を試みる
         console.log('[ws] disconnected, reconnecting...');
         setTimeout(connectWs, 3000);
     });
@@ -115,15 +124,32 @@ function connectWs() {
 
         if (msg.type === 'intent') {
             inputText.value = msg.text;
+            // Draft (is_final: false): dim the textarea to signal "still thinking"
+            if (msg.isFinal === false) {
+                inputText.classList.add('intent-draft');
+            } else {
+                inputText.classList.remove('intent-draft');
+            }
+            // Show context below the input bar when present
+            if (msg.context) {
+                intentContext.textContent = msg.context;
+                intentContext.classList.add('visible');
+            } else if (msg.isFinal !== false) {
+                intentContext.textContent = '';
+                intentContext.classList.remove('visible');
+            }
             updateSendState();
 
         } else if (msg.type === 'voxclaw_reply') {
             removeTyping();
             appendMessage('voxclaw', msg.text);
+            // Advance cursor so poll doesn't re-append this reply from DB
+            lastSeenTimestamp = new Date().toISOString();
 
         } else if (msg.type === 'error') {
             removeTyping();
             appendMessage('voxclaw', `⚠️ ${msg.message}`);
+            lastSeenTimestamp = new Date().toISOString();
         }
     });
 }
@@ -182,11 +208,17 @@ async function startRecording() {
     btnMic.classList.add('recording');
     inputText.value = '';
     updateSendState();
+
+    // Faithful mode: use browser SpeechRecognition for real-time interim display
+    if (getIntentMode() === 'faithful') {
+        startBrowserSpeechRecognition();
+    }
 }
 
 function stopRecording() {
     isRecording = false;
     btnMic.classList.remove('recording');
+    stopBrowserSpeechRecognition();
 
     if (processor) { processor.disconnect(); processor = null; }
     if (audioContext) { audioContext.close(); audioContext = null; }
@@ -194,6 +226,45 @@ function stopRecording() {
 
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'audio_end' }));
+    }
+}
+
+// Browser SpeechRecognition for real-time interim transcription (faithful mode only)
+function startBrowserSpeechRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return; // not supported — fall back gracefully
+
+    try {
+        speechRecognition = new SR();
+        speechRecognition.continuous = true;
+        speechRecognition.interimResults = true;
+        const lang = getSpeechLanguage();
+        if (lang) speechRecognition.lang = lang;
+
+        speechRecognition.onresult = (e) => {
+            let interim = '';
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+                interim += e.results[i][0].transcript;
+            }
+            if (interim) {
+                inputText.value = interim;
+                inputText.classList.add('intent-draft');
+                updateSendState();
+            }
+        };
+        speechRecognition.onerror = () => {
+            // Ignore errors (e.g. overlap with Gemini audio capture) — Gemini result will arrive
+        };
+        speechRecognition.start();
+    } catch {
+        speechRecognition = null;
+    }
+}
+
+function stopBrowserSpeechRecognition() {
+    if (speechRecognition) {
+        try { speechRecognition.stop(); } catch {}
+        speechRecognition = null;
     }
 }
 
@@ -205,7 +276,12 @@ function sendMessage() {
     if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
 
     appendMessage('user', text);
+    // Advance lastSeenTimestamp so the 15s poll doesn't re-append this message from DB
+    lastSeenTimestamp = new Date().toISOString();
     inputText.value = '';
+    inputText.classList.remove('intent-draft');
+    intentContext.textContent = '';
+    intentContext.classList.remove('visible');
     inputText.style.height = 'auto';
     updateSendState();
     showTyping();
@@ -215,17 +291,31 @@ function sendMessage() {
 
 // --- Chat rendering ---
 function renderMessageBody(text) {
-    // Replace [image:filename] with <img> tags; escape everything else
+    // Replace [image:filename] with <img> tags (src loaded async via JWT fetch); escape everything else
     const parts = text.split(/(\[image:[^\]]+\])/g);
     return parts.map(part => {
         const m = part.match(/^\[image:([^\]]+)\]$/);
         if (m) {
             const filename = m[1];
-            const src = `/api/media/${encodeURIComponent(filename)}`;
-            return `<img class="chat-image" src="${src}" alt="${escapeHtml(filename)}" loading="lazy">`;
+            return `<img class="chat-image" data-media="${encodeURIComponent(filename)}" alt="${escapeHtml(filename)}" loading="lazy">`;
         }
         return `<span>${escapeHtml(part)}</span>`;
     }).join('');
+}
+
+async function loadMediaImages(container) {
+    const imgs = container.querySelectorAll('img[data-media]');
+    for (const img of imgs) {
+        const filename = img.dataset.media;
+        try {
+            const res = await fetch(`/api/media/${filename}`, {
+                headers: { 'Authorization': `Bearer ${getToken()}` },
+            });
+            if (!res.ok) continue;
+            const blob = await res.blob();
+            img.src = URL.createObjectURL(blob);
+        } catch { /* ignore */ }
+    }
 }
 
 function appendMessage(role, text, date) {
@@ -243,6 +333,7 @@ function appendMessage(role, text, date) {
         <div class="message-body">${renderMessageBody(text)}</div>
     `;
     chatMessages.appendChild(el);
+    loadMediaImages(el);
     scrollToBottom();
     return el;
 }
@@ -311,6 +402,8 @@ function arrayBufferToBase64(buffer) {
 }
 
 // --- Chat history ---
+let lastSeenTimestamp = null;
+
 async function loadHistory() {
     try {
         const res = await apiRequest('/api/chat/history?limit=50');
@@ -318,10 +411,34 @@ async function loadHistory() {
         const messages = await res.json();
         for (const msg of messages) {
             appendMessage(msg.is_bot ? 'voxclaw' : 'user', msg.content, new Date(msg.timestamp));
+            if (!lastSeenTimestamp || msg.timestamp > lastSeenTimestamp) {
+                lastSeenTimestamp = msg.timestamp;
+            }
         }
         scrollToBottom();
     } catch { /* ignore — history is best-effort */ }
 }
+
+async function pollNewMessages() {
+    if (!getToken()) return;
+    try {
+        const res = await apiRequest('/api/chat/history?limit=50');
+        if (!res.ok) return;
+        const messages = await res.json();
+        let hasNew = false;
+        for (const msg of messages) {
+            if (lastSeenTimestamp && msg.timestamp <= lastSeenTimestamp) continue;
+            appendMessage(msg.is_bot ? 'voxclaw' : 'user', msg.content, new Date(msg.timestamp));
+            if (!lastSeenTimestamp || msg.timestamp > lastSeenTimestamp) {
+                lastSeenTimestamp = msg.timestamp;
+            }
+            hasNew = true;
+        }
+        if (hasNew) scrollToBottom();
+    } catch { /* ignore */ }
+}
+
+setInterval(pollNewMessages, 15000);
 
 // --- Skills ---
 async function loadSkills() {
@@ -370,9 +487,56 @@ function renderSkillSection(container, title, items) {
     }
 }
 
+// --- Intent mode ---
+function getIntentMode() { return localStorage.getItem(INTENT_MODE_KEY) ?? 'standard'; }
+function setIntentMode(mode) { localStorage.setItem(INTENT_MODE_KEY, mode); }
+
+function sendModeToServer(mode) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'set_mode', mode }));
+    }
+}
+
+// --- Speech language ---
+function getSpeechLanguage() { return localStorage.getItem(SPEECH_LANG_KEY) ?? ''; }
+function setSpeechLanguage(lang) { localStorage.setItem(SPEECH_LANG_KEY, lang); }
+
+function sendLanguageToServer(lang) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'set_language', language: lang }));
+    }
+}
+
+function initSpeechLangUI() {
+    const select = document.getElementById('speech-lang-select');
+    if (!select) return;
+    select.value = getSpeechLanguage();
+    select.addEventListener('change', () => {
+        setSpeechLanguage(select.value);
+        sendLanguageToServer(select.value);
+    });
+}
+
+function initIntentModeUI() {
+    const toggle = document.getElementById('intent-mode-toggle');
+    const label  = document.getElementById('intent-mode-label');
+    if (!toggle || !label) return;
+
+    const mode = getIntentMode();
+    toggle.checked = mode === 'faithful';
+    label.textContent = mode === 'faithful' ? '発話忠実' : '標準';
+
+    toggle.addEventListener('change', () => {
+        const newMode = toggle.checked ? 'faithful' : 'standard';
+        setIntentMode(newMode);
+        label.textContent = newMode === 'faithful' ? '発話忠実' : '標準';
+        sendModeToServer(newMode);
+    });
+}
+
 // --- Settings ---
 async function apiRequest(path, options = {}) {
-    return fetch(path, {
+    const res = await fetch(path, {
         ...options,
         headers: {
             'Content-Type': 'application/json',
@@ -380,6 +544,10 @@ async function apiRequest(path, options = {}) {
             ...(options.headers ?? {}),
         },
     });
+    if (res.status === 401) {
+        forceLogout();
+    }
+    return res;
 }
 
 async function loadGoogleStatus() {

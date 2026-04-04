@@ -429,41 +429,38 @@ curl "http://keybinder:3001/google/sheets/charts/list?spreadsheetId=abc123"
 # Returns: { "charts": [ { "chartId": 123456789, "title": "Sales", "chartType": "BAR", "sheetTitle": "Sheet1" }, ... ] }
 ```
 
-#### Google Tasks
+---
+
+## Local Tasks (Voxclaw built-in)
+
+ユーザーがPWAのTaskタブで管理するローカルタスク。Google Tasks とは独立した保存先（SQLite）。
+`http://localhost:3001` に直接アクセスして操作する。
 
 ```bash
-# List all task lists ("マイタスク" etc.)
-# GET /google/tasks/lists
-curl "http://keybinder:3001/google/tasks/lists"
-# Returns: { items: [ { id, title, ... } ] }
+# タスク一覧を取得
+# GET /api/tasks?status=<needsAction|completed>  (status省略で全件)
+curl "http://localhost:3001/api/tasks"
+curl "http://localhost:3001/api/tasks?status=needsAction"
+# Returns: [ { id, title, notes, due, status, created_at, updated_at }, ... ]
 
-# List tasks in a task list
-# GET /google/tasks/list?tasklistId=<id>&showCompleted=<bool>&maxResults=<n>
-# tasklistId defaults to "@default" (primary task list)
-curl "http://keybinder:3001/google/tasks/list?showCompleted=false&maxResults=20"
-# Returns: { items: [ { id, title, notes, due, status, ... } ] }
-
-# Create a task
-# POST /google/tasks/create  body: { tasklistId?, title, notes?, due? }
-#   due: RFC 3339 e.g. "2026-03-20T00:00:00.000Z"
-curl -X POST http://keybinder:3001/google/tasks/create \
+# タスクを作成
+# POST /api/tasks  body: { title, notes?, due? }
+#   due: ISO 8601 e.g. "2026-04-10"
+curl -X POST http://localhost:3001/api/tasks \
   -H 'Content-Type: application/json' \
-  -d '{"title": "レポートを提出する", "due": "2026-03-20T00:00:00.000Z"}'
-# Returns: created task JSON
+  -d '{"title": "買い物リストを作る", "due": "2026-04-10"}'
+# Returns: created task JSON (status は "needsAction" で作成される)
 
-# Update a task (rename, change due date, mark complete, etc.)
-# POST /google/tasks/update  body: { tasklistId?, taskId, title?, notes?, due?, status? }
+# タスクを更新（完了・タイトル変更・期日変更など）
+# PATCH /api/tasks/<id>  body: { title?, notes?, due?, status? }
 #   status: "needsAction" (未完了) or "completed" (完了)
-curl -X POST http://keybinder:3001/google/tasks/update \
+curl -X PATCH http://localhost:3001/api/tasks/task_abc123 \
   -H 'Content-Type: application/json' \
-  -d '{"taskId": "abc123", "status": "completed"}'
-# Returns: updated task JSON
+  -d '{"status": "completed"}'
+# Returns: { ok: true }
 
-# Delete a task
-# POST /google/tasks/delete  body: { tasklistId?, taskId }
-curl -X POST http://keybinder:3001/google/tasks/delete \
-  -H 'Content-Type: application/json' \
-  -d '{"taskId": "abc123"}'
-# Returns: { "success": true }
+# タスクを削除
+# DELETE /api/tasks/<id>
+curl -X DELETE http://localhost:3001/api/tasks/task_abc123
+# Returns: { ok: true }
 ```
-

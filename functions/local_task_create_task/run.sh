@@ -4,12 +4,13 @@ import json, os, subprocess
 
 args = json.loads(os.environ.get('SKILL_ARGS', '{}'))
 
-body = {'taskId': args['task_id']}
-if 'tasklist_id' in args: body['tasklistId'] = args['tasklist_id']
+body = {'title': args['title']}
+if 'notes' in args: body['notes'] = args['notes']
+if 'due'   in args: body['due']   = args['due']
 
 subprocess.run([
     'curl', '-s', '-X', 'POST',
-    'http://keybinder:3001/google/tasks/delete',
+    'http://localhost:3001/api/tasks',
     '-H', 'Content-Type: application/json',
     '-d', json.dumps(body),
 ])
