@@ -108,6 +108,7 @@ function connectWs() {
         sendLanguageToServer(getSpeechLanguage());
     });
     ws.addEventListener('close', (e) => {
+        if (isRecording) stopRecording();
         if (e.code === 4001) {
             // 認証エラー（サーバー明示）：ログアウト
             forceLogout();
@@ -257,18 +258,18 @@ function renderMessageBody(text) {
 }
 
 async function loadMediaImages(container) {
-    const imgs = container.querySelectorAll('img[data-media]');
-    for (const img of imgs) {
+    const imgs = [...container.querySelectorAll('img[data-media]')];
+    await Promise.all(imgs.map(async (img) => {
         const filename = img.dataset.media;
         try {
             const res = await fetch(`/api/media/${filename}`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` },
             });
-            if (!res.ok) continue;
+            if (!res.ok) return;
             const blob = await res.blob();
             img.src = URL.createObjectURL(blob);
         } catch { /* ignore */ }
-    }
+    }));
 }
 
 function appendMessage(role, text, date) {

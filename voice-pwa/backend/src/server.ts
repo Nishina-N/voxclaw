@@ -126,32 +126,30 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
         const SKILLS_DIR    = '/app/skills';
         const FUNCTIONS_DIR = '/app/functions';
 
-        const skills = fs.existsSync(SKILLS_DIR)
-            ? fs.readdirSync(SKILLS_DIR)
-                .filter(f => f.endsWith('.md'))
-                .map(f => {
-                    const content = fs.readFileSync(path.join(SKILLS_DIR, f), 'utf-8');
-                    const fm = readFrontmatter(content);
-                    return {
-                        name:        fm.name        ?? path.basename(f, '.md'),
-                        description: fm.description ?? '',
-                    };
-                })
-                .sort((a, b) => a.name.localeCompare(b.name))
-            : [];
+        const [skillFiles, functionDirs] = await Promise.all([
+            fs.promises.readdir(SKILLS_DIR).catch(() => [] as string[]),
+            fs.promises.readdir(FUNCTIONS_DIR).catch(() => [] as string[]),
+        ]);
 
-        const functions = fs.existsSync(FUNCTIONS_DIR)
-            ? fs.readdirSync(FUNCTIONS_DIR)
-                .filter(f => fs.existsSync(path.join(FUNCTIONS_DIR, f, 'definition.json')))
-                .map(f => {
-                    const def = JSON.parse(fs.readFileSync(path.join(FUNCTIONS_DIR, f, 'definition.json'), 'utf-8'));
-                    return {
-                        name:        def.name        ?? f,
-                        description: def.description ?? '',
-                    };
+        const skills = (await Promise.all(
+            skillFiles
+                .filter(f => f.endsWith('.md'))
+                .map(async f => {
+                    const content = await fs.promises.readFile(path.join(SKILLS_DIR, f), 'utf-8');
+                    const fm = readFrontmatter(content);
+                    return { name: fm.name ?? path.basename(f, '.md'), description: fm.description ?? '' };
                 })
-                .sort((a, b) => a.name.localeCompare(b.name))
-            : [];
+        )).sort((a, b) => a.name.localeCompare(b.name));
+
+        const functions = (await Promise.all(
+            functionDirs.map(async f => {
+                const defPath = path.join(FUNCTIONS_DIR, f, 'definition.json');
+                try {
+                    const def = JSON.parse(await fs.promises.readFile(defPath, 'utf-8'));
+                    return { name: def.name ?? f, description: def.description ?? '' };
+                } catch { return null; }
+            })
+        )).filter(Boolean).sort((a: any, b: any) => a.name.localeCompare(b.name));
 
         res.writeHead(200);
         res.end(JSON.stringify({ skills, functions }));
@@ -370,19 +368,18 @@ wss.on('connection', (ws: WebSocket) => {
 
     async function getOrCreateSession(): Promise<GeminiLiveSession> {
         if (geminiSession) return geminiSession;
-        if (!sessionCreating) {
-            sessionCreating = createLiveSession((intent, isFinal, context) => {
-                if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ type: 'intent', text: intent, isFinal, context }));
-                }
-            }, intentMode, speechLanguage || undefined).then(s => {
-                geminiSession = s;
-                return s;
-            }).catch(err => {
-                sessionCreating = null;
-                throw err;
-            });
-        }
+        if (sessionCreating) return sessionCreating;
+        sessionCreating = createLiveSession((intent, isFinal, context) => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'intent', text: intent, isFinal, context }));
+            }
+        }, intentMode, speechLanguage || undefined).then(s => {
+            geminiSession = s;
+            return s;
+        }).catch(err => {
+            sessionCreating = null;
+            throw err;
+        });
         return sessionCreating;
     }
 
