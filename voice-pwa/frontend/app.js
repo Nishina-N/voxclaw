@@ -964,6 +964,8 @@ function renderTaskItem(task) {
             <span class="skill-item-chevron">▾</span>
         </div>
         <div class="skill-item-body" style="display:none">
+            <span class="task-field-label">Title</span>
+            <input class="task-title-input" type="text" value="${escapeHtml(task.title)}">
             <span class="task-field-label">Notes</span>
             <textarea class="task-notes-input" placeholder="Add notes…">${escapeHtml(task.notes ?? '')}</textarea>
             <span class="task-field-label">Due date</span>
@@ -995,16 +997,18 @@ function renderTaskItem(task) {
         } catch {}
     });
 
-    // Save (notes + due)
+    // Save (title + notes + due)
     el.querySelector('.task-save-btn').addEventListener('click', async () => {
+        const title = el.querySelector('.task-title-input').value.trim();
         const notes = el.querySelector('.task-notes-input').value.trim() || null;
         const due   = el.querySelector('.task-due-input').value || null;
-        const btn   = el.querySelector('.task-save-btn');
+        if (!title) return;
+        const btn = el.querySelector('.task-save-btn');
         btn.textContent = 'Saving…'; btn.disabled = true;
         try {
             await apiRequest(`/api/tasks/${encodeURIComponent(task.id)}`, {
                 method: 'PATCH',
-                body: JSON.stringify({ notes, due }),
+                body: JSON.stringify({ title, notes, due }),
             });
             loadTasks();
         } finally { btn.textContent = 'Save'; btn.disabled = false; }

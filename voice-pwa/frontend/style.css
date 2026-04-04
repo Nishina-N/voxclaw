@@ -806,13 +806,18 @@ body {
 
 /* ── Task panel ── */
 #panel-task {
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#task-items {
+  flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 16px 16px 8px;
+  display: flex;
   flex-direction: column;
   gap: 0;
 }
-
-#task-items { display: contents; }
 
 .task-empty {
   text-align: center;
@@ -893,6 +898,17 @@ body {
   margin-top: 4px;
 }
 
+.task-title-input {
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  color: #1a1a1a;
+}
+
 .task-notes-input {
   border: 1px solid #e5e5e5;
   border-radius: 8px;
@@ -946,15 +962,13 @@ body {
 }
 
 #task-add-bar {
-  position: sticky;
-  bottom: 0;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 0 4px;
+  padding: 8px 16px 14px;
   background: #fff;
   border-top: 1px solid #e5e5e5;
-  margin-top: 8px;
 }
 
 #task-add-input {
