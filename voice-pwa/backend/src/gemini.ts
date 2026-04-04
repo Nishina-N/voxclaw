@@ -50,10 +50,19 @@ export async function createLiveSession(
                 console.log('[gemini] session opened, mode:', mode);
             },
             onmessage: (msg: any) => {
+                // Debug: log serverContent structure to find correct transcript field
+                if (msg?.serverContent) {
+                    console.log('[gemini] serverContent keys:', JSON.stringify(Object.keys(msg.serverContent)));
+                    if (msg.serverContent.inputTranscript || msg.serverContent.inputTranscription) {
+                        console.log('[gemini] transcript data:', JSON.stringify(
+                            msg.serverContent.inputTranscript ?? msg.serverContent.inputTranscription
+                        ));
+                    }
+                }
+
                 // Capture real-time transcription and show immediately in both modes.
-                // - Faithful: transcript IS the final intent (report_intent will also confirm it)
-                // - Standard: transcript is a preview; report_intent will overwrite with interpreted intent
-                const transcript = msg?.serverContent?.inputTranscript;
+                const transcript = msg?.serverContent?.inputTranscript
+                               ?? msg?.serverContent?.inputTranscription;
                 if (transcript?.text) {
                     latestTranscript = transcript.text;
                     onIntent(latestTranscript);
