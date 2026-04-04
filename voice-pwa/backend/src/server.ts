@@ -364,9 +364,9 @@ wss.on('connection', (ws: WebSocket) => {
     async function getOrCreateSession(): Promise<GeminiLiveSession> {
         if (geminiSession) return geminiSession;
         if (!sessionCreating) {
-            sessionCreating = createLiveSession((intent) => {
+            sessionCreating = createLiveSession((intent, isFinal, context) => {
                 if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ type: 'intent', text: intent }));
+                    ws.send(JSON.stringify({ type: 'intent', text: intent, isFinal, context }));
                 }
             }, intentMode).then(s => {
                 geminiSession = s;

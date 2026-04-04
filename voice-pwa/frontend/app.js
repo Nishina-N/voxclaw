@@ -59,6 +59,7 @@ const chatMessages  = document.getElementById('chat-messages');
 const btnMic        = document.getElementById('btn-mic');
 const inputText     = document.getElementById('input-text');
 const btnSend       = document.getElementById('btn-send');
+const intentContext = document.getElementById('intent-context');
 
 // 起動時：トークンがあればそのまま接続、なければログイン画面を表示
 if (getToken()) {
@@ -120,6 +121,20 @@ function connectWs() {
 
         if (msg.type === 'intent') {
             inputText.value = msg.text;
+            // Draft (is_final: false): dim the textarea to signal "still thinking"
+            if (msg.isFinal === false) {
+                inputText.classList.add('intent-draft');
+            } else {
+                inputText.classList.remove('intent-draft');
+            }
+            // Show context below the input bar when present
+            if (msg.context) {
+                intentContext.textContent = msg.context;
+                intentContext.classList.add('visible');
+            } else if (msg.isFinal !== false) {
+                intentContext.textContent = '';
+                intentContext.classList.remove('visible');
+            }
             updateSendState();
 
         } else if (msg.type === 'voxclaw_reply') {
@@ -216,6 +231,9 @@ function sendMessage() {
     // Advance lastSeenTimestamp so the 15s poll doesn't re-append this message from DB
     lastSeenTimestamp = new Date().toISOString();
     inputText.value = '';
+    inputText.classList.remove('intent-draft');
+    intentContext.textContent = '';
+    intentContext.classList.remove('visible');
     inputText.style.height = 'auto';
     updateSendState();
     showTyping();

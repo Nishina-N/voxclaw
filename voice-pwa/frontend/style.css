@@ -197,13 +197,35 @@ body {
   30% { transform: translateY(-4px); }
 }
 
+/* ── Input area (wraps context + bar) ── */
+#input-area {
+  flex-shrink: 0;
+  background: #fff;
+  border-top: 1px solid #e5e5e5;
+}
+
+/* Intent context annotation (shown below input bar when Gemini provides background) */
+#intent-context {
+  display: none;
+  font-size: 11px;
+  color: #888;
+  padding: 4px 14px 0;
+  line-height: 1.4;
+}
+#intent-context.visible { display: block; }
+
+/* Draft state: input is dimmed while Gemini is still forming intent */
+#input-text.intent-draft {
+  color: #aaa;
+  font-style: italic;
+}
+
 /* ── Input bar ── */
 #input-bar {
   display: flex;
   align-items: flex-end;
   gap: 10px;
   padding: 6px 14px 14px;
-  border-top: 1px solid #e5e5e5;
   background: #fff;
   flex-shrink: 0;
 }
