@@ -2,6 +2,7 @@
 const WS_PROTOCOL = location.protocol === 'https:' ? 'wss:' : 'ws:';
 const TOKEN_KEY = 'voxclaw_token';
 const INTENT_MODE_KEY = 'voxclaw_intent_mode';
+const SPEECH_LANG_KEY = 'voxclaw_speech_lang';
 
 // --- Auth ---
 const loginScreen   = document.getElementById('login-screen');
@@ -53,6 +54,7 @@ let mediaStream = null;
 let processor = null;
 let isRecording = false;
 let typingMessageEl = null;
+let speechRecognition = null;
 
 // --- DOM ---
 const chatMessages  = document.getElementById('chat-messages');
@@ -85,7 +87,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
-        if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); initIntentModeUI(); }
+        if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); initIntentModeUI(); initSpeechLangUI(); }
         if (btn.dataset.tab === 'skills') loadSkills();
         if (btn.dataset.tab === 'cron') loadCronTab();
         if (btn.dataset.tab === 'task') loadTaskTab();
@@ -104,6 +106,7 @@ function connectWs() {
     ws.addEventListener('open', () => {
         console.log('[ws] connected');
         sendModeToServer(getIntentMode());
+        sendLanguageToServer(getSpeechLanguage());
     });
     ws.addEventListener('close', (e) => {
         if (e.code === 4001) {
@@ -205,11 +208,17 @@ async function startRecording() {
     btnMic.classList.add('recording');
     inputText.value = '';
     updateSendState();
+
+    // Faithful mode: use browser SpeechRecognition for real-time interim display
+    if (getIntentMode() === 'faithful') {
+        startBrowserSpeechRecognition();
+    }
 }
 
 function stopRecording() {
     isRecording = false;
     btnMic.classList.remove('recording');
+    stopBrowserSpeechRecognition();
 
     if (processor) { processor.disconnect(); processor = null; }
     if (audioContext) { audioContext.close(); audioContext = null; }
@@ -217,6 +226,45 @@ function stopRecording() {
 
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'audio_end' }));
+    }
+}
+
+// Browser SpeechRecognition for real-time interim transcription (faithful mode only)
+function startBrowserSpeechRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return; // not supported — fall back gracefully
+
+    try {
+        speechRecognition = new SR();
+        speechRecognition.continuous = true;
+        speechRecognition.interimResults = true;
+        const lang = getSpeechLanguage();
+        if (lang) speechRecognition.lang = lang;
+
+        speechRecognition.onresult = (e) => {
+            let interim = '';
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+                interim += e.results[i][0].transcript;
+            }
+            if (interim) {
+                inputText.value = interim;
+                inputText.classList.add('intent-draft');
+                updateSendState();
+            }
+        };
+        speechRecognition.onerror = () => {
+            // Ignore errors (e.g. overlap with Gemini audio capture) — Gemini result will arrive
+        };
+        speechRecognition.start();
+    } catch {
+        speechRecognition = null;
+    }
+}
+
+function stopBrowserSpeechRecognition() {
+    if (speechRecognition) {
+        try { speechRecognition.stop(); } catch {}
+        speechRecognition = null;
     }
 }
 
@@ -447,6 +495,26 @@ function sendModeToServer(mode) {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'set_mode', mode }));
     }
+}
+
+// --- Speech language ---
+function getSpeechLanguage() { return localStorage.getItem(SPEECH_LANG_KEY) ?? ''; }
+function setSpeechLanguage(lang) { localStorage.setItem(SPEECH_LANG_KEY, lang); }
+
+function sendLanguageToServer(lang) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'set_language', language: lang }));
+    }
+}
+
+function initSpeechLangUI() {
+    const select = document.getElementById('speech-lang-select');
+    if (!select) return;
+    select.value = getSpeechLanguage();
+    select.addEventListener('change', () => {
+        setSpeechLanguage(select.value);
+        sendLanguageToServer(select.value);
+    });
 }
 
 function initIntentModeUI() {

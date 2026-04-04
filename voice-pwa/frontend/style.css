@@ -763,6 +763,17 @@ body {
   width: 100%;
 }
 
+.speech-lang-select {
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  color: #1a1a1a;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+}
+
 .key-edit-actions {
   display: flex;
   gap: 8px;

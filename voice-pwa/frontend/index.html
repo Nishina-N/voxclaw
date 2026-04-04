@@ -117,7 +117,7 @@
       </div>
     </div>
 
-    <p class="settings-section-title">Intent Mode</p>
+    <p class="settings-section-title">音声入力</p>
     <div class="settings-info-item">
       <div class="key-item-header">
         <div class="key-item-label">
@@ -132,6 +132,28 @@
       <p style="font-size:0.75rem;color:#888;margin:8px 0 0;line-height:1.6">
         <b>標準</b>: Geminiが意図を要約して抽出<br>
         <b>発話忠実</b>: 条件・否定・背景をそのまま保持。文字起こしベース。
+      </p>
+    </div>
+    <div class="settings-info-item" style="margin-top:12px">
+      <div class="key-item-header">
+        <div class="key-item-label">
+          <span class="key-item-name">入力言語</span>
+        </div>
+        <select id="speech-lang-select" class="speech-lang-select">
+          <option value="">自動検出</option>
+          <option value="ja-JP">日本語</option>
+          <option value="en-US">English (US)</option>
+          <option value="en-GB">English (UK)</option>
+          <option value="zh-CN">中文（简体）</option>
+          <option value="zh-TW">中文（繁體）</option>
+          <option value="ko-KR">한국어</option>
+          <option value="fr-FR">Français</option>
+          <option value="de-DE">Deutsch</option>
+          <option value="es-ES">Español</option>
+        </select>
+      </div>
+      <p style="font-size:0.75rem;color:#888;margin:8px 0 0;line-height:1.5">
+        「自動検出」以外を選ぶと認識精度が向上することがあります。
       </p>
     </div>
 

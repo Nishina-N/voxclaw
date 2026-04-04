@@ -360,6 +360,13 @@ wss.on('connection', (ws: WebSocket) => {
     let geminiSession: GeminiLiveSession | null = null;
     let sessionCreating: Promise<GeminiLiveSession> | null = null;
     let intentMode: IntentMode = 'standard';
+    let speechLanguage: string = '';
+
+    function resetSession() {
+        geminiSession?.close();
+        geminiSession = null;
+        sessionCreating = null;
+    }
 
     async function getOrCreateSession(): Promise<GeminiLiveSession> {
         if (geminiSession) return geminiSession;
@@ -368,7 +375,7 @@ wss.on('connection', (ws: WebSocket) => {
                 if (ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({ type: 'intent', text: intent, isFinal, context }));
                 }
-            }, intentMode).then(s => {
+            }, intentMode, speechLanguage || undefined).then(s => {
                 geminiSession = s;
                 return s;
             }).catch(err => {
@@ -405,11 +412,16 @@ wss.on('connection', (ws: WebSocket) => {
             const newMode: IntentMode = msg.mode === 'faithful' ? 'faithful' : 'standard';
             if (newMode !== intentMode) {
                 intentMode = newMode;
-                // Reset session so next recording uses the new mode
-                geminiSession?.close();
-                geminiSession = null;
-                sessionCreating = null;
+                resetSession();
                 console.log('[ws] intent mode changed to:', intentMode);
+            }
+
+        } else if (msg.type === 'set_language') {
+            const newLang: string = typeof msg.language === 'string' ? msg.language : '';
+            if (newLang !== speechLanguage) {
+                speechLanguage = newLang;
+                resetSession();
+                console.log('[ws] speech language changed to:', speechLanguage || '(auto)');
             }
 
         } else if (msg.type === 'confirm') {

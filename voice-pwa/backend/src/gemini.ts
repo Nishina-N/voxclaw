@@ -45,6 +45,7 @@ export interface GeminiLiveSession {
 export async function createLiveSession(
     onIntent: (text: string, isFinal: boolean, context?: string) => void,
     mode: IntentMode = 'standard',
+    languageCode?: string,
 ): Promise<GeminiLiveSession> {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
@@ -114,7 +115,7 @@ export async function createLiveSession(
         },
         config: {
             responseModalities: [Modality.AUDIO],
-            inputAudioTranscription: {},
+            inputAudioTranscription: languageCode ? { languageCode } : {},
             tools: [{
                 functionDeclarations: [{
                     name: 'report_intent',
