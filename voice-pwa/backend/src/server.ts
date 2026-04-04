@@ -257,23 +257,19 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     }
 
     if (req.method === 'POST' && req.url === '/auth/login') {
-        let body = '';
-        req.on('data', chunk => { body += chunk; });
-        req.on('end', () => {
-            try {
-                const { password } = JSON.parse(body);
-                if (password === PASSWORD) {
-                    res.writeHead(200);
-                    res.end(JSON.stringify({ token: signToken() }));
-                } else {
-                    res.writeHead(401);
-                    res.end(JSON.stringify({ error: 'Incorrect password' }));
-                }
-            } catch {
-                res.writeHead(400);
-                res.end(JSON.stringify({ error: 'invalid request' }));
+        try {
+            const { password } = JSON.parse(await readBody(req));
+            if (password === PASSWORD) {
+                res.writeHead(200);
+                res.end(JSON.stringify({ token: signToken() }));
+            } else {
+                res.writeHead(401);
+                res.end(JSON.stringify({ error: 'Incorrect password' }));
             }
-        });
+        } catch {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'invalid request' }));
+        }
         return;
     }
 

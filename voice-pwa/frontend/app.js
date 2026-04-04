@@ -613,7 +613,7 @@ function skillToId(name) {
 
 // Extract skill name from cron entry prompt
 function skillNameFromEntry(entry) {
-    const m = entry?.prompt?.match(/Execute the '(.+)' skill now/);
+    const m = entry?.prompt?.match(/Execute the skill "(.+)" now/);
     return m ? m[1] : null;
 }
 
@@ -868,7 +868,7 @@ function renderCronItem(skill, entry) {
                 body: JSON.stringify({
                     id,
                     cron: buildCronExpr(hour, minute, mode, days),
-                    prompt: `[Scheduled task] Execute the '${skill.name}' skill now. This is an automated run \u2014 complete the skill from /app/skills/ in full, independent of any prior conversation.`,
+                    prompt: `[Scheduled task] Execute the skill "${skill.name}" now. This is an automated run \u2014 complete the skill from /app/skills/ in full, independent of any prior conversation.`,
                     channelId,
                     enabled,
                 }),
