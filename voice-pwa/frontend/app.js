@@ -54,7 +54,6 @@ let mediaStream = null;
 let processor = null;
 let isRecording = false;
 let typingMessageEl = null;
-let speechRecognition = null;
 
 // --- DOM ---
 const chatMessages  = document.getElementById('chat-messages');
@@ -208,17 +207,11 @@ async function startRecording() {
     btnMic.classList.add('recording');
     inputText.value = '';
     updateSendState();
-
-    // Faithful mode: use browser SpeechRecognition for real-time interim display
-    if (getIntentMode() === 'faithful') {
-        startBrowserSpeechRecognition();
-    }
 }
 
 function stopRecording() {
     isRecording = false;
     btnMic.classList.remove('recording');
-    stopBrowserSpeechRecognition();
 
     if (processor) { processor.disconnect(); processor = null; }
     if (audioContext) { audioContext.close(); audioContext = null; }
@@ -229,44 +222,6 @@ function stopRecording() {
     }
 }
 
-// Browser SpeechRecognition for real-time interim transcription (faithful mode only)
-function startBrowserSpeechRecognition() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return; // not supported — fall back gracefully
-
-    try {
-        speechRecognition = new SR();
-        speechRecognition.continuous = true;
-        speechRecognition.interimResults = true;
-        const lang = getSpeechLanguage();
-        if (lang) speechRecognition.lang = lang;
-
-        speechRecognition.onresult = (e) => {
-            let interim = '';
-            for (let i = e.resultIndex; i < e.results.length; i++) {
-                interim += e.results[i][0].transcript;
-            }
-            if (interim) {
-                inputText.value = interim;
-                inputText.classList.add('intent-draft');
-                updateSendState();
-            }
-        };
-        speechRecognition.onerror = () => {
-            // Ignore errors (e.g. overlap with Gemini audio capture) — Gemini result will arrive
-        };
-        speechRecognition.start();
-    } catch {
-        speechRecognition = null;
-    }
-}
-
-function stopBrowserSpeechRecognition() {
-    if (speechRecognition) {
-        try { speechRecognition.stop(); } catch {}
-        speechRecognition = null;
-    }
-}
 
 // --- Send ---
 btnSend.addEventListener('click', sendMessage);
