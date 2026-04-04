@@ -125,10 +125,13 @@ function connectWs() {
         } else if (msg.type === 'voxclaw_reply') {
             removeTyping();
             appendMessage('voxclaw', msg.text);
+            // Advance cursor so poll doesn't re-append this reply from DB
+            lastSeenTimestamp = new Date().toISOString();
 
         } else if (msg.type === 'error') {
             removeTyping();
             appendMessage('voxclaw', `⚠️ ${msg.message}`);
+            lastSeenTimestamp = new Date().toISOString();
         }
     });
 }
@@ -210,6 +213,8 @@ function sendMessage() {
     if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
 
     appendMessage('user', text);
+    // Advance lastSeenTimestamp so the 15s poll doesn't re-append this message from DB
+    lastSeenTimestamp = new Date().toISOString();
     inputText.value = '';
     inputText.style.height = 'auto';
     updateSendState();
