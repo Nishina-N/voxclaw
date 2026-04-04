@@ -50,19 +50,9 @@ export async function createLiveSession(
                 console.log('[gemini] session opened, mode:', mode);
             },
             onmessage: (msg: any) => {
-                // Debug: log serverContent structure to find correct transcript field
-                if (msg?.serverContent) {
-                    console.log('[gemini] serverContent keys:', JSON.stringify(Object.keys(msg.serverContent)));
-                    if (msg.serverContent.inputTranscript || msg.serverContent.inputTranscription) {
-                        console.log('[gemini] transcript data:', JSON.stringify(
-                            msg.serverContent.inputTranscript ?? msg.serverContent.inputTranscription
-                        ));
-                    }
-                }
-
-                // Capture real-time transcription and show immediately in both modes.
-                const transcript = msg?.serverContent?.inputTranscript
-                               ?? msg?.serverContent?.inputTranscription;
+                // Capture transcription (fires once after speech ends, before report_intent).
+                // Showing it immediately makes the display faster than waiting for report_intent.
+                const transcript = msg?.serverContent?.inputTranscription;
                 if (transcript?.text) {
                     latestTranscript = transcript.text;
                     onIntent(latestTranscript);
