@@ -231,8 +231,6 @@ function sendMessage() {
     if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
 
     appendMessage('user', text);
-    // Advance lastSeenTimestamp so the 15s poll doesn't re-append this message from DB
-    lastSeenTimestamp = new Date().toISOString();
     inputText.value = '';
     inputText.classList.remove('intent-draft');
     intentContext.textContent = '';
@@ -383,11 +381,15 @@ async function pollNewMessages() {
         let hasNew = false;
         for (const msg of messages) {
             if (lastSeenTimestamp && msg.timestamp <= lastSeenTimestamp) continue;
-            appendMessage(msg.is_bot ? 'voxclaw' : 'user', msg.content, new Date(msg.timestamp));
+            // Only show bot messages from polling — user messages are already shown
+            // optimistically in sendMessage(), so polling them causes duplicates.
+            if (msg.is_bot) {
+                appendMessage('voxclaw', msg.content, new Date(msg.timestamp));
+                hasNew = true;
+            }
             if (!lastSeenTimestamp || msg.timestamp > lastSeenTimestamp) {
                 lastSeenTimestamp = msg.timestamp;
             }
-            hasNew = true;
         }
         if (hasNew) scrollToBottom();
     } catch { /* ignore */ }
