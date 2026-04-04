@@ -230,7 +230,7 @@ body {
   flex-shrink: 0;
 }
 
-#btn-mic {
+#btn-mic, .task-mic-btn {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -245,7 +245,7 @@ body {
   transition: color 0.2s;
 }
 
-#btn-mic svg {
+#btn-mic svg, .task-mic-btn svg {
   width: 22px;
   height: 22px;
   stroke: currentColor;
@@ -255,7 +255,7 @@ body {
   stroke-linejoin: round;
 }
 
-#btn-mic.recording {
+#btn-mic.recording, .task-mic-btn.recording {
   color: #f97316;
   animation: mic-glow 1.5s ease-in-out infinite;
 }

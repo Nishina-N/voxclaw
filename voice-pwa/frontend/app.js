@@ -54,6 +54,8 @@ let mediaStream = null;
 let processor = null;
 let isRecording = false;
 let typingMessageEl = null;
+let activeMicBtn = null;   // mic button currently in use
+let activeInput = null;    // input field currently targeted by mic
 
 // --- DOM ---
 const chatMessages  = document.getElementById('chat-messages');
@@ -61,6 +63,8 @@ const btnMic        = document.getElementById('btn-mic');
 const inputText     = document.getElementById('input-text');
 const btnSend       = document.getElementById('btn-send');
 const intentContext = document.getElementById('intent-context');
+const btnTaskMic    = document.getElementById('btn-task-mic');
+const taskAddInput  = document.getElementById('task-add-input');
 
 // 起動時：トークンがあればそのまま接続、なければログイン画面を表示
 if (getToken()) {
@@ -123,22 +127,23 @@ function connectWs() {
         const msg = JSON.parse(e.data);
 
         if (msg.type === 'intent') {
-            inputText.value = msg.text;
-            // Draft (is_final: false): dim the textarea to signal "still thinking"
-            if (msg.isFinal === false) {
-                inputText.classList.add('intent-draft');
-            } else {
-                inputText.classList.remove('intent-draft');
+            if (activeInput) activeInput.value = msg.text;
+            if (activeInput === inputText) {
+                // Chat: draft dimming and context display
+                if (msg.isFinal === false) {
+                    inputText.classList.add('intent-draft');
+                } else {
+                    inputText.classList.remove('intent-draft');
+                }
+                if (msg.context) {
+                    intentContext.textContent = msg.context;
+                    intentContext.classList.add('visible');
+                } else if (msg.isFinal !== false) {
+                    intentContext.textContent = '';
+                    intentContext.classList.remove('visible');
+                }
+                updateSendState();
             }
-            // Show context below the input bar when present
-            if (msg.context) {
-                intentContext.textContent = msg.context;
-                intentContext.classList.add('visible');
-            } else if (msg.isFinal !== false) {
-                intentContext.textContent = '';
-                intentContext.classList.remove('visible');
-            }
-            updateSendState();
 
         } else if (msg.type === 'voxclaw_reply') {
             removeTyping();
@@ -174,15 +179,20 @@ function updateSendState() {
 }
 
 // --- Mic ---
-btnMic.addEventListener('click', async () => {
-    if (isRecording) {
-        stopRecording();
-    } else {
-        await startRecording();
-    }
-});
+function setupMicButton(micBtn, targetInput) {
+    micBtn.addEventListener('click', async () => {
+        if (isRecording && activeMicBtn === micBtn) {
+            stopRecording();
+        } else {
+            if (isRecording) stopRecording(); // stop any other active recording
+            await startRecording(micBtn, targetInput);
+        }
+    });
+}
+setupMicButton(btnMic, inputText);
+setupMicButton(btnTaskMic, taskAddInput);
 
-async function startRecording() {
+async function startRecording(micBtn, targetInput) {
     try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
@@ -205,14 +215,18 @@ async function startRecording() {
     };
 
     isRecording = true;
-    btnMic.classList.add('recording');
-    inputText.value = '';
-    updateSendState();
+    activeMicBtn = micBtn;
+    activeInput = targetInput;
+    micBtn.classList.add('recording');
+    targetInput.value = '';
+    if (targetInput === inputText) updateSendState();
 }
 
 function stopRecording() {
     isRecording = false;
-    btnMic.classList.remove('recording');
+    activeMicBtn?.classList.remove('recording');
+    activeMicBtn = null;
+    activeInput = null;
 
     if (processor) { processor.disconnect(); processor = null; }
     if (audioContext) { audioContext.close(); audioContext = null; }
