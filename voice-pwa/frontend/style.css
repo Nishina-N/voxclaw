@@ -814,9 +814,6 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 16px 16px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
 }
 
 .task-empty {
