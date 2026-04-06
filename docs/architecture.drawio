@@ -1,0 +1,228 @@
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- Legend -->
+    <mxCell id="L1" value="外部API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1490" y="20" width="150" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="L2" value="外部サービス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1490" y="85" width="150" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- ユーザー box -->
+    <mxCell id="U0" value="ユーザー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;fontSize=13;fontStyle=1;arcSize=4;" vertex="1" parent="1">
+      <mxGeometry x="40" y="20" width="900" height="160" as="geometry" />
+    </mxCell>
+    <mxCell id="U1" value="スマホ / ブラウザ&#xa;（PWA）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="155" y="65" width="165" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="U2" value="Discord" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="700" y="70" width="155" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Cloudflare Tunnel -->
+    <mxCell id="CF" value="Cloudflare Tunnel&#xa;（optional）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="155" y="255" width="175" height="75" as="geometry" />
+    </mxCell>
+
+    <!-- Docker Compose outer box -->
+    <mxCell id="DC" value="Docker Compose（自宅サーバー）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f9f9f9;strokeColor=#333333;verticalAlign=top;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="40" y="380" width="1400" height="1160" as="geometry" />
+    </mxCell>
+
+    <!-- Voice PWA container -->
+    <mxCell id="VP" value="Voice PWA" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="60" y="410" width="440" height="870" as="geometry" />
+    </mxCell>
+
+    <!-- voice-pwa-frontend -->
+    <mxCell id="VF" value="voice-pwa-frontend&#xa;nginx :3000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="80" y="465" width="400" height="95" as="geometry" />
+    </mxCell>
+
+    <!-- voice-pwa-backend -->
+    <mxCell id="VB" value="voice-pwa-backend&#xa;Node.js / WebSocket :8080" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="80" y="665" width="400" height="95" as="geometry" />
+    </mxCell>
+
+    <!-- Gemini Live API (external, inside Voice PWA) -->
+    <mxCell id="GL" value="Gemini Live API&#xa;音声→意図推定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="80" y="875" width="400" height="95" as="geometry" />
+    </mxCell>
+
+    <!-- Voxclaw Core container -->
+    <mxCell id="VC" value="Voxclaw Core" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="545" y="410" width="875" height="870" as="geometry" />
+    </mxCell>
+
+    <!-- Gemini API テキスト推論 (external) -->
+    <mxCell id="GA" value="Gemini API&#xa;テキスト推論" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="565" y="465" width="190" height="85" as="geometry" />
+    </mxCell>
+
+    <!-- Discord API (external) -->
+    <mxCell id="DA" value="Discord API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="810" y="465" width="165" height="85" as="geometry" />
+    </mxCell>
+
+    <!-- Google API (external) -->
+    <mxCell id="GG" value="Google API&#xa;Calendar / OAuth" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1130" y="465" width="190" height="85" as="geometry" />
+    </mxCell>
+
+    <!-- voxclaw Gemini Agent -->
+    <mxCell id="VX" value="voxclaw&#xa;Gemini Agent :3001" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="565" y="645" width="375" height="115" as="geometry" />
+    </mxCell>
+
+    <!-- CronRunner -->
+    <mxCell id="CR" value="CronRunner&#xa;node-cron" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="565" y="870" width="300" height="95" as="geometry" />
+    </mxCell>
+
+    <!-- keybinder -->
+    <mxCell id="KB" value="keybinder&#xa;Node.js :3001" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1105" y="660" width="205" height="95" as="geometry" />
+    </mxCell>
+
+    <!-- 共有ボリューム -->
+    <mxCell id="SV" value="共有ボリューム" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffac8;strokeColor=#d6b656;verticalAlign=top;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="60" y="1305" width="1360" height="210" as="geometry" />
+    </mxCell>
+
+    <!-- SQLite DB -->
+    <mxCell id="DB" value="SQLite DB&#xa;messages / tasks" style="shape=mxgraph.flowchart.database;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="130" y="1340" width="240" height="140" as="geometry" />
+    </mxCell>
+
+    <!-- config/skills/functions -->
+    <mxCell id="CV" value="config/ skills/ functions/&#xa;memory/ media/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="660" y="1350" width="370" height="100" as="geometry" />
+    </mxCell>
+
+    <!-- ===== EDGES ===== -->
+
+    <!-- スマホ → HTTPS/WSS → Cloudflare -->
+    <mxCell id="E1" value="HTTPS / WSS" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="U1" target="CF" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Cloudflare → HTTP → voice-pwa-frontend -->
+    <mxCell id="E2" value="HTTP" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="CF" target="VF" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Discord → メンション/DM → Discord API (vertical down) -->
+    <mxCell id="E3" value="メンション / DM" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="U2" target="DA" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- voice-pwa-backend → WS: intent/voxclaw_reply → voice-pwa-frontend (purple, left side) -->
+    <mxCell id="E4" value="WS: intent / voxclaw_reply" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;strokeColor=#6666FF;fontColor=#6666FF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="VB" target="VF" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="50" y="712" />
+          <mxPoint x="50" y="512" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- voice-pwa-frontend → nginx proxy → voice-pwa-backend -->
+    <mxCell id="E5" value="nginx proxy&#xa;/ws /api/*" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="VF" target="VB" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- voice-pwa-frontend → 15秒ポーリング → backend (dashed, right side) -->
+    <mxCell id="E6" value="15秒ポーリング&#xa;/api/chat/history" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="VF" target="VB" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="515" y="512" />
+          <mxPoint x="515" y="712" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- voice-pwa-backend → PCM音声ストリーム → Gemini Live API -->
+    <mxCell id="E7" value="PCM音声ストリーム" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="VB" target="GL" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Gemini Live API → report_intent → voice-pwa-backend (right side) -->
+    <mxCell id="E8" value="inputTranscription&#xa;report_intent&#xa;(is_final / context)" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="GL" target="VB" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="515" y="922" />
+          <mxPoint x="515" y="712" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- voice-pwa-backend → POST /api/message → voxclaw -->
+    <mxCell id="E9" value="POST /api/message&#xa;確定した意図テキスト" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="VB" target="VX" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- voxclaw → function calling/tool loop → Gemini API (green) -->
+    <mxCell id="E10" value="function calling&#xa;tool loop" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;strokeColor=#00AA00;fontColor=#00AA00;exitX=0.3;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" source="VX" target="GA" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Gemini API → テキスト応答 → voxclaw (green) -->
+    <mxCell id="E11" value="テキスト応答" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;strokeColor=#00AA00;fontColor=#00AA00;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="GA" target="VX" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- voxclaw → 2秒ポーリング/返答 → Discord API -->
+    <mxCell id="E12" value="2秒ポーリング　返答&#xa;getNewMentions" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="VX" target="DA" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- voxclaw → HTTP → keybinder -->
+    <mxCell id="E13" value="HTTP" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="VX" target="KB" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- keybinder → OAuth/API calls → Google API -->
+    <mxCell id="E14" value="OAuth / API calls" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="KB" target="GG" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- voice-pwa-backend → /api/google-auth, /api/keys proxy → keybinder -->
+    <mxCell id="E15" value="/api/google-auth&#xa;/api/keys proxy" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="VB" target="KB" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- CronRunner → processMessage スケジュール起動 → voxclaw -->
+    <mxCell id="E16" value="processMessage&#xa;スケジュール起動" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="CR" target="VX" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- config vol → cron.json監視 → CronRunner (dashed) -->
+    <mxCell id="E17" value="cron.json監視" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;dashed=1;" edge="1" source="CV" target="CR" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- CronRunner → 結果保存 → SQLite DB -->
+    <mxCell id="E18" value="結果保存" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="CR" target="DB" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- keybinder → skills/functions実行 → config vol -->
+    <mxCell id="E19" value="skills/functions 実行" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="KB" target="CV" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- voice-pwa-backend → chat history R/W → SQLite DB -->
+    <mxCell id="E20" value="chat history R/W" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="VB" target="DB" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- voxclaw → R/W → SQLite DB -->
+    <mxCell id="E21" value="R/W" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="VX" target="DB" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>
