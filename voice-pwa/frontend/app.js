@@ -71,7 +71,7 @@ function applyLang() {
     }
 }
 
-function getFontSize() { return localStorage.getItem(FONT_SIZE_KEY) ?? '0'; }
+function getFontSize() { return localStorage.getItem(FONT_SIZE_KEY) ?? '1'; }
 function setFontSize(v) { localStorage.setItem(FONT_SIZE_KEY, v); }
 
 function applyFontSize(value) {

@@ -120,6 +120,20 @@
       </div>
     </div>
 
+    <p class="settings-section-title">Google</p>
+    <div class="settings-info-item">
+      <div class="key-item-header">
+        <div class="key-item-label">
+          <span class="key-item-name">Google Auth</span>
+          <span class="key-item-value" id="google-auth-status">Checking...</span>
+        </div>
+      </div>
+      <p style="font-size:0.75rem;color:#888;margin:4px 0 0;line-height:1.5">
+        To set up or refresh, ask Voxclaw in chat: "Set up Google authentication".<br>
+        You need to download <code>client_secret.json</code> from Google Cloud Console and place it in <code>keybinder/secrets/</code> first.
+      </p>
+    </div>
+
     <p class="settings-section-title" data-i18n="voice_input_section">音声入力</p>
     <div class="settings-info-item">
       <div class="key-item-header">
@@ -168,7 +182,7 @@
         </div>
       </div>
       <div class="font-size-slider-wrap">
-        <input type="range" id="font-size-slider" min="0" max="2" step="1" value="0" />
+        <input type="range" id="font-size-slider" min="0" max="2" step="1" value="1" />
         <div class="font-size-labels">
           <span>Small</span><span>Medium</span><span>Large</span>
         </div>
@@ -184,20 +198,6 @@
           <option value="en">English</option>
         </select>
       </div>
-    </div>
-
-    <p class="settings-section-title">Google</p>
-    <div class="settings-info-item">
-      <div class="key-item-header">
-        <div class="key-item-label">
-          <span class="key-item-name">Google Auth</span>
-          <span class="key-item-value" id="google-auth-status">Checking...</span>
-        </div>
-      </div>
-      <p style="font-size:0.75rem;color:#888;margin:4px 0 0;line-height:1.5">
-        To set up or refresh, ask Voxclaw in chat: "Set up Google authentication".<br>
-        You need to download <code>client_secret.json</code> from Google Cloud Console and place it in <code>keybinder/secrets/</code> first.
-      </p>
     </div>
   </div>
 
