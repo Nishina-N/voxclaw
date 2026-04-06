@@ -3,6 +3,87 @@ const WS_PROTOCOL = location.protocol === 'https:' ? 'wss:' : 'ws:';
 const TOKEN_KEY = 'voxclaw_token';
 const INTENT_MODE_KEY = 'voxclaw_intent_mode';
 const SPEECH_LANG_KEY = 'voxclaw_speech_lang';
+const UI_LANG_KEY = 'voxclaw_ui_lang';
+const FONT_SIZE_KEY = 'voxclaw_font_size';
+
+// --- i18n ---
+const STRINGS = {
+    en: {
+        voice_input_section:   'Voice Input',
+        intent_mode_label:     'Recognition Mode',
+        intent_mode_standard:  'Standard',
+        intent_mode_faithful:  'Faithful',
+        intent_mode_desc:      '<b>Standard</b>: Gemini extracts an intent summary<br><b>Faithful</b>: Preserves conditions, negations, and context verbatim.',
+        input_lang_label:      'Input Language',
+        input_lang_auto:       'Auto detect',
+        input_lang_note:       'Specifying a language may improve recognition accuracy.',
+        display_section:       'Display',
+        font_size_label:       'Font Size',
+        lang_label:            'Language',
+        mic_denied:            '⚠️ Microphone access denied',
+        google_auth_ok:        'Google authentication complete!',
+        google_auth_fail:      '⚠️ Google authentication failed: ',
+        google_auth_error:     '⚠️ Error during Google authentication',
+        tasks_loading:         'Loading…',
+        tasks_empty:           'No tasks yet',
+        tasks_failed:          'Failed to load',
+    },
+    ja: {
+        voice_input_section:   '音声入力',
+        intent_mode_label:     '音声認識モード',
+        intent_mode_standard:  '標準',
+        intent_mode_faithful:  '発話忠実',
+        intent_mode_desc:      '<b>標準</b>: Geminiが意図を要約して抽出<br><b>発話忠実</b>: 条件・否定・背景をそのまま保持。文字起こしベース。',
+        input_lang_label:      '入力言語',
+        input_lang_auto:       '自動検出',
+        input_lang_note:       '「自動検出」以外を選ぶと認識精度が向上することがあります。',
+        display_section:       'Display',
+        font_size_label:       '文字サイズ',
+        lang_label:            '言語 / Language',
+        mic_denied:            '⚠️ マイクへのアクセスが拒否されました',
+        google_auth_ok:        'Google認証が完了しました！',
+        google_auth_fail:      '⚠️ Google認証に失敗しました: ',
+        google_auth_error:     '⚠️ Google認証中にエラーが発生しました',
+        tasks_loading:         '読み込み中…',
+        tasks_empty:           'タスクはまだありません',
+        tasks_failed:          '読み込みに失敗しました',
+    },
+};
+
+function getUiLang() { return localStorage.getItem(UI_LANG_KEY) ?? 'ja'; }
+function setUiLang(l) { localStorage.setItem(UI_LANG_KEY, l); }
+function t(key) { return STRINGS[getUiLang()]?.[key] ?? STRINGS.en[key] ?? key; }
+
+function applyLang() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (el.dataset.i18nHtml) {
+            el.innerHTML = t(key);
+        } else {
+            el.textContent = t(key);
+        }
+    });
+    // Update dynamic labels that depend on stored state
+    const modeLabel = document.getElementById('intent-mode-label');
+    if (modeLabel) {
+        const mode = getIntentMode();
+        modeLabel.textContent = mode === 'faithful' ? t('intent_mode_faithful') : t('intent_mode_standard');
+    }
+}
+
+function getFontSize() { return localStorage.getItem(FONT_SIZE_KEY) ?? '1'; }
+function setFontSize(v) { localStorage.setItem(FONT_SIZE_KEY, v); }
+
+function applyFontSize(value) {
+    const html = document.documentElement;
+    html.classList.remove('font-medium', 'font-large');
+    if (value === '1') html.classList.add('font-medium');
+    else if (value === '2') html.classList.add('font-large');
+}
+
+// Apply on load
+applyFontSize(getFontSize());
+// applyLang() called after DOM functions are defined (end of file)
 
 // --- Auth ---
 const loginScreen   = document.getElementById('login-screen');
@@ -54,7 +135,8 @@ let mediaStream = null;
 let processor = null;
 let isRecording = false;
 let typingMessageEl = null;
-let speechRecognition = null;
+let activeMicBtn = null;   // mic button currently in use
+let activeInput = null;    // input field currently targeted by mic
 
 // --- DOM ---
 const chatMessages  = document.getElementById('chat-messages');
@@ -62,6 +144,8 @@ const btnMic        = document.getElementById('btn-mic');
 const inputText     = document.getElementById('input-text');
 const btnSend       = document.getElementById('btn-send');
 const intentContext = document.getElementById('intent-context');
+const btnTaskMic    = document.getElementById('btn-task-mic');
+const taskAddInput  = document.getElementById('task-add-input');
 
 // 起動時：トークンがあればそのまま接続、なければログイン画面を表示
 if (getToken()) {
@@ -87,7 +171,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
-        if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); initIntentModeUI(); initSpeechLangUI(); }
+        if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); initIntentModeUI(); initSpeechLangUI(); initFontSizeUI(); initLangUI(); }
         if (btn.dataset.tab === 'skills') loadSkills();
         if (btn.dataset.tab === 'cron') loadCronTab();
         if (btn.dataset.tab === 'task') loadTaskTab();
@@ -109,6 +193,7 @@ function connectWs() {
         sendLanguageToServer(getSpeechLanguage());
     });
     ws.addEventListener('close', (e) => {
+        if (isRecording) stopRecording();
         if (e.code === 4001) {
             // 認証エラー（サーバー明示）：ログアウト
             forceLogout();
@@ -123,22 +208,23 @@ function connectWs() {
         const msg = JSON.parse(e.data);
 
         if (msg.type === 'intent') {
-            inputText.value = msg.text;
-            // Draft (is_final: false): dim the textarea to signal "still thinking"
-            if (msg.isFinal === false) {
-                inputText.classList.add('intent-draft');
-            } else {
-                inputText.classList.remove('intent-draft');
+            if (activeInput) activeInput.value = msg.text;
+            if (activeInput === inputText) {
+                // Chat: draft dimming and context display
+                if (msg.isFinal === false) {
+                    inputText.classList.add('intent-draft');
+                } else {
+                    inputText.classList.remove('intent-draft');
+                }
+                if (msg.context) {
+                    intentContext.textContent = msg.context;
+                    intentContext.classList.add('visible');
+                } else if (msg.isFinal !== false) {
+                    intentContext.textContent = '';
+                    intentContext.classList.remove('visible');
+                }
+                updateSendState();
             }
-            // Show context below the input bar when present
-            if (msg.context) {
-                intentContext.textContent = msg.context;
-                intentContext.classList.add('visible');
-            } else if (msg.isFinal !== false) {
-                intentContext.textContent = '';
-                intentContext.classList.remove('visible');
-            }
-            updateSendState();
 
         } else if (msg.type === 'voxclaw_reply') {
             removeTyping();
@@ -174,19 +260,24 @@ function updateSendState() {
 }
 
 // --- Mic ---
-btnMic.addEventListener('click', async () => {
-    if (isRecording) {
-        stopRecording();
-    } else {
-        await startRecording();
-    }
-});
+function setupMicButton(micBtn, targetInput) {
+    micBtn.addEventListener('click', async () => {
+        if (isRecording && activeMicBtn === micBtn) {
+            stopRecording();
+        } else {
+            if (isRecording) stopRecording(); // stop any other active recording
+            await startRecording(micBtn, targetInput);
+        }
+    });
+}
+setupMicButton(btnMic, inputText);
+setupMicButton(btnTaskMic, taskAddInput);
 
-async function startRecording() {
+async function startRecording(micBtn, targetInput) {
     try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-        appendMessage('voxclaw', '⚠️ Microphone access denied');
+        appendMessage('voxclaw', t('mic_denied'));
         return;
     }
 
@@ -205,20 +296,18 @@ async function startRecording() {
     };
 
     isRecording = true;
-    btnMic.classList.add('recording');
-    inputText.value = '';
-    updateSendState();
-
-    // Faithful mode: use browser SpeechRecognition for real-time interim display
-    if (getIntentMode() === 'faithful') {
-        startBrowserSpeechRecognition();
-    }
+    activeMicBtn = micBtn;
+    activeInput = targetInput;
+    micBtn.classList.add('recording');
+    targetInput.value = '';
+    if (targetInput === inputText) updateSendState();
 }
 
 function stopRecording() {
     isRecording = false;
-    btnMic.classList.remove('recording');
-    stopBrowserSpeechRecognition();
+    activeMicBtn?.classList.remove('recording');
+    activeMicBtn = null;
+    activeInput = null;
 
     if (processor) { processor.disconnect(); processor = null; }
     if (audioContext) { audioContext.close(); audioContext = null; }
@@ -229,44 +318,6 @@ function stopRecording() {
     }
 }
 
-// Browser SpeechRecognition for real-time interim transcription (faithful mode only)
-function startBrowserSpeechRecognition() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return; // not supported — fall back gracefully
-
-    try {
-        speechRecognition = new SR();
-        speechRecognition.continuous = true;
-        speechRecognition.interimResults = true;
-        const lang = getSpeechLanguage();
-        if (lang) speechRecognition.lang = lang;
-
-        speechRecognition.onresult = (e) => {
-            let interim = '';
-            for (let i = e.resultIndex; i < e.results.length; i++) {
-                interim += e.results[i][0].transcript;
-            }
-            if (interim) {
-                inputText.value = interim;
-                inputText.classList.add('intent-draft');
-                updateSendState();
-            }
-        };
-        speechRecognition.onerror = () => {
-            // Ignore errors (e.g. overlap with Gemini audio capture) — Gemini result will arrive
-        };
-        speechRecognition.start();
-    } catch {
-        speechRecognition = null;
-    }
-}
-
-function stopBrowserSpeechRecognition() {
-    if (speechRecognition) {
-        try { speechRecognition.stop(); } catch {}
-        speechRecognition = null;
-    }
-}
 
 // --- Send ---
 btnSend.addEventListener('click', sendMessage);
@@ -276,8 +327,6 @@ function sendMessage() {
     if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
 
     appendMessage('user', text);
-    // Advance lastSeenTimestamp so the 15s poll doesn't re-append this message from DB
-    lastSeenTimestamp = new Date().toISOString();
     inputText.value = '';
     inputText.classList.remove('intent-draft');
     intentContext.textContent = '';
@@ -304,18 +353,18 @@ function renderMessageBody(text) {
 }
 
 async function loadMediaImages(container) {
-    const imgs = container.querySelectorAll('img[data-media]');
-    for (const img of imgs) {
+    const imgs = [...container.querySelectorAll('img[data-media]')];
+    await Promise.all(imgs.map(async (img) => {
         const filename = img.dataset.media;
         try {
             const res = await fetch(`/api/media/${filename}`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` },
             });
-            if (!res.ok) continue;
+            if (!res.ok) return;
             const blob = await res.blob();
             img.src = URL.createObjectURL(blob);
         } catch { /* ignore */ }
-    }
+    }));
 }
 
 function appendMessage(role, text, date) {
@@ -428,11 +477,15 @@ async function pollNewMessages() {
         let hasNew = false;
         for (const msg of messages) {
             if (lastSeenTimestamp && msg.timestamp <= lastSeenTimestamp) continue;
-            appendMessage(msg.is_bot ? 'voxclaw' : 'user', msg.content, new Date(msg.timestamp));
+            // Only show bot messages from polling — user messages are already shown
+            // optimistically in sendMessage(), so polling them causes duplicates.
+            if (msg.is_bot) {
+                appendMessage('voxclaw', msg.content, new Date(msg.timestamp));
+                hasNew = true;
+            }
             if (!lastSeenTimestamp || msg.timestamp > lastSeenTimestamp) {
                 lastSeenTimestamp = msg.timestamp;
             }
-            hasNew = true;
         }
         if (hasNew) scrollToBottom();
     } catch { /* ignore */ }
@@ -517,6 +570,35 @@ function initSpeechLangUI() {
     });
 }
 
+function updateSliderFill(slider) {
+    const pct = (parseInt(slider.value) / 2) * 100;
+    slider.style.background = `linear-gradient(to right, #1a1a1a ${pct}%, #1a1a1a ${pct}%, #e5e5e5 ${pct}%, #e5e5e5 100%)`;
+}
+
+function initFontSizeUI() {
+    const slider = document.getElementById('font-size-slider');
+    if (!slider) return;
+    slider.value = getFontSize();
+    updateSliderFill(slider);
+    slider.addEventListener('input', () => {
+        setFontSize(slider.value);
+        applyFontSize(slider.value);
+        updateSliderFill(slider);
+    });
+}
+
+function initLangUI() {
+    const select = document.getElementById('ui-lang-select');
+    if (!select) return;
+    select.value = getUiLang();
+    select.addEventListener('change', () => {
+        setUiLang(select.value);
+        applyLang();
+        // Re-init intent mode label after lang change
+        initIntentModeUI();
+    });
+}
+
 function initIntentModeUI() {
     const toggle = document.getElementById('intent-mode-toggle');
     const label  = document.getElementById('intent-mode-label');
@@ -524,12 +606,12 @@ function initIntentModeUI() {
 
     const mode = getIntentMode();
     toggle.checked = mode === 'faithful';
-    label.textContent = mode === 'faithful' ? '発話忠実' : '標準';
+    label.textContent = mode === 'faithful' ? t('intent_mode_faithful') : t('intent_mode_standard');
 
     toggle.addEventListener('change', () => {
         const newMode = toggle.checked ? 'faithful' : 'standard';
         setIntentMode(newMode);
-        label.textContent = newMode === 'faithful' ? '発話忠実' : '標準';
+        label.textContent = newMode === 'faithful' ? t('intent_mode_faithful') : t('intent_mode_standard');
         sendModeToServer(newMode);
     });
 }
@@ -583,13 +665,13 @@ async function loadGoogleStatus() {
             body: JSON.stringify({ code }),
         });
         if (res.ok) {
-            appendMessage('voxclaw', 'Google authentication complete!');
+            appendMessage('voxclaw', t('google_auth_ok'));
         } else {
             const err = await res.json();
-            appendMessage('voxclaw', `⚠️ Google authentication failed: ${err.error}`);
+            appendMessage('voxclaw', t('google_auth_fail') + err.error);
         }
     } catch {
-        appendMessage('voxclaw', '⚠️ Error during Google authentication');
+        appendMessage('voxclaw', t('google_auth_error'));
     }
 })();
 
@@ -655,7 +737,7 @@ function skillToId(name) {
 
 // Extract skill name from cron entry prompt
 function skillNameFromEntry(entry) {
-    const m = entry?.prompt?.match(/Execute the '(.+)' skill now/);
+    const m = entry?.prompt?.match(/Execute the skill "(.+)" now/);
     return m ? m[1] : null;
 }
 
@@ -736,7 +818,7 @@ async function loadCronTab() {
         // "+" add button
         const addBar = document.createElement('div');
         addBar.id = 'cron-add-bar';
-        addBar.innerHTML = `<button id="cron-add-btn">+</button>`;
+        addBar.innerHTML = `<button id="cron-add-btn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>`;
         list.appendChild(addBar);
 
         document.getElementById('cron-add-btn').addEventListener('click', () => {
@@ -910,7 +992,7 @@ function renderCronItem(skill, entry) {
                 body: JSON.stringify({
                     id,
                     cron: buildCronExpr(hour, minute, mode, days),
-                    prompt: `[Scheduled task] Execute the '${skill.name}' skill now. This is an automated run \u2014 complete the skill from /app/skills/ in full, independent of any prior conversation.`,
+                    prompt: `[Scheduled task] Execute the skill "${skill.name}" now. This is an automated run \u2014 complete the skill from /app/skills/ in full, independent of any prior conversation.`,
                     channelId,
                     enabled,
                 }),
@@ -942,14 +1024,14 @@ async function loadTaskTab() {
 
 async function loadTasks() {
     const container = document.getElementById('task-items');
-    container.innerHTML = '<p class="task-empty">Loading…</p>';
+    container.innerHTML = `<p class="task-empty">${t('tasks_loading')}</p>`;
     try {
         const res = await apiRequest('/api/tasks');
         if (!res.ok) throw new Error();
         const tasks = await res.json();
         container.innerHTML = '';
         if (!tasks.length) {
-            container.innerHTML = '<p class="task-empty">No tasks yet</p>';
+            container.innerHTML = `<p class="task-empty">${t('tasks_empty')}</p>`;
             return;
         }
         // Incomplete first, then completed
@@ -958,7 +1040,7 @@ async function loadTasks() {
             container.appendChild(renderTaskItem(task));
         }
     } catch {
-        container.innerHTML = '<p class="task-empty">Failed to load</p>';
+        container.innerHTML = `<p class="task-empty">${t('tasks_failed')}</p>`;
     }
 }
 
@@ -992,6 +1074,8 @@ function renderTaskItem(task) {
             <span class="skill-item-chevron">▾</span>
         </div>
         <div class="skill-item-body" style="display:none">
+            <span class="task-field-label">Title</span>
+            <input class="task-title-input" type="text" value="${escapeHtml(task.title)}">
             <span class="task-field-label">Notes</span>
             <textarea class="task-notes-input" placeholder="Add notes…">${escapeHtml(task.notes ?? '')}</textarea>
             <span class="task-field-label">Due date</span>
@@ -1023,16 +1107,18 @@ function renderTaskItem(task) {
         } catch {}
     });
 
-    // Save (notes + due)
+    // Save (title + notes + due)
     el.querySelector('.task-save-btn').addEventListener('click', async () => {
+        const title = el.querySelector('.task-title-input').value.trim();
         const notes = el.querySelector('.task-notes-input').value.trim() || null;
         const due   = el.querySelector('.task-due-input').value || null;
-        const btn   = el.querySelector('.task-save-btn');
+        if (!title) return;
+        const btn = el.querySelector('.task-save-btn');
         btn.textContent = 'Saving…'; btn.disabled = true;
         try {
             await apiRequest(`/api/tasks/${encodeURIComponent(task.id)}`, {
                 method: 'PATCH',
-                body: JSON.stringify({ notes, due }),
+                body: JSON.stringify({ title, notes, due }),
             });
             loadTasks();
         } finally { btn.textContent = 'Save'; btn.disabled = false; }
@@ -1070,3 +1156,6 @@ async function addTask() {
         loadTasks();
     } catch {}
 }
+
+// Apply language strings on initial load
+applyLang();
