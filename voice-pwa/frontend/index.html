@@ -120,11 +120,11 @@
       </div>
     </div>
 
-    <p class="settings-section-title">音声入力</p>
+    <p class="settings-section-title" data-i18n="voice_input_section">音声入力</p>
     <div class="settings-info-item">
       <div class="key-item-header">
         <div class="key-item-label">
-          <span class="key-item-name">音声認識モード</span>
+          <span class="key-item-name" data-i18n="intent_mode_label">音声認識モード</span>
           <span class="key-item-value" id="intent-mode-label">標準</span>
         </div>
         <label class="cron-toggle" id="intent-mode-toggle-wrap">
@@ -132,7 +132,7 @@
           <span class="cron-toggle-slider"></span>
         </label>
       </div>
-      <p style="font-size:0.75rem;color:#888;margin:8px 0 0;line-height:1.6">
+      <p style="font-size:0.75rem;color:#888;margin:8px 0 0;line-height:1.6" data-i18n="intent_mode_desc" data-i18n-html="1">
         <b>標準</b>: Geminiが意図を要約して抽出<br>
         <b>発話忠実</b>: 条件・否定・背景をそのまま保持。文字起こしベース。
       </p>
@@ -140,10 +140,10 @@
     <div class="settings-info-item" style="margin-top:12px">
       <div class="key-item-header">
         <div class="key-item-label">
-          <span class="key-item-name">入力言語</span>
+          <span class="key-item-name" data-i18n="input_lang_label">入力言語</span>
         </div>
         <select id="speech-lang-select" class="speech-lang-select">
-          <option value="">自動検出</option>
+          <option value="" data-i18n="input_lang_auto">自動検出</option>
           <option value="ja-JP">日本語</option>
           <option value="en-US">English (US)</option>
           <option value="en-GB">English (UK)</option>
@@ -155,9 +155,35 @@
           <option value="es-ES">Español</option>
         </select>
       </div>
-      <p style="font-size:0.75rem;color:#888;margin:8px 0 0;line-height:1.5">
+      <p style="font-size:0.75rem;color:#888;margin:8px 0 0;line-height:1.5" data-i18n="input_lang_note">
         「自動検出」以外を選ぶと認識精度が向上することがあります。
       </p>
+    </div>
+
+    <p class="settings-section-title" data-i18n="display_section">Display</p>
+    <div class="settings-info-item">
+      <div class="key-item-header">
+        <div class="key-item-label">
+          <span class="key-item-name" data-i18n="font_size_label">文字サイズ</span>
+        </div>
+      </div>
+      <div class="font-size-slider-wrap">
+        <input type="range" id="font-size-slider" min="0" max="2" step="1" value="0" />
+        <div class="font-size-labels">
+          <span>Small</span><span>Medium</span><span>Large</span>
+        </div>
+      </div>
+    </div>
+    <div class="settings-info-item">
+      <div class="key-item-header">
+        <div class="key-item-label">
+          <span class="key-item-name" data-i18n="lang_label">言語 / Language</span>
+        </div>
+        <select id="ui-lang-select" class="speech-lang-select">
+          <option value="ja">日本語</option>
+          <option value="en">English</option>
+        </select>
+      </div>
     </div>
 
     <p class="settings-section-title">Google</p>

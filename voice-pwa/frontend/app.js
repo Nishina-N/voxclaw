@@ -3,6 +3,87 @@ const WS_PROTOCOL = location.protocol === 'https:' ? 'wss:' : 'ws:';
 const TOKEN_KEY = 'voxclaw_token';
 const INTENT_MODE_KEY = 'voxclaw_intent_mode';
 const SPEECH_LANG_KEY = 'voxclaw_speech_lang';
+const UI_LANG_KEY = 'voxclaw_ui_lang';
+const FONT_SIZE_KEY = 'voxclaw_font_size';
+
+// --- i18n ---
+const STRINGS = {
+    en: {
+        voice_input_section:   'Voice Input',
+        intent_mode_label:     'Recognition Mode',
+        intent_mode_standard:  'Standard',
+        intent_mode_faithful:  'Faithful',
+        intent_mode_desc:      '<b>Standard</b>: Gemini extracts an intent summary<br><b>Faithful</b>: Preserves conditions, negations, and context verbatim.',
+        input_lang_label:      'Input Language',
+        input_lang_auto:       'Auto detect',
+        input_lang_note:       'Specifying a language may improve recognition accuracy.',
+        display_section:       'Display',
+        font_size_label:       'Font Size',
+        lang_label:            'Language',
+        mic_denied:            '⚠️ Microphone access denied',
+        google_auth_ok:        'Google authentication complete!',
+        google_auth_fail:      '⚠️ Google authentication failed: ',
+        google_auth_error:     '⚠️ Error during Google authentication',
+        tasks_loading:         'Loading…',
+        tasks_empty:           'No tasks yet',
+        tasks_failed:          'Failed to load',
+    },
+    ja: {
+        voice_input_section:   '音声入力',
+        intent_mode_label:     '音声認識モード',
+        intent_mode_standard:  '標準',
+        intent_mode_faithful:  '発話忠実',
+        intent_mode_desc:      '<b>標準</b>: Geminiが意図を要約して抽出<br><b>発話忠実</b>: 条件・否定・背景をそのまま保持。文字起こしベース。',
+        input_lang_label:      '入力言語',
+        input_lang_auto:       '自動検出',
+        input_lang_note:       '「自動検出」以外を選ぶと認識精度が向上することがあります。',
+        display_section:       'Display',
+        font_size_label:       '文字サイズ',
+        lang_label:            '言語 / Language',
+        mic_denied:            '⚠️ マイクへのアクセスが拒否されました',
+        google_auth_ok:        'Google認証が完了しました！',
+        google_auth_fail:      '⚠️ Google認証に失敗しました: ',
+        google_auth_error:     '⚠️ Google認証中にエラーが発生しました',
+        tasks_loading:         '読み込み中…',
+        tasks_empty:           'タスクはまだありません',
+        tasks_failed:          '読み込みに失敗しました',
+    },
+};
+
+function getUiLang() { return localStorage.getItem(UI_LANG_KEY) ?? 'ja'; }
+function setUiLang(l) { localStorage.setItem(UI_LANG_KEY, l); }
+function t(key) { return STRINGS[getUiLang()]?.[key] ?? STRINGS.en[key] ?? key; }
+
+function applyLang() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (el.dataset.i18nHtml) {
+            el.innerHTML = t(key);
+        } else {
+            el.textContent = t(key);
+        }
+    });
+    // Update dynamic labels that depend on stored state
+    const modeLabel = document.getElementById('intent-mode-label');
+    if (modeLabel) {
+        const mode = getIntentMode();
+        modeLabel.textContent = mode === 'faithful' ? t('intent_mode_faithful') : t('intent_mode_standard');
+    }
+}
+
+function getFontSize() { return localStorage.getItem(FONT_SIZE_KEY) ?? '0'; }
+function setFontSize(v) { localStorage.setItem(FONT_SIZE_KEY, v); }
+
+function applyFontSize(value) {
+    const html = document.documentElement;
+    html.classList.remove('font-medium', 'font-large');
+    if (value === '1') html.classList.add('font-medium');
+    else if (value === '2') html.classList.add('font-large');
+}
+
+// Apply on load
+applyFontSize(getFontSize());
+// applyLang() called after DOM functions are defined (end of file)
 
 // --- Auth ---
 const loginScreen   = document.getElementById('login-screen');
@@ -90,7 +171,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
-        if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); initIntentModeUI(); initSpeechLangUI(); }
+        if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); initIntentModeUI(); initSpeechLangUI(); initFontSizeUI(); initLangUI(); }
         if (btn.dataset.tab === 'skills') loadSkills();
         if (btn.dataset.tab === 'cron') loadCronTab();
         if (btn.dataset.tab === 'task') loadTaskTab();
@@ -196,7 +277,7 @@ async function startRecording(micBtn, targetInput) {
     try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-        appendMessage('voxclaw', '⚠️ Microphone access denied');
+        appendMessage('voxclaw', t('mic_denied'));
         return;
     }
 
@@ -489,6 +570,35 @@ function initSpeechLangUI() {
     });
 }
 
+function updateSliderFill(slider) {
+    const pct = (parseInt(slider.value) / 2) * 100;
+    slider.style.background = `linear-gradient(to right, #1a1a1a ${pct}%, #1a1a1a ${pct}%, #e5e5e5 ${pct}%, #e5e5e5 100%)`;
+}
+
+function initFontSizeUI() {
+    const slider = document.getElementById('font-size-slider');
+    if (!slider) return;
+    slider.value = getFontSize();
+    updateSliderFill(slider);
+    slider.addEventListener('input', () => {
+        setFontSize(slider.value);
+        applyFontSize(slider.value);
+        updateSliderFill(slider);
+    });
+}
+
+function initLangUI() {
+    const select = document.getElementById('ui-lang-select');
+    if (!select) return;
+    select.value = getUiLang();
+    select.addEventListener('change', () => {
+        setUiLang(select.value);
+        applyLang();
+        // Re-init intent mode label after lang change
+        initIntentModeUI();
+    });
+}
+
 function initIntentModeUI() {
     const toggle = document.getElementById('intent-mode-toggle');
     const label  = document.getElementById('intent-mode-label');
@@ -496,12 +606,12 @@ function initIntentModeUI() {
 
     const mode = getIntentMode();
     toggle.checked = mode === 'faithful';
-    label.textContent = mode === 'faithful' ? '発話忠実' : '標準';
+    label.textContent = mode === 'faithful' ? t('intent_mode_faithful') : t('intent_mode_standard');
 
     toggle.addEventListener('change', () => {
         const newMode = toggle.checked ? 'faithful' : 'standard';
         setIntentMode(newMode);
-        label.textContent = newMode === 'faithful' ? '発話忠実' : '標準';
+        label.textContent = newMode === 'faithful' ? t('intent_mode_faithful') : t('intent_mode_standard');
         sendModeToServer(newMode);
     });
 }
@@ -555,13 +665,13 @@ async function loadGoogleStatus() {
             body: JSON.stringify({ code }),
         });
         if (res.ok) {
-            appendMessage('voxclaw', 'Google authentication complete!');
+            appendMessage('voxclaw', t('google_auth_ok'));
         } else {
             const err = await res.json();
-            appendMessage('voxclaw', `⚠️ Google authentication failed: ${err.error}`);
+            appendMessage('voxclaw', t('google_auth_fail') + err.error);
         }
     } catch {
-        appendMessage('voxclaw', '⚠️ Error during Google authentication');
+        appendMessage('voxclaw', t('google_auth_error'));
     }
 })();
 
@@ -914,14 +1024,14 @@ async function loadTaskTab() {
 
 async function loadTasks() {
     const container = document.getElementById('task-items');
-    container.innerHTML = '<p class="task-empty">Loading…</p>';
+    container.innerHTML = `<p class="task-empty">${t('tasks_loading')}</p>`;
     try {
         const res = await apiRequest('/api/tasks');
         if (!res.ok) throw new Error();
         const tasks = await res.json();
         container.innerHTML = '';
         if (!tasks.length) {
-            container.innerHTML = '<p class="task-empty">No tasks yet</p>';
+            container.innerHTML = `<p class="task-empty">${t('tasks_empty')}</p>`;
             return;
         }
         // Incomplete first, then completed
@@ -930,7 +1040,7 @@ async function loadTasks() {
             container.appendChild(renderTaskItem(task));
         }
     } catch {
-        container.innerHTML = '<p class="task-empty">Failed to load</p>';
+        container.innerHTML = `<p class="task-empty">${t('tasks_failed')}</p>`;
     }
 }
 
@@ -1046,3 +1156,6 @@ async function addTask() {
         loadTasks();
     } catch {}
 }
+
+// Apply language strings on initial load
+applyLang();
