@@ -1,10 +1,11 @@
 # Environment / Secrets
 .env
-config/secrets_for_skills.json
 keybinder/secrets/*
 !keybinder/secrets/.gitkeep
 !keybinder/secrets/keys.example.json
-keybinder/client_secret.json
+
+# User-specific runtime config (may contain personal data)
+config/channels.json
 
 # Dependencies
 node_modules/
