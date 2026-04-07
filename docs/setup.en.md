@@ -1,15 +1,18 @@
 # Setup Guide
 
-[🇯🇵 日本語](setup.md) | [← Back to README](../README.en.md)
+[🇯🇵 日本語](setup.md) | [← Back to README](../README.md)
 
 ## Table of Contents
 
 1. [Prerequisites](#1-prerequisites)
 2. [Clone the Repository](#2-clone-the-repository)
 3. [Set Environment Variables](#3-set-environment-variables)
-4. [Set Up Google APIs (Optional)](#4-set-up-google-apis-optional)
-5. [Start with Docker](#5-start-with-docker)
-6. [Verify It Works](#6-verify-it-works)
+4. [Start](#4-start)
+5. [Verify It Works](#5-verify-it-works)
+6. [Optional: Discord Integration](#6-optional-discord-integration)
+7. [Optional: Google API Integration](#7-optional-google-api-integration)
+8. [Optional: Cloudflare Tunnel (External Access)](#8-optional-cloudflare-tunnel-external-access)
+9. [Optional: API Keys for Skills](#9-optional-api-keys-for-skills)
 
 ---
 
@@ -19,14 +22,15 @@ Prepare the following in advance.
 
 - **Docker Desktop** (Windows / Mac) or **Docker Engine** (Linux)
 - **Gemini API key** — [How to get one](#getting-a-gemini-api-key)
-- **Discord Bot token** — [How to get one](#creating-a-discord-bot-and-getting-the-token)
+
+Discord and Google integrations are optional. The minimal setup does not require them.
 
 ---
 
 ## 2. Clone the Repository
 
 ```bash
-git clone https://github.com/qwibitai/voxclaw.git
+git clone https://github.com/Nishina-N/voxclaw.git
 cd voxclaw
 ```
 
@@ -34,29 +38,135 @@ cd voxclaw
 
 ## 3. Set Environment Variables
 
-### 3-1. Create the .env file
-
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` and fill in the following:
+Open `.env` and set at minimum these two values:
 
 ```env
-DISCORD_TOKEN=your_discord_bot_token
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-3.1-flash-lite-preview  # Optional (default value)
+GEMINI_API_KEY=your-gemini-api-key
+PWA_PASSWORD=your-login-password
 ```
 
-### 3-2. Configure Key Binder API keys
+All other settings are optional and can be added later.
 
-Required if you want to use external APIs (Brave Search, Mapbox, etc.). You can start without them if not needed.
+---
+
+## 4. Start
 
 ```bash
-cp keybinder/secrets_for_skills.example.json keybinder/secrets_for_skills.json
+docker compose up -d --build
 ```
 
-Open `keybinder/secrets_for_skills.json` and fill in your keys:
+The first run takes a few minutes to build the images.
+
+---
+
+## 5. Verify It Works
+
+Open **http://localhost:3000** in your browser.
+
+Log in with the `PWA_PASSWORD` you set, then try typing or speaking in the Chat tab.
+
+```bash
+# To check logs
+docker compose logs -f
+```
+
+---
+
+## 6. Optional: Discord Integration
+
+Set this up if you want Voxclaw to work as a Discord bot.
+
+### 6-1. Get a Bot Token
+
+See [Creating a Discord Bot and Getting the Token](#creating-a-discord-bot-and-getting-the-token).
+
+### 6-2. Add to .env
+
+```env
+DISCORD_TOKEN=your-bot-token
+TALK_CHANNEL_ID=channel-id-for-unprompted-responses   # optional
+```
+
+If `TALK_CHANNEL_ID` is set, Voxclaw responds to all messages in that channel without needing an `@voxclaw` mention. Otherwise only `@voxclaw` mentions are processed.
+
+### 6-3. Restart
+
+```bash
+docker compose up -d --build
+```
+
+---
+
+## 7. Optional: Google API Integration
+
+Required only if you want to use Google Calendar, Drive, Sheets, or Tasks.
+
+### 7-1. Set Up a Google Cloud Project
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create or select a project.
+2. Under **APIs & Services → Library**, enable the APIs you want to use:
+   - Google Calendar API
+   - Google Drive API
+   - Google Sheets API
+   - Google Tasks API
+
+### 7-2. Create an OAuth2 Client ID
+
+1. Go to **APIs & Services → Credentials → Create credentials → OAuth client ID**.
+2. Application type: **Web application**.
+3. Add **`http://localhost:3000/auth/google/callback`** as an authorized redirect URI.
+   > If using Cloudflare Tunnel or another domain, update `GOOGLE_OAUTH_REDIRECT_URI` in `.env` and register that URL here too.
+4. Download the generated JSON and save it as **`keybinder/secrets/client_secret.json`**.
+
+### 7-3. Add Yourself as a Test User
+
+Go to **APIs & Services → OAuth consent screen → Test users** and add your Google account email.
+
+> Skipping this step will result in `Error 403: access_denied` during authentication.
+
+### 7-4. Complete Authentication
+
+With Docker running, **send "Set up Google authentication" in the Voxclaw chat**. Click the link that appears and log in with your Google account.
+
+> After authentication, `keybinder/secrets/token.json` is created automatically. The keybinder refreshes it automatically — no need to re-authenticate.
+
+---
+
+## 8. Optional: Cloudflare Tunnel (External Access)
+
+Use this to expose your home server via a domain. Useful for accessing Voxclaw from your smartphone.
+
+### 8-1. Create a Tunnel in Cloudflare
+
+Go to [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → **Access → Tunnels**, create a new tunnel, and copy the token.
+
+### 8-2. Add to .env
+
+```env
+CLOUDFLARE_TUNNEL_TOKEN=your-tunnel-token
+```
+
+### 8-3. Start with the tunnel profile
+
+```bash
+docker compose --profile tunnel up -d
+```
+
+---
+
+## 9. Optional: API Keys for Skills
+
+Required only if you want to use Brave Search (web search) or Mapbox (maps) skills.
+
+```bash
+cp keybinder/secrets/keys.example.json keybinder/secrets/keys.json
+```
+
+Edit `keybinder/secrets/keys.json` to add your API keys:
 
 ```json
 {
@@ -65,139 +175,57 @@ Open `keybinder/secrets_for_skills.json` and fill in your keys:
 }
 ```
 
----
-
-## 4. Set Up Google APIs (Optional)
-
-Only required if you want to use Drive, Calendar, Tasks, or Sheets integration. Skip this section if you don't need it.
-
-### 4-1. Configure your Google Cloud project
-
-1. Open [Google Cloud Console](https://console.cloud.google.com/) and sign in with your Google account.
-2. Select a project (or create a new one).
-3. Go to **APIs & Services → Library** and enable the following APIs:
-   - Google Drive API
-   - Google Calendar API
-   - Google Tasks API
-   - Google Sheets API
-
-### 4-2. Create an OAuth2 Client ID
-
-1. Go to **APIs & Services → Credentials**.
-2. Click **Create credentials → OAuth client ID**.
-3. Select **Desktop app** as the application type.
-4. Enter a name (e.g. `voxclaw`) and click **Create**.
-5. Download the generated JSON file and save it as `keybinder/client_secret.json`.
-
-> One `client_secret.json` covers all APIs — it represents your app, not any specific API. Which APIs you can access is controlled by scopes.
-
-### 4-3. Add yourself as a test user
-
-While the app is in testing mode (the default for personal use), only registered test users can authenticate.
-
-1. Go to **APIs & Services → OAuth consent screen**.
-2. Under the "Test users" section, click **+ ADD USERS**.
-3. Add your Google account email address and save.
-
-> Skipping this step will result in `Error 403: access_denied` during authentication.
-
-### 4-4. Run the authentication script
+Then restart keybinder:
 
 ```bash
-pip install google-auth-oauthlib
-cd keybinder
-python3 setup_google_auth.py
-```
-
-A browser window will open. Sign in with your Google account and grant access. When complete, `keybinder/token.json` is saved automatically.
-
-> `token.json` contains an `access_token` (expires in 1 hour) and a `refresh_token` (long-lived). The keybinder refreshes the token automatically — no need to re-run the script.
-
-### 4-5. Adding new API scopes later
-
-Add the new scope to the `SCOPES` list in `setup_google_auth.py`, delete `keybinder/token.json`, and re-run the script.
-
-```bash
-rm keybinder/token.json
-cd keybinder && python3 setup_google_auth.py
-```
-
-> Both `client_secret.json` and `token.json` are listed in `.gitignore` and will never be committed to Git.
-
----
-
-## 5. Start with Docker
-
-```bash
-docker-compose up -d --build
+docker compose restart keybinder
 ```
 
 ---
 
-## 6. Verify It Works
-
-```bash
-docker-compose logs -f  # View logs (Ctrl+C to exit)
-```
-
-Mention the bot on Discord to start chatting.
-
-```
-@voxclaw Hello!
-```
-
----
-
-## Appendix: How to Get API Keys
-
-### Getting a Gemini API Key
+## Appendix: Getting a Gemini API Key
 
 1. Go to [Google AI Studio](https://aistudio.google.com/) and sign in with your Google account.
 2. Click **"Get API key"** in the left menu.
-3. Press **"Create API key"** to generate a key.
-4. Copy the key and paste it into `GEMINI_API_KEY=` in your `.env` file.
+3. Click **"Create API key"** and copy the generated key.
+4. Paste it into `.env` as `GEMINI_API_KEY=`.
 
-> **Free tier**: As of March 2026, `gemini-3.1-flash-light` is available on the free tier. Usage can be checked in the [Google AI Studio](https://aistudio.google.com/) dashboard.
+> **Free tier**: As of early 2026, Gemini 2.5 Flash models are available on the free tier. Monitor usage at [Google AI Studio](https://aistudio.google.com/).
 
 ---
 
-### Creating a Discord Bot and Getting the Token
+## Appendix: Creating a Discord Bot and Getting the Token
 
-#### 1. Create an application
+### 1. Create an Application
 
-1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and log in with your Discord account.
-2. Click **"New Application"** in the upper right.
-3. Enter an application name (e.g. `voxclaw`) and press **"Create"**.
+1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and log in.
+2. Click **"New Application"** in the top right.
+3. Enter a name (e.g. `voxclaw`) and click **"Create"**.
 
-#### 2. Add a Bot and get the token
+### 2. Get the Bot Token
 
 1. Click **"Bot"** in the left menu.
-2. Press **"Add Bot"** (or "Reset Token").
-3. Click **"Copy"** under **"Token"** to copy the token and paste it into `DISCORD_TOKEN=` in your `.env` file.
-   > ⚠️ The token is shown only once. If lost, regenerate it with "Reset Token".
+2. Click **"Reset Token"**, copy the token, and paste it into `.env` as `DISCORD_TOKEN=`.
+   > ⚠️ The token is only shown once. If lost, regenerate it with "Reset Token".
 
-#### 3. Enable Privileged Gateway Intents
+### 3. Enable Privileged Gateway Intents
 
-At the bottom of the same **"Bot"** page, under **"Privileged Gateway Intents"**, turn the following **ON**:
+On the same **"Bot"** page, enable under **"Privileged Gateway Intents"**:
 
 - ✅ **SERVER MEMBERS INTENT**
-- ✅ **MESSAGE CONTENT INTENT** (required to read message content)
+- ✅ **MESSAGE CONTENT INTENT** (required)
 
-#### 4. Invite the Bot to your server
+### 4. Invite the Bot to Your Server
 
-1. Go to **"OAuth2" → "URL Generator"** in the left menu.
-2. Check `bot` under **"Scopes"**.
-3. Check the following under **"Bot Permissions"**:
+1. Go to **OAuth2 → URL Generator** in the left menu.
+2. Under **Scopes**, check `bot`.
+3. Under **Bot Permissions**, check:
    - ✅ Read Messages / View Channels
    - ✅ Send Messages
    - ✅ Read Message History
-   - ✅ Attach Files (if using an image-sending skill)
-4. Copy the generated URL at the bottom of the page and open it in your browser.
-5. Select the server you want to invite the bot to and press **"Authorize"**.
+   - ✅ Attach Files
+4. Copy the generated URL, open it in your browser, and select your server.
 
-#### 5. How to find a Channel ID
+### 5. Finding a Channel ID
 
-For use in `config/channels.json` and `config/cron.json`:
-
-1. In Discord, go to **Settings → Advanced → Developer Mode** and turn it **ON**.
-2. Right-click the target channel → select **"Copy ID"**.
+Enable Developer Mode in Discord's **Settings → Advanced**, then right-click a channel and select **"Copy Channel ID"**.

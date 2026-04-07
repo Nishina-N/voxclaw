@@ -1,0 +1,6 @@
+{
+  "CHANNEL_ID": {
+    "name": "channel-name",
+    "requireMention": false
+  }
+}

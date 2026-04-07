@@ -5,19 +5,11 @@
 **音声ファーストのAIアシスタントPWA。**
 自然に話すだけで Gemini がリアルタイムに意図を推定し、テキストボックスに表示します。確認・編集してから実行。すべてブラウザで完結。
 
-> ⚠️ **特許出願中（2026年）：**「音声入力による意図推定と個人適応型情報処理方法およびシステム」
-
 ---
 
 ## 使い方の流れ
 
-```
-[マイク] ──► 音声ストリーム ──► Gemini Live API ──► 意図テキスト（編集可能）
-                                                           │
-                                                  [確認・編集]
-                                                           │
-                                                       [送信] ──► スキル実行 ──► 返答
-```
+![使い方の流れ](docs/How_It_Works.png)
 
 1. **話す** — マイクボタンをタップして自然に話す
 2. **確認** — Gemini がリアルタイムで意図を推定し、テキストボックスに表示
@@ -25,6 +17,8 @@
 4. **実行** — 送信すると voxclaw が適切なスキルを実行し、結果を返答
 
 「編集可能な意図」のステップが Voxclaw のコアです。AIが何をするかを常にユーザーがコントロールできます。
+
+
 
 ---
 
@@ -48,7 +42,7 @@
 | **Chat** | メイン画面 — 音声またはテキスト入力、スキルの実行結果を表示 |
 | **Skills** | 利用可能なスキルの一覧と説明 |
 | **Cron** | スキルの定時実行スケジュールを設定（時刻・曜日・送信先） |
-| **Task** | *（実装中）* |
+| **Task** | ローカルタスク管理 — 追加・完了・編集・期限設定。音声入力にも対応 |
 | **Settings** | APIキー（Brave Search、Mapbox）と Google 認証の管理 |
 
 ---
@@ -79,36 +73,42 @@ docker-compose up -d --build
 
 ## アーキテクチャ
 
+詳細は **[docs/architecture.md](docs/architecture.md)** を参照してください。
+
+![Voxclaw アーキテクチャ](docs/architecture.png)
+
 ```
-ブラウザ (PWA)
-└─ voice-pwa/frontend/        シングルページアプリ
-     index.html               UI: chat / skills / cron / task / settings タブ
-     app.js                   WebSocket クライアント、音声キャプチャ、レンダリング
+ブラウザ (PWA)  ──────────────────────────────────────────────────────────
+  voice-pwa-frontend   nginx :3000       静的 PWA、/ws /api/* をプロキシ
+  voice-pwa-backend    Node.js :8080     Gemini Live ↔ 意図 WebSocket
+                                         確定した意図 → voxclaw コア
 
-voice-pwa/backend/            Node.js + TypeScript WebSocket サーバー
-  ├─ Gemini Live API          リアルタイム音声 → 意図テキスト
-  └─ voxclaw-client           確認済み意図をスキルエンジンへ転送
+voxclaw コア ────────────────────────────────────────────────────────────
+  voxclaw              Gemini Agent      スキル実行・エージェントループ
+  keybinder            キー隔離          外部 API プロキシ (:3001)
+  CronRunner           node-cron         スケジュール実行
 
-voxclaw コア (src/)           スキル実行エンジン
-└─ skills/                    スキル定義（JS、ホットリロード対応）
-
-keybinder/                    APIキー隔離サービス（ポート 3001）
-config/cron.json              クロンスケジュールの永続化
-media/                        スキルが返す画像・ファイル
+共有ボリューム ──────────────────────────────────────────────────────────
+  SQLite DB            messages / tasks
+  functions/           動的スキル（ホットリロード対応）
+  skills/              スキルの組み合わせ手順書
+  config/              cron.json、channels.json
 ```
 
 ---
 
-## スキルの追加
+## ドキュメント
 
-スキルは `skills/` に置くプレーンな JavaScript ファイルです。エンジンが呼び出せる関数をエクスポートするだけ。ファイルを置けば即座に有効になり、サーバー再起動は不要です。
-
-スキルのインターフェースと例は [docs/skills.md](docs/skills.md) を参照してください。
+| ドキュメント | 内容 |
+|---|---|
+| [docs/setup.md](docs/setup.md) | インストールガイド（PWA 優先、Discord・Google はオプション） |
+| [docs/architecture.md](docs/architecture.md) | システム構成・データフロー |
+| [docs/skills.md](docs/skills.md) | スキルの作り方・組み込みツール一覧・Key Binder API リファレンス |
 
 ---
 
 ## ライセンス
 
-ソースコードは個人・研究利用向けに [MIT](LICENSE) で公開しています。
+[MIT ライセンス](LICENSE) で公開しています。
 
-> 「音声入力 → 意図推定 → ユーザー編集 → 実行」のパイプラインを用いた商用製品の開発については、特許出願中のため事前にご相談ください。
+> ⚠️ **特許出願中（2026年）：**「音声入力 → 意図推定 → ユーザー確認・編集 → 実行」のパイプラインは日本国内で特許出願中です。

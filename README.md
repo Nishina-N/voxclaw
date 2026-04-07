@@ -5,19 +5,12 @@
 **A voice-first AI assistant PWA with real-time intent estimation.**
 Speak naturally — Gemini infers your intent and fills the input box. Review, edit if needed, then execute. All in your browser.
 
-> ⚠️ **Patent pending (2026):** *Method and System for Intent Estimation from Voice Input and Personally Adaptive Information Processing*
-
 ---
 
 ## How It Works
 
-```
-[Mic] ──► audio stream ──► Gemini Live API ──► intent text (editable)
-                                                       │
-                                              [User reviews / edits]
-                                                       │
-                                                   [Send] ──► skill execution ──► reply
-```
+![How It Works](docs/How_It_Works.png)
+
 
 1. **Speak** — tap the mic and talk naturally
 2. **Review** — Gemini infers your intent and fills the text box in real time
@@ -25,6 +18,8 @@ Speak naturally — Gemini infers your intent and fills the input box. Review, e
 4. **Execute** — press send; voxclaw runs the appropriate skill and replies
 
 The editable intent step is the core differentiator: you stay in control of what the AI actually does.
+
+
 
 ---
 
@@ -48,7 +43,7 @@ The editable intent step is the core differentiator: you stay in control of what
 | **Chat** | Main interface — voice or text input, skill results displayed here |
 | **Skills** | Browse all available skills and their descriptions |
 | **Cron** | Configure scheduled skill execution (time, days, destination) |
-| **Task** | *(Work in progress)* |
+| **Task** | Manage local tasks — add, complete, edit, set due dates; voice input supported |
 | **Settings** | Manage API keys (Brave Search, Mapbox) and Google auth |
 
 ---
@@ -79,36 +74,42 @@ docker-compose up -d --build
 
 ## Architecture
 
+See **[docs/architecture.en.md](docs/architecture.en.md)** for a full breakdown of components and data flow.
+
+![Voxclaw Architecture](docs/architecture.png)
+
 ```
-Browser (PWA)
-└─ voice-pwa/frontend/        Single-page app
-     index.html               UI: chat / skills / cron / task / settings tabs
-     app.js                   WebSocket client, audio capture, rendering
+Browser (PWA)  ─────────────────────────────────────────────────────────
+  voice-pwa-frontend   nginx :3000       static PWA, proxies /ws /api/*
+  voice-pwa-backend    Node.js :8080     Gemini Live ↔ intent WebSocket
+                                         confirmed intent → voxclaw core
 
-voice-pwa/backend/            Node.js + TypeScript WebSocket server
-  ├─ Gemini Live API          Real-time audio → intent text
-  └─ voxclaw-client           Forwards confirmed intent to the skill engine
+voxclaw core ───────────────────────────────────────────────────────────
+  voxclaw              Gemini Agent      skill execution, agent loop
+  keybinder            key isolation     external API proxy (:3001)
+  CronRunner           node-cron         scheduled skill execution
 
-voxclaw core (src/)           Skill execution engine
-└─ skills/                    Skill definitions (JS, hot-reloadable)
-
-keybinder/                    Isolated API key service (port 3001)
-config/cron.json              Persisted cron schedule
-media/                        Images and files returned by skills
+Shared volumes ─────────────────────────────────────────────────────────
+  SQLite DB            messages / tasks
+  functions/           dynamic skills (hot-reloadable)
+  skills/              skill combination manuals
+  config/              cron.json, channels.json
 ```
 
 ---
 
-## Adding Skills
+## Docs
 
-Skills are plain JavaScript files in `skills/`. Each file exports a function the engine can call. Drop a new file in and it's available immediately — no server restart needed.
-
-See [docs/skills.md](docs/skills.md) for the skill interface and examples.
+| Document | Description |
+|---|---|
+| [docs/setup.en.md](docs/setup.en.md) | Installation guide (PWA-first; Discord and Google are optional) |
+| [docs/architecture.en.md](docs/architecture.en.md) | System architecture and data flow |
+| [docs/skills.en.md](docs/skills.en.md) | Skill interface, built-in tools, Key Binder API reference |
 
 ---
 
 ## License
 
-Source code is released under [MIT](LICENSE) for personal and research use.
+Released under the [MIT License](LICENSE).
 
-> Commercial use of the voice → intent estimation → user editing → execution pipeline is subject to the pending patent. Please get in touch before building commercial products on this architecture.
+> ⚠️ **Patent pending (2026):** The voice → intent estimation → user review/editing → execution pipeline is the subject of a patent application in Japan.
