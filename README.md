@@ -46,7 +46,7 @@ The editable intent step is the core differentiator: you stay in control of what
 | **Chat** | Main interface — voice or text input, skill results displayed here |
 | **Skills** | Browse all available skills and their descriptions |
 | **Cron** | Configure scheduled skill execution (time, days, destination) |
-| **Task** | *(Work in progress)* |
+| **Task** | Manage local tasks — add, complete, edit, set due dates; voice input supported |
 | **Settings** | Manage API keys (Brave Search, Mapbox) and Google auth |
 
 ---
