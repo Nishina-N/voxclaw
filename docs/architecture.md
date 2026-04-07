@@ -84,31 +84,11 @@ Voxclaw は3つの原則で設計されています。
 
 ## 3. データフロー
 
-![アーキテクチャ データフロー](Architecture_Data_Flow.png)
+
 
 ### 音声入力（主フロー）
+![アーキテクチャ データフロー](Architecture_Data_Flow.png)
 
-```
-[スマホ/ブラウザ]
-  │ マイク音声（PCM ストリーム）
-  ▼
-[voice-pwa-frontend]  ── nginx proxy ──►  [voice-pwa-backend :8080]
-                                                   │
-                          ◄── WS: intent ──────────┤  PCM ──► [Gemini Live API]
-                                                   │◄── report_intent (is_final/context)
-                          確定した意図テキスト          │
-                                               POST /api/message
-                                                   │
-                                                   ▼
-                                           [voxclaw :3001]
-                                                   │
-                                     ┌─────────────┤
-                                     │ function calling
-                                     ▼             │
-                              [Gemini Text API]    ├─► [keybinder] ──► 外部API
-                                     │             │
-                                     └─► テキスト応答 ──► SQLite → ブラウザへポーリング
-```
 
 ### Discord（オプション）
 
