@@ -84,31 +84,12 @@ An nginx container serving static files. Provides the PWA's HTML/CSS/JS and prox
 
 ## 3. Data Flow
 
-![Architecture Data Flow](Architecture_Data_Flow.png)
+
 
 ### Voice Input (primary flow)
 
-```
-[Phone / Browser]
-  │ mic audio (PCM stream)
-  ▼
-[voice-pwa-frontend]  ── nginx proxy ──►  [voice-pwa-backend :8080]
-                                                    │
-                          ◄── WS: intent ───────────┤  PCM ──► [Gemini Live API]
-                                                    │◄── report_intent (is_final/context)
-                          confirmed intent text          │
-                                                POST /api/message
-                                                    │
-                                                    ▼
-                                            [voxclaw :3001]
-                                                    │
-                                      ┌─────────────┤
-                                      │ function calling
-                                      ▼             │
-                               [Gemini Text API]    ├─► [keybinder] ──► external APIs
-                                      │             │
-                                      └─► text response ──► SQLite → browser polls
-```
+![Architecture Data Flow](Architecture_Data_Flow.png)
+
 
 ### Discord (optional)
 
