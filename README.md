@@ -5,8 +5,6 @@
 **A voice-first AI assistant PWA with real-time intent estimation.**
 Speak naturally — Gemini infers your intent and fills the input box. Review, edit if needed, then execute. All in your browser.
 
-> ⚠️ **Patent pending (2026):** *Method and System for Intent Estimation from Voice Input and Personally Adaptive Information Processing*
-
 ---
 
 ## How It Works
@@ -115,6 +113,8 @@ Shared volumes ─────────────────────�
 
 ## License
 
-Source code is released under [MIT](LICENSE) for personal and research use.
+Source code is released under the [Polyform Noncommercial License 1.0](LICENSE).
 
-> Commercial use of the voice → intent estimation → user editing → execution pipeline is subject to the pending patent. Please get in touch before building commercial products on this architecture.
+**Free for personal, research, and educational use.** Commercial use requires a separate license — please get in touch.
+
+> ⚠️ **Patent pending (2026):** The voice → intent estimation → user review/editing → execution pipeline is the subject of a patent application. Use of this software does not grant any patent license for commercial purposes.
