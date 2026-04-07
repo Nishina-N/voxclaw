@@ -1,249 +1,206 @@
-<mxfile host="app.diagrams.net">
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6" pages="2">
   <diagram name="How It Works" id="how-it-works">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="500" math="0" shadow="0">
+    <mxGraphModel dx="1577" dy="967" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="500" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-
-        <!-- Title -->
-        <mxCell id="title" value="How Voxclaw Works" style="text;html=1;fontSize=20;fontStyle=1;align=center;fillColor=none;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="300" y="20" width="540" height="36" as="geometry" />
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=20;fontStyle=1;align=center;fillColor=none;strokeColor=none;" value="How Voxclaw Works" vertex="1">
+          <mxGeometry height="36" width="540" x="314" y="140" as="geometry" />
         </mxCell>
-
-        <!-- Step boxes -->
-        <mxCell id="s1" value="&lt;b&gt;1. Tap Mic&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
-          <mxGeometry x="40" y="120" width="150" height="60" as="geometry" />
+        <mxCell id="s1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" value="&lt;b&gt;1. Tap Mic&lt;/b&gt;" vertex="1">
+          <mxGeometry height="60" width="150" x="9" y="218" as="geometry" />
         </mxCell>
-        <mxCell id="s2" value="&lt;b&gt;2. Speak&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#666&quot;&gt;naturally&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
-          <mxGeometry x="240" y="120" width="150" height="60" as="geometry" />
+        <mxCell id="s2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" value="&lt;b&gt;2. Speak&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#666&quot;&gt;naturally&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="150" x="209" y="218" as="geometry" />
         </mxCell>
-        <mxCell id="s3" value="&lt;b&gt;3. Intent Appears&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#666&quot;&gt;in the text box&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" vertex="1" parent="1">
-          <mxGeometry x="440" y="120" width="150" height="60" as="geometry" />
+        <mxCell id="s3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" value="&lt;b&gt;3. Intent Appears&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#666&quot;&gt;in the text box&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="150" x="409" y="218" as="geometry" />
         </mxCell>
-        <mxCell id="s4" value="&lt;b&gt;4. Review &amp;amp; Edit&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#666&quot;&gt;optional&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" vertex="1" parent="1">
-          <mxGeometry x="640" y="120" width="150" height="60" as="geometry" />
+        <mxCell id="s4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" value="&lt;b&gt;4. Review &amp;amp; Edit&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#666&quot;&gt;optional&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="150" x="609" y="218" as="geometry" />
         </mxCell>
-        <mxCell id="s5" value="&lt;b&gt;5. Send&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
-          <mxGeometry x="840" y="120" width="150" height="60" as="geometry" />
+        <mxCell id="s5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" value="&lt;b&gt;5. Send&lt;/b&gt;" vertex="1">
+          <mxGeometry height="60" width="150" x="809" y="218" as="geometry" />
         </mxCell>
-        <mxCell id="s6" value="&lt;b&gt;6. Reply&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#666&quot;&gt;in Chat&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" vertex="1" parent="1">
-          <mxGeometry x="1040" y="120" width="150" height="60" as="geometry" />
+        <mxCell id="s6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" value="&lt;b&gt;6. Reply&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#666&quot;&gt;in Chat&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="150" x="1009" y="218" as="geometry" />
         </mxCell>
-
-        <!-- Arrows between steps -->
-        <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#555;" edge="1" source="s1" target="s2" parent="1">
+        <mxCell id="a1" edge="1" parent="1" source="s1" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#555;" target="s2">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a2" value="PCM audio" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#555;" edge="1" source="s2" target="s3" parent="1">
+        <mxCell id="a2" edge="1" parent="1" source="s2" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#555;" target="s3" value="PCM audio">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a3" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#555;" edge="1" source="s3" target="s4" parent="1">
+        <mxCell id="a3" edge="1" parent="1" source="s3" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#555;" target="s4">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a4" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#555;" edge="1" source="s4" target="s5" parent="1">
+        <mxCell id="a4" edge="1" parent="1" source="s4" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#555;" target="s5">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a5" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#555;" edge="1" source="s5" target="s6" parent="1">
+        <mxCell id="a5" edge="1" parent="1" source="s5" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#555;" target="s6">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Annotation: Gemini Live API -->
-        <mxCell id="note-gemini" value="Gemini Live API&#xa;real-time inference" style="text;html=1;fontSize=9;fontColor=#6c8ebf;align=center;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="385" y="220" width="150" height="32" as="geometry" />
+        <mxCell id="note-gemini" parent="1" style="text;html=1;fontSize=9;fontColor=#6c8ebf;align=center;fontStyle=1;" value="Gemini Live API&#xa;real-time inference" vertex="1">
+          <mxGeometry height="32" width="150" x="409" y="309" as="geometry" />
         </mxCell>
-        <mxCell id="note-gemini-line" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#6c8ebf;fontSize=9;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" source="note-gemini" target="s3" parent="1">
+        <mxCell id="note-gemini-line" edge="1" parent="1" source="note-gemini" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#6c8ebf;fontSize=9;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="s3">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Annotation: Skill execution -->
-        <mxCell id="note-skill" value="Skill execution" style="text;html=1;fontSize=9;fontColor=#6c8ebf;align=center;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="785" y="220" width="150" height="20" as="geometry" />
+        <mxCell id="note-skill" parent="1" style="text;html=1;fontSize=9;fontColor=#6c8ebf;align=center;fontStyle=1;" value="Skill execution" vertex="1">
+          <mxGeometry height="20" width="150" x="809" y="315" as="geometry" />
         </mxCell>
-        <mxCell id="note-skill-line" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#6c8ebf;fontSize=9;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" source="note-skill" target="s5" parent="1">
+        <mxCell id="note-skill-line" edge="1" parent="1" source="note-skill" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#6c8ebf;fontSize=9;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="s5">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Key differentiator callout -->
-        <mxCell id="callout" value="★ The edit step is the key differentiator:&#xa;you see exactly what the AI will do before it acts." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fffac8;strokeColor=#d6b656;fontSize=10;fontStyle=2;align=center;" vertex="1" parent="1">
-          <mxGeometry x="480" y="280" width="360" height="50" as="geometry" />
+        <mxCell id="callout" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;fontSize=10;fontStyle=2;align=center;" value="★ The edit step is the key differentiator:&#xa;you see exactly what the AI will do before it acts." vertex="1">
+          <mxGeometry height="50" width="270" x="549" y="300" as="geometry" />
         </mxCell>
-        <mxCell id="callout-line" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#d6b656;exitX=0.2;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" source="callout" target="s4" parent="1">
+        <mxCell id="callout-line" edge="1" parent="1" source="callout" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#d6b656;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="s4">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
       </root>
     </mxGraphModel>
   </diagram>
-
   <diagram name="Architecture Data Flow" id="arch-data-flow">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="900" math="0" shadow="0">
+    <mxGraphModel dx="2102" dy="1289" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="900" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-
-        <!-- Title -->
-        <mxCell id="title" value="Architecture Data Flow" style="text;html=1;fontSize=20;fontStyle=1;align=center;fillColor=none;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="300" y="20" width="500" height="36" as="geometry" />
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=20;fontStyle=1;align=center;fillColor=none;strokeColor=none;" value="Architecture Data Flow" vertex="1">
+          <mxGeometry height="36" width="500" x="335" y="20" as="geometry" />
         </mxCell>
-
-        <!-- ── User interfaces ── -->
-        <mxCell id="browser" value="&lt;b&gt;Browser / Phone&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(PWA)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="200" y="80" width="180" height="60" as="geometry" />
+        <mxCell id="browser" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" value="&lt;b&gt;Browser / Phone&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(PWA)&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="180" x="380" y="120" as="geometry" />
         </mxCell>
-        <mxCell id="discord-src" value="&lt;b&gt;Discord&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#888&quot;&gt;optional&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="820" y="80" width="160" height="60" as="geometry" />
+        <mxCell id="discord-src" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" value="&lt;b&gt;Discord&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#888&quot;&gt;optional&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="160" x="640" y="120" as="geometry" />
         </mxCell>
-
-        <!-- ── Voice PWA ── -->
-        <mxCell id="frontend" value="&lt;b&gt;voice-pwa-frontend&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;nginx :3000&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="200" y="220" width="180" height="60" as="geometry" />
+        <mxCell id="frontend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" value="&lt;b&gt;voice-pwa-frontend&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;nginx :3000&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="180" x="380" y="260" as="geometry" />
         </mxCell>
-        <mxCell id="backend" value="&lt;b&gt;voice-pwa-backend&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Node.js / WebSocket :8080&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="200" y="370" width="180" height="60" as="geometry" />
+        <mxCell id="backend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" value="&lt;b&gt;voice-pwa-backend&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Node.js / WebSocket :8080&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="180" x="380" y="410" as="geometry" />
         </mxCell>
-        <mxCell id="gemini-live" value="&lt;b&gt;Gemini Live API&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;audio → intent&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="20" y="370" width="150" height="60" as="geometry" />
+        <mxCell id="gemini-live" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;Gemini Live API&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;audio → intent&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="150" x="140" y="410" as="geometry" />
         </mxCell>
-
-        <!-- ── Voxclaw Core ── -->
-        <mxCell id="voxclaw" value="&lt;b&gt;voxclaw&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Gemini Agent :3001&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="200" y="530" width="180" height="60" as="geometry" />
+        <mxCell id="voxclaw" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=12;" value="&lt;b&gt;voxclaw&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Gemini Agent :3001&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="180" x="380" y="610" as="geometry" />
         </mxCell>
-        <mxCell id="gemini-text" value="&lt;b&gt;Gemini Text API&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;text inference&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="460" y="450" width="160" height="60" as="geometry" />
+        <mxCell id="gemini-text" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;Gemini Text API&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;text inference&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="160" x="640" y="610" as="geometry" />
         </mxCell>
-        <mxCell id="keybinder" value="&lt;b&gt;keybinder&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;key isolation :3001&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="460" y="560" width="160" height="60" as="geometry" />
+        <mxCell id="keybinder" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" value="&lt;b&gt;keybinder&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;key isolation :3001&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="160" x="640" y="690" as="geometry" />
         </mxCell>
-        <mxCell id="ext-apis" value="Brave / Mapbox&#xa;Google APIs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="680" y="560" width="140" height="60" as="geometry" />
+        <mxCell id="ext-apis" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" value="Brave / Mapbox&#xa;Google APIs" vertex="1">
+          <mxGeometry height="60" width="140" x="860" y="690" as="geometry" />
         </mxCell>
-        <mxCell id="cronrunner" value="&lt;b&gt;CronRunner&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;node-cron&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="460" y="700" width="160" height="60" as="geometry" />
+        <mxCell id="cronrunner" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=12;" value="&lt;b&gt;CronRunner&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;node-cron&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="160" x="640" y="775" as="geometry" />
         </mxCell>
-        <mxCell id="cron-json" value="config/cron.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="680" y="700" width="140" height="50" as="geometry" />
+        <mxCell id="cron-json" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="config/cron.json" vertex="1">
+          <mxGeometry height="50" width="140" x="860" y="780" as="geometry" />
         </mxCell>
-
-        <!-- ── Storage ── -->
-        <mxCell id="sqlite" value="&lt;b&gt;SQLite DB&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;messages / tasks&lt;/font&gt;" style="shape=mxgraph.flowchart.database;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="200" y="700" width="160" height="90" as="geometry" />
+        <mxCell id="sqlite" parent="1" style="shape=mxgraph.flowchart.database;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" value="&lt;b&gt;SQLite DB&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;messages / tasks&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="160" x="140" y="740" as="geometry" />
         </mxCell>
-
-        <!-- ══════════ EDGES ══════════ -->
-
-        <!-- Browser → frontend: HTTPS -->
-        <mxCell id="e-browser-frontend" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="browser" target="frontend" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-
-        <!-- frontend ↔ backend: nginx proxy -->
-        <mxCell id="e-frontend-backend" value="nginx proxy /ws /api/*" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="frontend" target="backend" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-
-        <!-- backend → frontend: WS intent (purple, left side) -->
-        <mxCell id="e-backend-frontend-ws" value="WS: intent text" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#6666FF;fontColor=#6666FF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="backend" target="frontend" parent="1">
+        <mxCell id="e-browser-frontend" edge="1" parent="1" source="browser" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" target="frontend" value="HTTPS">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="155" y="400" />
-              <mxPoint x="155" y="250" />
+              <mxPoint x="520" y="250" />
+              <mxPoint x="520" y="250" />
             </Array>
           </mxGeometry>
         </mxCell>
-
-        <!-- browser → frontend: 15s polling (dashed) -->
-        <mxCell id="e-poll" value="15s polling /api/chat/history" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="browser" target="frontend" parent="1">
+        <mxCell id="e-frontend-backend" edge="1" parent="1" source="frontend" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" target="backend" value="nginx proxy /ws /api/*">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="430" y="110" />
-              <mxPoint x="430" y="250" />
+              <mxPoint x="520" y="390" />
+              <mxPoint x="520" y="390" />
             </Array>
           </mxGeometry>
         </mxCell>
-
-        <!-- backend → Gemini Live: PCM -->
-        <mxCell id="e-backend-live" value="PCM audio stream" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="backend" target="gemini-live" parent="1">
+        <mxCell id="e-backend-frontend-ws" edge="1" parent="1" source="backend" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#6666FF;fontColor=#6666FF;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.25;entryY=1;entryDx=0;entryDy=0;" target="frontend" value="WS: intent text">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Gemini Live → backend: report_intent -->
-        <mxCell id="e-live-backend" value="report_intent&#xa;(is_final / context)" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" edge="1" source="gemini-live" target="backend" parent="1">
+        <mxCell id="e-poll" edge="1" parent="1" source="browser" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;dashed=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;" value="15s polling /api/chat/history">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="425" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-backend-live" edge="1" parent="1" source="backend" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;entryX=1;entryY=0.75;entryDx=0;entryDy=0;exitX=0;exitY=0.75;exitDx=0;exitDy=0;" target="gemini-live" value="PCM audio stream">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- backend → voxclaw: POST confirmed intent -->
-        <mxCell id="e-backend-voxclaw" value="POST /api/message&#xa;confirmed intent" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="backend" target="voxclaw" parent="1">
+        <mxCell id="e-live-backend" edge="1" parent="1" source="gemini-live" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" target="backend" value="report_intent&#xa;(is_final / context)">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- voxclaw → Gemini Text: function calling (green) -->
-        <mxCell id="e-voxclaw-gemini" value="function calling / tool loop" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#00AA00;fontColor=#00AA00;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" edge="1" source="voxclaw" target="gemini-text" parent="1">
+        <mxCell id="e-backend-voxclaw" edge="1" parent="1" source="backend" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" target="voxclaw" value="POST /api/message&#xa;confirmed intent">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Gemini Text → voxclaw: text response (green) -->
-        <mxCell id="e-gemini-voxclaw" value="text response" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#00AA00;fontColor=#00AA00;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.7;entryDx=0;entryDy=0;" edge="1" source="gemini-text" target="voxclaw" parent="1">
+        <mxCell id="e-voxclaw-gemini" edge="1" parent="1" source="voxclaw" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#00AA00;fontColor=#00AA00;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" target="gemini-text" value="function calling / tool loop">
+          <mxGeometry relative="1" x="0.25" y="25" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-gemini-voxclaw" edge="1" parent="1" source="gemini-text" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;strokeColor=#00AA00;fontColor=#00AA00;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.7;entryDx=0;entryDy=0;" target="voxclaw" value="text response">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- voxclaw → keybinder: HTTP -->
-        <mxCell id="e-voxclaw-keybinder" value="HTTP" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="voxclaw" target="keybinder" parent="1">
+        <mxCell id="e-voxclaw-keybinder" edge="1" parent="1" source="voxclaw" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="keybinder" value="HTTP">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- keybinder → ext APIs -->
-        <mxCell id="e-keybinder-ext" value="API calls" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="keybinder" target="ext-apis" parent="1">
+        <mxCell id="e-keybinder-ext" edge="1" parent="1" source="keybinder" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" target="ext-apis" value="API calls">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- voxclaw → SQLite: R/W -->
-        <mxCell id="e-voxclaw-sqlite" value="R/W" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="voxclaw" target="sqlite" parent="1">
+        <mxCell id="e-voxclaw-sqlite" edge="1" parent="1" source="voxclaw" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;entryX=0.736;entryY=-0.027;entryDx=0;entryDy=0;entryPerimeter=0;" target="sqlite" value="R/W">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- backend → SQLite: chat history -->
-        <mxCell id="e-backend-sqlite" value="chat history R/W" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" edge="1" source="backend" target="sqlite" parent="1">
+        <mxCell id="e-backend-sqlite" edge="1" parent="1" source="backend" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" target="sqlite" value="chat history R/W">
+          <mxGeometry relative="1" x="0.0168" y="-18" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="425" y="550" />
+              <mxPoint x="218" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-discord-voxclaw" edge="1" parent="1" source="discord-src" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;dashed=1;strokeColor=#b85450;entryX=0.828;entryY=0.005;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="voxclaw" value="mention / DM&#xa;(2s polling)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="520" />
+              <mxPoint x="529" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-cron-voxclaw" edge="1" parent="1" source="cronrunner" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="voxclaw" value="processMessage&#xa;(scheduled)">
+          <mxGeometry relative="1" x="-0.4483" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="470" y="790" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-cronjson-cron" edge="1" parent="1" source="cron-json" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;dashed=1;" target="cronrunner" value="watches">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Discord → voxclaw (optional, dashed) -->
-        <mxCell id="e-discord-voxclaw" value="mention / DM&#xa;(2s polling)" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;dashed=1;strokeColor=#b85450;" edge="1" source="discord-src" target="voxclaw" parent="1">
+        <mxCell id="e-cron-sqlite" edge="1" parent="1" source="cronrunner" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.85;entryDx=0;entryDy=0;entryPerimeter=0;" target="sqlite" value="save result">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- CronRunner → voxclaw -->
-        <mxCell id="e-cron-voxclaw" value="processMessage&#xa;(scheduled)" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="cronrunner" target="voxclaw" parent="1">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="leg-title" parent="1" style="text;html=1;fontSize=10;fontStyle=1;fillColor=none;strokeColor=none;align=center;" value="Legend" vertex="1">
+          <mxGeometry height="20" width="80" x="880" y="120" as="geometry" />
         </mxCell>
-
-        <!-- cron.json → CronRunner (dashed) -->
-        <mxCell id="e-cronjson-cron" value="watches" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;dashed=1;" edge="1" source="cron-json" target="cronrunner" parent="1">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="leg-ext" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="External API" vertex="1">
+          <mxGeometry height="30" width="120" x="860" y="150" as="geometry" />
         </mxCell>
-
-        <!-- CronRunner → SQLite: save result -->
-        <mxCell id="e-cron-sqlite" value="save result" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="cronrunner" target="sqlite" parent="1">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="leg-pwa" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="Voice PWA" vertex="1">
+          <mxGeometry height="30" width="120" x="860" y="190" as="geometry" />
         </mxCell>
-
-        <!-- Legend -->
-        <mxCell id="leg-title" value="Legend" style="text;html=1;fontSize=10;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="880" y="420" width="80" height="20" as="geometry" />
+        <mxCell id="leg-core" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=10;" value="Voxclaw Core" vertex="1">
+          <mxGeometry height="30" width="120" x="860" y="230" as="geometry" />
         </mxCell>
-        <mxCell id="leg-ext" value="External API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="870" y="450" width="120" height="30" as="geometry" />
+        <mxCell id="leg-opt" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#b85450;dashed=1;fontSize=10;" value="Optional path" vertex="1">
+          <mxGeometry height="30" width="120" x="860" y="270" as="geometry" />
         </mxCell>
-        <mxCell id="leg-pwa" value="Voice PWA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="870" y="490" width="120" height="30" as="geometry" />
-        </mxCell>
-        <mxCell id="leg-core" value="Voxclaw Core" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="870" y="530" width="120" height="30" as="geometry" />
-        </mxCell>
-        <mxCell id="leg-opt" value="Optional path" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#b85450;dashed=1;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="870" y="570" width="120" height="30" as="geometry" />
-        </mxCell>
-
       </root>
     </mxGraphModel>
   </diagram>
