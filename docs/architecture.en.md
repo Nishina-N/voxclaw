@@ -84,6 +84,8 @@ An nginx container serving static files. Provides the PWA's HTML/CSS/JS and prox
 
 ## 3. Data Flow
 
+![Architecture Data Flow](Architecture_Data_Flow.png)
+
 ### Voice Input (primary flow)
 
 ```

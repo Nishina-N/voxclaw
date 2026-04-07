@@ -24,6 +24,8 @@ Speak naturally — Gemini infers your intent and fills the input box. Review, e
 
 The editable intent step is the core differentiator: you stay in control of what the AI actually does.
 
+![How It Works](docs/How_It_Works.png)
+
 ---
 
 ## Key Features
