@@ -81,7 +81,7 @@ docker-compose up -d --build
 
 詳細は **[docs/architecture.md](docs/architecture.md)** を参照してください。
 
-![Voxclaw アーキテクチャ](docs/archtecture.png)
+![Voxclaw アーキテクチャ](docs/architecture.png)
 
 ```
 ブラウザ (PWA)  ──────────────────────────────────────────────────────────

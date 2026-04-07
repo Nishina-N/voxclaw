@@ -26,7 +26,7 @@ Voxclaw は3つの原則で設計されています。
 
 ## 2. コンポーネント概要
 
-![Voxclaw アーキテクチャ](archtecture.png)
+![Voxclaw アーキテクチャ](architecture.png)
 
 ```
 ┌──────────────────── Docker Compose（自宅サーバー）────────────────────────┐

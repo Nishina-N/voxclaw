@@ -26,7 +26,7 @@ Voxclaw is built around three principles.
 
 ## 2. Component Overview
 
-![Voxclaw Architecture](archtecture.png)
+![Voxclaw Architecture](architecture.png)
 
 ```
 ┌──────────────── Docker Compose (home server) ──────────────────────────────┐
