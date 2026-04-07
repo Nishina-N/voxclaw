@@ -1,49 +1,21 @@
-Polyform Noncommercial License 1.0.0
+MIT License
 
 Copyright (c) 2026 Nishina-N
 
-Acceptance
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-In order to get any license under these terms, you must agree to them as both strict obligations and conditions to all your licenses.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-Use Grant
-
-The licensor grants you a copyright license for the software to do everything you might do with the software that would otherwise infringe the licensor's copyright in it for any permitted purpose. However, you may only distribute the software according to Distribution License below, and you may only run the software for the purposes permitted under Permitted Purposes below.
-
-Permitted Purposes
-
-You may use or run the software only for permitted purposes:
-
-1. Personal Use. You may use or run the software for personal use that is not primarily intended for or directed toward commercial advantage or private monetary compensation.
-
-2. Non-Commercial Organizations. You may use or run the software for the operations of a non-commercial organization.
-
-3. Educational Institutions. You may use or run the software for teaching, academic research, or similar educational purposes at an educational institution.
-
-4. Research. You may use or run the software for research that is not primarily intended for or directed toward commercial advantage or private monetary compensation.
-
-Prohibited Purposes
-
-You may not use or run the software for any purpose that is primarily intended for or directed toward commercial advantage or private monetary compensation.
-
-Distribution License
-
-You may distribute copies of the software, modified or unmodified, under the terms of this license, provided that all copies include a copy of this license and all copyright notices from the original software.
-
-Patent Notice
-
-The method described in this software — specifically the pipeline of voice input → real-time intent estimation → user review and editing → execution — is the subject of a patent application (2026, Japan). Use of this software does not grant any patent license beyond what is necessary to exercise the copyright license granted above.
-
-For commercial licensing inquiries, please contact the copyright holder.
-
-No Other Rights
-
-These terms do not allow you to sublicense or transfer any of your licenses to anyone else, or prevent the licensor from granting licenses to anyone else. These terms do not imply any other licenses.
-
-Termination
-
-If you use the software in violation of these terms, such use is not licensed, and your licenses will automatically terminate.
-
-No Liability
-
-As far as the law allows, the software comes as is, without any warranty or condition, and the licensor will not be liable to you for any damages arising out of these terms or the use or nature of the software, under any kind of legal claim.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

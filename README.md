@@ -113,8 +113,6 @@ Shared volumes ─────────────────────�
 
 ## License
 
-Source code is released under the [Polyform Noncommercial License 1.0](LICENSE).
+Released under the [MIT License](LICENSE).
 
-**Free for personal, research, and educational use.** Commercial use requires a separate license — please get in touch.
-
-> ⚠️ **Patent pending (2026):** The voice → intent estimation → user review/editing → execution pipeline is the subject of a patent application. Use of this software does not grant any patent license for commercial purposes.
+> ⚠️ **Patent pending (2026):** The voice → intent estimation → user review/editing → execution pipeline is the subject of a patent application in Japan.
