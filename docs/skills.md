@@ -1,6 +1,6 @@
 # スキルガイド
 
-[🇺🇸 English](skills.en.md) | [← README に戻る](../README.md)
+[🇺🇸 English](skills.en.md) | [← README に戻る](../README.ja.md)
 
 ## 目次
 
@@ -16,12 +16,14 @@
 
 スキルは **Gemini がツールとして呼び出せる最小機能単位** です。エージェントが自分で作成・追加でき、リビルド不要で次のメッセージから即有効になります。
 
-スキルは `config/functions/<skill-name>/` に2ファイルで構成されます。
+スキルは `functions/<skill-name>/` に2ファイルで構成されます。
 
 | ファイル | 役割 |
 |---|---|
 | `definition.json` | Gemini FunctionDeclaration（名前・説明・パラメータ定義） |
 | `run.sh` | 実際に実行されるスクリプト（bash / Python / Node.js 対応） |
+
+スキルの組み合わせ手順書（マニュアル）は `skills/` に Markdown ファイルとして置きます。cron の `prompt` にパスを渡すことで定時タスクの手順書として機能します。
 
 ---
 
@@ -42,7 +44,7 @@
 
 ## 3. 動的スキル一覧（エージェントが作成）
 
-エージェントが `config/functions/` に自作したスキルです。
+エージェントが `functions/` に自作したスキルです。
 
 ### 検索・情報取得
 
@@ -66,11 +68,14 @@
 | `util_run_python` | サーバー内の既存 Python ファイルを実行する |
 | `util_run_python_code` | メモリ上で Python コード断片を即時実行する |
 
-### Discord
+### ローカルタスク
 
 | スキル | 説明 |
 |---|---|
-| `util_send_image_to_discord` | 指定パスの画像ファイルを Discord チャンネルに送信する |
+| `local_task_get_tasks` | Voxclaw 内蔵タスクの一覧を取得する |
+| `local_task_create_task` | Voxclaw 内蔵タスクを追加する |
+| `local_task_update_task` | Voxclaw 内蔵タスクを更新する（完了マーク・タイトル・期限） |
+| `local_task_delete_task` | Voxclaw 内蔵タスクを削除する |
 
 ### Google カレンダー
 
@@ -90,25 +95,26 @@
 | `gsheet_read_spreadsheet` | 指定範囲のセル値を取得する（A1記法） |
 | `gsheet_write_spreadsheet` | 指定範囲にデータを書き込む（既存データを上書き） |
 | `gsheet_append_spreadsheet` | 最終行の後に新しい行を追加する |
-| `gsheet_list_charts` | スプレッドシート内のグラフ一覧（chartId・title・chartType）を取得する |
+| `gsheet_list_charts` | スプレッドシート内のグラフ一覧を取得する |
 | `gsheet_add_chart` | グラフを追加する（BAR / LINE / COLUMN / PIE / SCATTER / AREA） |
 | `gsheet_update_chart` | グラフのスペックを更新する（タイトル・凡例・軸・色など） |
 | `gsheet_delete_chart` | グラフを削除する |
 
-### Google タスク
+### Google Drive
 
 | スキル | 説明 |
 |---|---|
-| `gtask_get_tasks` | Google タスクの一覧を取得する |
-| `gtask_create_task` | Google タスクに新しいタスクを追加する |
-| `gtask_update_task` | Google タスクを更新する（完了マーク・タイトル変更・期限変更） |
-| `gtask_delete_task` | Google タスクを削除する |
+| `gdrv_list` | Google Drive のファイル一覧を取得する |
+| `gdrv_read` | Google Drive のファイル内容を読む |
+| `gdrv_create` | Google Drive にファイルを新規作成する |
+| `gdrv_update` | Google Drive のファイルを更新する |
 
 ### システム管理
 
 | スキル | 説明 |
 |---|---|
-| `util_update_functions_list` | `config/functions/` を走査して `config/skills_list.md` を更新する |
+| `util_update_functions_list` | `functions/` を走査して `skills/` のスキルリストを更新する |
+| `util_send_image_to_discord` | 指定パスの画像ファイルを Discord チャンネルに送信する |
 
 ---
 
@@ -117,7 +123,7 @@
 ### ディレクトリ構成
 
 ```
-/app/config/functions/
+functions/
   <skill-name>/
     definition.json   ← Gemini FunctionDeclaration
     run.sh            ← 実行スクリプト（run.py / run.js も可）
@@ -168,21 +174,9 @@ print(f"結果: {args['param1']}")
 - タイムアウト: 30秒。
 - `PYTHONPATH` は自動的に `/app/config/pip_packages/` に設定されるため、`pip_install` でインストールしたパッケージがそのまま使えます。
 
-### pip パッケージをスキルで使う
-
-```python
-#!/usr/bin/env python3
-# PYTHONPATH=/app/config/pip_packages は自動設定済み
-import json, os, requests
-
-args = json.loads(os.environ['SKILL_ARGS'])
-response = requests.get(f"https://api.example.com?q={args['query']}")
-print(response.text)
-```
-
 ### 例：天気スキル
 
-`/app/config/functions/get_weather/definition.json`
+`functions/get_weather/definition.json`
 ```json
 {
   "name": "get_weather",
@@ -197,11 +191,24 @@ print(response.text)
 }
 ```
 
-`/app/config/functions/get_weather/run.sh`
+`functions/get_weather/run.sh`
 ```bash
 #!/bin/bash
 CITY=$(python3 -c "import json,os; print(json.loads(os.environ['SKILL_ARGS'])['city'])")
 curl -s "wttr.in/${CITY}?format=3"
+```
+
+### スキル手順書（`skills/`）
+
+複数スキルを組み合わせる手順を Markdown で書き、`skills/<task>_recipe.md` に置きます。cron の `prompt` に渡すことで定時タスクの品質が向上します。
+
+```json
+{
+  "id": "daily_news",
+  "cron": "0 8 * * 1-5",
+  "prompt": "スキル（/app/skills/market_news_recipe.md）に従って朝のニュースをまとめてください。",
+  "enabled": true
+}
 ```
 
 ---
@@ -232,23 +239,17 @@ curl "http://keybinder:3001/mapbox/static?lat=35.68&lon=139.69&zoom=13"
 
 ```bash
 # ファイル一覧
-# GET /google/drive/list?folderId=<id>&query=<q>&pageSize=<n>
 curl "http://keybinder:3001/google/drive/list?pageSize=10"
-# 戻り値: { "files": [ { id, name, mimeType, size, modifiedTime }, ... ] }
 
-# ファイル内容を読む（テキストファイル）
-# GET /google/drive/read?fileId=<id>
+# ファイル内容を読む
 curl "http://keybinder:3001/google/drive/read?fileId=abc123"
-# 戻り値: { "content": "ファイルのテキスト内容" }
 
 # ファイルを新規作成
-# POST /google/drive/create  body: { name, content, mimeType?, folderId? }
 curl -X POST http://keybinder:3001/google/drive/create \
   -H 'Content-Type: application/json' \
   -d '{"name": "memo.txt", "content": "Hello!"}'
 
 # ファイルを更新
-# POST /google/drive/update  body: { fileId, content, mimeType? }
 curl -X POST http://keybinder:3001/google/drive/update \
   -H 'Content-Type: application/json' \
   -d '{"fileId": "abc123", "content": "更新された内容"}'
@@ -258,133 +259,67 @@ curl -X POST http://keybinder:3001/google/drive/update \
 
 ```bash
 # 予定の一覧取得
-# GET /google/calendar/events?calendarId=<>&timeMin=<ISO>&timeMax=<ISO>&maxResults=<n>
-curl "http://keybinder:3001/google/calendar/events?timeMin=2026-03-01T00:00:00Z&maxResults=10"
+curl "http://keybinder:3001/google/calendar/events?timeMin=2026-01-01T00:00:00Z&maxResults=10"
 
 # 予定を作成
-# POST /google/calendar/events/create  body: { calendarId?, summary, start, end, description?, location? }
 curl -X POST http://keybinder:3001/google/calendar/events/create \
   -H 'Content-Type: application/json' \
-  -d '{"summary": "MTG", "start": {"dateTime": "2026-03-20T10:00:00+09:00", "timeZone": "Asia/Tokyo"}, "end": {"dateTime": "2026-03-20T11:00:00+09:00", "timeZone": "Asia/Tokyo"}}'
+  -d '{"summary": "MTG", "start": {"dateTime": "2026-04-10T10:00:00+09:00", "timeZone": "Asia/Tokyo"}, "end": {"dateTime": "2026-04-10T11:00:00+09:00", "timeZone": "Asia/Tokyo"}}'
 
 # 予定を更新
-# POST /google/calendar/events/update  body: { calendarId?, eventId, ...fields }
 curl -X POST http://keybinder:3001/google/calendar/events/update \
   -H 'Content-Type: application/json' \
   -d '{"eventId": "evt123", "summary": "変更後のMTG"}'
 
 # 予定を削除
-# POST /google/calendar/events/delete  body: { calendarId?, eventId }
 curl -X POST http://keybinder:3001/google/calendar/events/delete \
   -H 'Content-Type: application/json' \
   -d '{"eventId": "evt123"}'
-# 戻り値: { "success": true }
 ```
 
 ### Google スプレッドシート
 
 ```bash
 # スプレッドシートを新規作成
-# POST /google/sheets/create  body: { title, sheets? }
 curl -X POST http://keybinder:3001/google/sheets/create \
   -H 'Content-Type: application/json' \
-  -d '{"title": "売上管理", "sheets": ["1月", "2月", "3月"]}'
-# 戻り値: { spreadsheetId, spreadsheetUrl, ... }
+  -d '{"title": "売上管理", "sheets": ["1月", "2月"]}'
 
-# スプレッドシート情報を取得（タイトル・シート名一覧）
-# GET /google/sheets/info?spreadsheetId=<id>
-curl "http://keybinder:3001/google/sheets/info?spreadsheetId=abc123"
-
-# セル値を読む（A1記法）
-# GET /google/sheets/read?spreadsheetId=<id>&range=<A1記法>
+# セル値を読む
 curl "http://keybinder:3001/google/sheets/read?spreadsheetId=abc123&range=Sheet1!A1:C10"
-# 戻り値: { range, majorDimension, values: [[...], [...]] }
 
-# セル値を書き込む（上書き）
-# POST /google/sheets/write  body: { spreadsheetId, range, values, valueInputOption? }
+# セル値を書き込む
 curl -X POST http://keybinder:3001/google/sheets/write \
   -H 'Content-Type: application/json' \
   -d '{"spreadsheetId": "abc123", "range": "Sheet1!A1", "values": [["名前", "点数"], ["Alice", 90]]}'
 
 # 最終行の後に行を追加
-# POST /google/sheets/append  body: { spreadsheetId, range, values, valueInputOption? }
 curl -X POST http://keybinder:3001/google/sheets/append \
   -H 'Content-Type: application/json' \
   -d '{"spreadsheetId": "abc123", "range": "Sheet1", "values": [["Bob", 85]]}'
-
-# グラフを追加
-# POST /google/sheets/charts/add
-#   body: { spreadsheetId, chartType, title?, sourceRange, position? }
-#   chartType: "BAR" | "LINE" | "COLUMN" | "PIE" | "SCATTER" | "AREA"
-#   sourceRange: A1記法 例 "Sheet1!A1:B10"（1列目がカテゴリ、残りがシリーズ）
-#   position: EmbeddedObjectPosition（省略時は新シートに作成）
-curl -X POST http://keybinder:3001/google/sheets/charts/add \
-  -H 'Content-Type: application/json' \
-  -d '{"spreadsheetId": "abc123", "chartType": "BAR", "title": "売上", "sourceRange": "Sheet1!A1:B10"}'
-# 戻り値: { "chartId": 123456789, ... }
-
-# グラフのスペックを更新（タイトル・凡例・軸・色など）
-# PUT /google/sheets/charts/update
-#   body: { spreadsheetId, chartId, spec, fields? }
-#   spec: ChartSpec オブジェクト（変更するフィールドだけ渡せる）
-#   fields: FieldMask（省略時は "*" で全上書き）
-#
-# 代表的な spec フィールド:
-#   title                              グラフタイトル
-#   titleTextFormat.fontSize           タイトルフォントサイズ
-#   basicChart.legendPosition          凡例位置: BOTTOM_LEGEND / TOP_LEGEND / LEFT_LEGEND / RIGHT_LEGEND / NO_LEGEND
-#   basicChart.axis[].title            軸タイトル
-#   basicChart.stackedType             積み上げ: NOT_STACKED / STACKED / PERCENT_STACKED
-#   basicChart.series[].color          系列の色 { red, green, blue }
-#   basicChart.series[].dataLabel.type データラベル: DATA / CUSTOM / NONE
-#   pieChart.pieHole                   ドーナツ比率 (0.0〜1.0)
-curl -X PUT http://keybinder:3001/google/sheets/charts/update \
-  -H 'Content-Type: application/json' \
-  -d '{"spreadsheetId": "abc123", "chartId": 123456789, "spec": {"title": "新しいタイトル"}, "fields": "title"}'
-# 戻り値: batchUpdate レスポンス JSON
-
-# グラフを削除
-# DELETE /google/sheets/charts/delete  body: { spreadsheetId, chartId }
-curl -X DELETE http://keybinder:3001/google/sheets/charts/delete \
-  -H 'Content-Type: application/json' \
-  -d '{"spreadsheetId": "abc123", "chartId": 123456789}'
-# 戻り値: { "success": true }
-
-# スプレッドシート内のグラフ一覧を取得
-# GET /google/sheets/charts/list?spreadsheetId=<id>
-curl "http://keybinder:3001/google/sheets/charts/list?spreadsheetId=abc123"
-# 戻り値: { "charts": [ { "chartId": 123456789, "title": "売上", "chartType": "BAR", "sheetTitle": "Sheet1" }, ... ] }
 ```
 
 ### Google タスク
 
 ```bash
-# タスクリスト一覧（「マイタスク」等）
-# GET /google/tasks/lists
+# タスクリスト一覧
 curl "http://keybinder:3001/google/tasks/lists"
-# 戻り値: { items: [ { id, title, ... } ] }
 
-# タスクリスト内のタスクを取得
-# GET /google/tasks/list?tasklistId=<id>&showCompleted=<bool>&maxResults=<n>
-curl "http://keybinder:3001/google/tasks/list?showCompleted=false&maxResults=20"
+# タスクを取得
+curl "http://keybinder:3001/google/tasks/list?showCompleted=false"
 
 # タスクを作成
-# POST /google/tasks/create  body: { tasklistId?, title, notes?, due? }
 curl -X POST http://keybinder:3001/google/tasks/create \
   -H 'Content-Type: application/json' \
-  -d '{"title": "レポートを提出する", "due": "2026-03-20T00:00:00.000Z"}'
+  -d '{"title": "レポートを提出する", "due": "2026-04-20T00:00:00.000Z"}'
 
-# タスクを更新（完了マーク・タイトル変更・期限変更）
-# POST /google/tasks/update  body: { tasklistId?, taskId, title?, notes?, due?, status? }
-#   status: "needsAction"（未完了）または "completed"（完了）
+# タスクを更新（完了マーク）
 curl -X POST http://keybinder:3001/google/tasks/update \
   -H 'Content-Type: application/json' \
   -d '{"taskId": "abc123", "status": "completed"}'
 
 # タスクを削除
-# POST /google/tasks/delete  body: { tasklistId?, taskId }
 curl -X POST http://keybinder:3001/google/tasks/delete \
   -H 'Content-Type: application/json' \
   -d '{"taskId": "abc123"}'
-# 戻り値: { "success": true }
 ```

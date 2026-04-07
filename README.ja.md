@@ -79,31 +79,37 @@ docker-compose up -d --build
 
 ## アーキテクチャ
 
+詳細は **[docs/architecture.md](docs/architecture.md)** を参照してください。
+
+構成図（draw.io）: [`docs/architecture.drawio`](docs/architecture.drawio)
+
 ```
-ブラウザ (PWA)
-└─ voice-pwa/frontend/        シングルページアプリ
-     index.html               UI: chat / skills / cron / task / settings タブ
-     app.js                   WebSocket クライアント、音声キャプチャ、レンダリング
+ブラウザ (PWA)  ──────────────────────────────────────────────────────────
+  voice-pwa-frontend   nginx :3000       静的 PWA、/ws /api/* をプロキシ
+  voice-pwa-backend    Node.js :8080     Gemini Live ↔ 意図 WebSocket
+                                         確定した意図 → voxclaw コア
 
-voice-pwa/backend/            Node.js + TypeScript WebSocket サーバー
-  ├─ Gemini Live API          リアルタイム音声 → 意図テキスト
-  └─ voxclaw-client           確認済み意図をスキルエンジンへ転送
+voxclaw コア ────────────────────────────────────────────────────────────
+  voxclaw              Gemini Agent      スキル実行・エージェントループ
+  keybinder            キー隔離          外部 API プロキシ (:3001)
+  CronRunner           node-cron         スケジュール実行
 
-voxclaw コア (src/)           スキル実行エンジン
-└─ skills/                    スキル定義（JS、ホットリロード対応）
-
-keybinder/                    APIキー隔離サービス（ポート 3001）
-config/cron.json              クロンスケジュールの永続化
-media/                        スキルが返す画像・ファイル
+共有ボリューム ──────────────────────────────────────────────────────────
+  SQLite DB            messages / tasks
+  functions/           動的スキル（ホットリロード対応）
+  skills/              スキルの組み合わせ手順書
+  config/              cron.json、channels.json
 ```
 
 ---
 
-## スキルの追加
+## ドキュメント
 
-スキルは `skills/` に置くプレーンな JavaScript ファイルです。エンジンが呼び出せる関数をエクスポートするだけ。ファイルを置けば即座に有効になり、サーバー再起動は不要です。
-
-スキルのインターフェースと例は [docs/skills.md](docs/skills.md) を参照してください。
+| ドキュメント | 内容 |
+|---|---|
+| [docs/setup.md](docs/setup.md) | インストールガイド（PWA 優先、Discord・Google はオプション） |
+| [docs/architecture.md](docs/architecture.md) | システム構成・データフロー |
+| [docs/skills.md](docs/skills.md) | スキルの作り方・組み込みツール一覧・Key Binder API リファレンス |
 
 ---
 

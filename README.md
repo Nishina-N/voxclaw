@@ -79,31 +79,37 @@ docker-compose up -d --build
 
 ## Architecture
 
+See **[docs/architecture.en.md](docs/architecture.en.md)** for a full breakdown of components and data flow.
+
+The diagram below is also available as a draw.io file: [`docs/architecture.drawio`](docs/architecture.drawio)
+
 ```
-Browser (PWA)
-└─ voice-pwa/frontend/        Single-page app
-     index.html               UI: chat / skills / cron / task / settings tabs
-     app.js                   WebSocket client, audio capture, rendering
+Browser (PWA)  ─────────────────────────────────────────────────────────
+  voice-pwa-frontend   nginx :3000       static PWA, proxies /ws /api/*
+  voice-pwa-backend    Node.js :8080     Gemini Live ↔ intent WebSocket
+                                         confirmed intent → voxclaw core
 
-voice-pwa/backend/            Node.js + TypeScript WebSocket server
-  ├─ Gemini Live API          Real-time audio → intent text
-  └─ voxclaw-client           Forwards confirmed intent to the skill engine
+voxclaw core ───────────────────────────────────────────────────────────
+  voxclaw              Gemini Agent      skill execution, agent loop
+  keybinder            key isolation     external API proxy (:3001)
+  CronRunner           node-cron         scheduled skill execution
 
-voxclaw core (src/)           Skill execution engine
-└─ skills/                    Skill definitions (JS, hot-reloadable)
-
-keybinder/                    Isolated API key service (port 3001)
-config/cron.json              Persisted cron schedule
-media/                        Images and files returned by skills
+Shared volumes ─────────────────────────────────────────────────────────
+  SQLite DB            messages / tasks
+  functions/           dynamic skills (hot-reloadable)
+  skills/              skill combination manuals
+  config/              cron.json, channels.json
 ```
 
 ---
 
-## Adding Skills
+## Docs
 
-Skills are plain JavaScript files in `skills/`. Each file exports a function the engine can call. Drop a new file in and it's available immediately — no server restart needed.
-
-See [docs/skills.md](docs/skills.md) for the skill interface and examples.
+| Document | Description |
+|---|---|
+| [docs/setup.en.md](docs/setup.en.md) | Installation guide (PWA-first; Discord and Google are optional) |
+| [docs/architecture.en.md](docs/architecture.en.md) | System architecture and data flow |
+| [docs/skills.en.md](docs/skills.en.md) | Skill interface, built-in tools, Key Binder API reference |
 
 ---
 
