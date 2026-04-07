@@ -26,7 +26,7 @@ Voxclaw は3つの原則で設計されています。
 
 ## 2. コンポーネント概要
 
-構成図: [`docs/architecture.drawio`](architecture.drawio)（draw.io で開いてください）
+![Voxclaw アーキテクチャ](archtecture.png)
 
 ```
 ┌──────────────────── Docker Compose（自宅サーバー）────────────────────────┐

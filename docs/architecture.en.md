@@ -26,7 +26,7 @@ Voxclaw is built around three principles.
 
 ## 2. Component Overview
 
-Diagram: [`docs/architecture.drawio`](architecture.drawio) (open with draw.io)
+![Voxclaw Architecture](archtecture.png)
 
 ```
 ┌──────────────── Docker Compose (home server) ──────────────────────────────┐

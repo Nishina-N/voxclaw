@@ -81,7 +81,7 @@ docker-compose up -d --build
 
 詳細は **[docs/architecture.md](docs/architecture.md)** を参照してください。
 
-構成図（draw.io）: [`docs/architecture.drawio`](docs/architecture.drawio)
+![Voxclaw アーキテクチャ](docs/archtecture.png)
 
 ```
 ブラウザ (PWA)  ──────────────────────────────────────────────────────────

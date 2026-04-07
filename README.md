@@ -81,7 +81,7 @@ docker-compose up -d --build
 
 See **[docs/architecture.en.md](docs/architecture.en.md)** for a full breakdown of components and data flow.
 
-The diagram below is also available as a draw.io file: [`docs/architecture.drawio`](docs/architecture.drawio)
+![Voxclaw Architecture](docs/archtecture.png)
 
 ```
 Browser (PWA)  ─────────────────────────────────────────────────────────
