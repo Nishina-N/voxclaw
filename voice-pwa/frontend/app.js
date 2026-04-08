@@ -348,7 +348,7 @@ function renderMessageBody(text) {
             const filename = m[1];
             return `<img class="chat-image" data-media="${encodeURIComponent(filename)}" alt="${escapeHtml(filename)}" loading="lazy">`;
         }
-        return `<span>${escapeHtml(part)}</span>`;
+        return `<span>${linkify(escapeHtml(part))}</span>`;
     }).join('');
 }
 
@@ -432,6 +432,11 @@ function escapeHtml(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+}
+
+function linkify(str) {
+    return str.replace(/https?:\/\/[^\s<>"']+/g, url =>
+        `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
 }
 
 function float32ToPcm16(float32) {
