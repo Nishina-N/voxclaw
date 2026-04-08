@@ -7,6 +7,10 @@
 
 ---
 
+## App Interface
+
+![App Interface](docs/voxclaw_app.png)
+
 ## 使い方の流れ
 
 ![使い方の流れ](docs/How_It_Works.png)
