@@ -5,6 +5,7 @@ const INTENT_MODE_KEY = 'voxclaw_intent_mode';
 const SPEECH_LANG_KEY = 'voxclaw_speech_lang';
 const UI_LANG_KEY = 'voxclaw_ui_lang';
 const FONT_SIZE_KEY = 'voxclaw_font_size';
+const HISTORY_PAGE = 30;
 
 // --- i18n ---
 const STRINGS = {
@@ -456,7 +457,6 @@ function arrayBufferToBase64(buffer) {
 }
 
 // --- Chat history ---
-const HISTORY_PAGE = 30;
 let lastSeenTimestamp = null;
 let oldestTimestamp   = null;
 
