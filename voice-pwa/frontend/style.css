@@ -129,6 +129,16 @@ body {
   gap: 20px;
 }
 
+#show-more-btn {
+  text-align: center;
+  color: #f97316;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px 0 8px;
+  user-select: none;
+}
+#show-more-btn:hover { text-decoration: underline; }
+
 .message { display: flex; flex-direction: column; gap: 4px; }
 
 .message-header {

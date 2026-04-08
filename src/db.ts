@@ -126,9 +126,21 @@ export function getNewMessages(
 }
 
 /**
- * Returns up to `limit` recent messages in a channel (including bot replies) for context.
+ * Returns up to `limit` recent messages in a channel.
+ * - `since`  filters to messages after that timestamp (used for agent context).
+ * - `before` fetches the page of messages older than that timestamp (used for "show more").
+ * When `before` is supplied, `since` is ignored.
  */
-export function getChannelHistory(channelId: string, since: string, limit = 20): Message[] {
+export function getChannelHistory(channelId: string, since: string, limit = 20, before?: string): Message[] {
+    if (before) {
+        return db.prepare(`
+            SELECT * FROM (
+                SELECT * FROM messages
+                WHERE channel_id = ? AND timestamp < ?
+                ORDER BY timestamp DESC LIMIT ?
+            ) ORDER BY timestamp
+        `).all(channelId, before, limit) as Message[];
+    }
     return db.prepare(`
         SELECT * FROM (
             SELECT * FROM messages

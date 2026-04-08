@@ -165,7 +165,9 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
         }
         const url = new URL(req.url, 'http://localhost');
         const limit = url.searchParams.get('limit') ?? '50';
-        const r = await fetch(`${process.env.VOXCLAW_API_URL}/api/history?channelId=voice&limit=${limit}`);
+        const before = url.searchParams.get('before');
+        const beforeParam = before ? `&before=${encodeURIComponent(before)}` : '';
+        const r = await fetch(`${process.env.VOXCLAW_API_URL}/api/history?channelId=voice&limit=${limit}${beforeParam}`);
         res.writeHead(r.status);
         res.end(await r.text());
         return;

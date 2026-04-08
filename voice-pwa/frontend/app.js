@@ -451,27 +451,83 @@ function arrayBufferToBase64(buffer) {
 }
 
 // --- Chat history ---
+const HISTORY_PAGE = 30;
 let lastSeenTimestamp = null;
+let oldestTimestamp   = null;
+
+function getShowMoreBtn() {
+    return document.getElementById('show-more-btn');
+}
+
+function prependMessage(role, text, date) {
+    const name = role === 'voxclaw' ? 'Voxclaw' : 'You';
+    const time = date ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    const el = document.createElement('div');
+    el.className = `message ${role}`;
+    el.innerHTML = `
+        <div class="message-header">
+            <span class="message-dot"></span>
+            <span class="message-name">${name}</span>
+            <span class="message-time">${time}</span>
+        </div>
+        <div class="message-body">${renderMessageBody(text)}</div>`;
+    chatMessages.insertBefore(el, chatMessages.firstChild);
+}
 
 async function loadHistory() {
     try {
-        const res = await apiRequest('/api/chat/history?limit=50');
+        const res = await apiRequest(`/api/chat/history?limit=${HISTORY_PAGE}`);
         if (!res.ok) return;
         const messages = await res.json();
         for (const msg of messages) {
             appendMessage(msg.is_bot ? 'voxclaw' : 'user', msg.content, new Date(msg.timestamp));
-            if (!lastSeenTimestamp || msg.timestamp > lastSeenTimestamp) {
-                lastSeenTimestamp = msg.timestamp;
-            }
+            if (!lastSeenTimestamp || msg.timestamp > lastSeenTimestamp) lastSeenTimestamp = msg.timestamp;
+            if (!oldestTimestamp   || msg.timestamp < oldestTimestamp)   oldestTimestamp   = msg.timestamp;
         }
+        updateShowMoreBtn(messages.length === HISTORY_PAGE);
         scrollToBottom();
     } catch { /* ignore — history is best-effort */ }
+}
+
+async function loadMoreHistory() {
+    if (!oldestTimestamp) return;
+    const btn = getShowMoreBtn();
+    if (btn) btn.textContent = '...';
+    try {
+        const res = await apiRequest(`/api/chat/history?limit=${HISTORY_PAGE}&before=${encodeURIComponent(oldestTimestamp)}`);
+        if (!res.ok) return;
+        const messages = await res.json();
+        const scrollHeightBefore = chatMessages.scrollHeight;
+        // Prepend in reverse so oldest ends up at top
+        for (let i = messages.length - 1; i >= 0; i--) {
+            const msg = messages[i];
+            prependMessage(msg.is_bot ? 'voxclaw' : 'user', msg.content, new Date(msg.timestamp));
+            if (!oldestTimestamp || msg.timestamp < oldestTimestamp) oldestTimestamp = msg.timestamp;
+        }
+        // Keep scroll position stable
+        chatMessages.scrollTop += chatMessages.scrollHeight - scrollHeightBefore;
+        updateShowMoreBtn(messages.length === HISTORY_PAGE);
+    } catch { /* ignore */ }
+}
+
+function updateShowMoreBtn(hasMore) {
+    let btn = getShowMoreBtn();
+    if (!hasMore) { if (btn) btn.remove(); return; }
+    if (!btn) {
+        btn = document.createElement('div');
+        btn.id = 'show-more-btn';
+        btn.textContent = 'Show more';
+        btn.addEventListener('click', loadMoreHistory);
+        chatMessages.insertBefore(btn, chatMessages.firstChild);
+    } else {
+        btn.textContent = 'Show more';
+    }
 }
 
 async function pollNewMessages() {
     if (!getToken()) return;
     try {
-        const res = await apiRequest('/api/chat/history?limit=50');
+        const res = await apiRequest(`/api/chat/history?limit=${HISTORY_PAGE}`);
         if (!res.ok) return;
         const messages = await res.json();
         let hasNew = false;
@@ -483,9 +539,7 @@ async function pollNewMessages() {
                 appendMessage('voxclaw', msg.content, new Date(msg.timestamp));
                 hasNew = true;
             }
-            if (!lastSeenTimestamp || msg.timestamp > lastSeenTimestamp) {
-                lastSeenTimestamp = msg.timestamp;
-            }
+            if (!lastSeenTimestamp || msg.timestamp > lastSeenTimestamp) lastSeenTimestamp = msg.timestamp;
         }
         if (hasNew) scrollToBottom();
     } catch { /* ignore */ }
