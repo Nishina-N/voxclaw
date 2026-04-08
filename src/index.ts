@@ -166,8 +166,8 @@ function startHttpApi(): void {
             const url = new URL(req.url, `http://localhost`);
             const channelId = url.searchParams.get('channelId') ?? VOICE_CHANNEL_ID;
             const limit = Math.min(200, parseInt(url.searchParams.get('limit') ?? '50', 10));
-            const since = historySince();
-            const messages = getChannelHistory(channelId, since, limit);
+            const before = url.searchParams.get('before') ?? undefined;
+            const messages = getChannelHistory(channelId, '', limit, before);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(messages));
             return;
