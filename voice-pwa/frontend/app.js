@@ -484,10 +484,6 @@ async function loadHistory() {
         const res = await apiRequest(`/api/chat/history?limit=${HISTORY_PAGE}`);
         if (!res.ok) return;
         const messages = await res.json();
-        console.log('[loadHistory] total:', messages.length,
-            'user:', messages.filter(m => !m.is_bot).length,
-            'bot:', messages.filter(m => m.is_bot).length);
-        console.log('[loadHistory] messages:', JSON.stringify(messages.map(m => ({ is_bot: m.is_bot, ts: m.timestamp, content: m.content?.slice(0,30) }))));
         for (const msg of messages) {
             appendMessage(msg.is_bot ? 'voxclaw' : 'user', msg.content, new Date(msg.timestamp));
             if (!lastSeenTimestamp || msg.timestamp > lastSeenTimestamp) lastSeenTimestamp = msg.timestamp;
@@ -495,7 +491,7 @@ async function loadHistory() {
         }
         updateShowMoreBtn(messages.length === HISTORY_PAGE);
         scrollToBottom();
-    } catch (e) { console.error('[loadHistory] error:', e); }
+    } catch { /* ignore — history is best-effort */ }
 }
 
 async function loadMoreHistory() {
