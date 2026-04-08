@@ -7,6 +7,13 @@ Speak naturally — Gemini infers your intent and fills the input box. Review, e
 
 ---
 
+## App Interface
+
+![App Interface](docs/voxclaw_app.png)
+
+
+
+
 ## How It Works
 
 ![How It Works](docs/How_It_Works.png)
