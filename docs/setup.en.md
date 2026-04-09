@@ -11,7 +11,7 @@
 5. [Verify It Works](#5-verify-it-works)
 6. [Optional: Discord Integration](#6-optional-discord-integration)
 7. [Optional: Google API Integration](#7-optional-google-api-integration)
-8. [Optional: Cloudflare Tunnel (External Access)](#8-optional-cloudflare-tunnel-external-access)
+8. [Optional: External Access (Tailscale / Cloudflare Tunnel)](#8-optional-external-access-tailscale--cloudflare-tunnel)
 9. [Optional: API Keys for Skills](#9-optional-api-keys-for-skills)
 
 ---
@@ -136,21 +136,54 @@ With Docker running, **send "Set up Google authentication" in the Voxclaw chat**
 
 ---
 
-## 8. Optional: Cloudflare Tunnel (External Access)
+## 8. Optional: External Access (Tailscale / Cloudflare Tunnel)
 
-Use this to expose your home server via a domain. Useful for accessing Voxclaw from your smartphone.
+Two options for accessing Voxclaw from outside your home network.
 
-### 8-1. Create a Tunnel in Cloudflare
+---
+
+### 8-A. Tailscale (recommended for personal use — no domain required)
+
+Tailscale is a WireGuard-based VPN. Install it on your server and phone to connect them on the same private network — no domain needed.
+
+**Server setup:**
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+tailscale up
+```
+
+**Phone:** Install Tailscale from the App Store / Google Play and sign in with the same account.
+
+**`.env` configuration:**
+
+```env
+AUTH_DISABLED=true   # VPN access only — JWT auth is not needed
+```
+
+**Accessing Voxclaw:**
+
+Find your server's Tailscale IP (`100.x.x.x`) in the [Tailscale admin panel](https://login.tailscale.com/admin/machines) and open `http://100.x.x.x:3000` in your phone's browser.
+
+> **HTTPS note:** Browsers require HTTPS for microphone access. Use Tailscale's MagicDNS + HTTPS certificate feature (`tailscale cert`) or set up a self-signed certificate.
+
+---
+
+### 8-B. Cloudflare Tunnel (public access via domain)
+
+Use this if you have a domain and want to expose Voxclaw to the internet. Keep `AUTH_DISABLED=false` (default) so JWT authentication remains active.
+
+#### 8-B-1. Create a Tunnel in Cloudflare
 
 Go to [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → **Access → Tunnels**, create a new tunnel, and copy the token.
 
-### 8-2. Add to .env
+#### 8-B-2. Add to .env
 
 ```env
 CLOUDFLARE_TUNNEL_TOKEN=your-tunnel-token
 ```
 
-### 8-3. Start with the tunnel profile
+#### 8-B-3. Start with the tunnel profile
 
 ```bash
 docker compose --profile tunnel up -d
