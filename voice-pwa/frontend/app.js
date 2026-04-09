@@ -151,12 +151,20 @@ const intentContext = document.getElementById('intent-context');
 const btnTaskMic    = document.getElementById('btn-task-mic');
 const taskAddInput  = document.getElementById('task-add-input');
 
-// 起動時：トークンがあればそのまま接続、なければログイン画面を表示
-if (getToken()) {
-    loginScreen.classList.add('hidden');
-    loadHistory();
-    connectWs();
-}
+// 起動時：認証設定を確認してから接続
+(async () => {
+    let authRequired = true;
+    try {
+        const res = await fetch('/api/config');
+        if (res.ok) authRequired = (await res.json()).authRequired ?? true;
+    } catch { /* ネットワークエラー時はデフォルトで認証あり */ }
+
+    if (!authRequired || getToken()) {
+        loginScreen.classList.add('hidden');
+        loadHistory();
+        connectWs();
+    }
+})()
 
 // bfcache復元時（戻る/進む）: WSが死んでいるので再接続
 window.addEventListener('pageshow', (e) => {
