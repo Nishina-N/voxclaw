@@ -5,6 +5,9 @@
 **音声ファーストのAIアシスタントPWA。**
 自然に話すだけで Gemini がリアルタイムに意図を推定し、テキストボックスに表示します。確認・編集してから実行。すべてブラウザで完結。
 
+Zenn記事1：[AIエージェントへの音声入力に納得がいかなくて、意図をリアルタイムに更新し続ける独自UIを作った話](https://zenn.dev/nishina__n/articles/a11bda4b0d5e14)<br>
+Zenn記事2：[Tailscaleでhttps通信。local PCのVoxclawにiphoneからアクセスする。](https://zenn.dev/nishina__n/articles/8a9a201b8f629e)
+
 ---
 
 ## App Interface
