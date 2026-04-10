@@ -13,6 +13,7 @@ const PORT = parseInt(process.env.VOICE_BACKEND_PORT ?? '8080', 10);
 const PASSWORD = process.env.PWA_PASSWORD ?? '123456';
 const JWT_SECRET = process.env.JWT_SECRET ?? PASSWORD;
 const JWT_EXPIRES_IN = '7d';
+const AUTH_DISABLED = process.env.AUTH_DISABLED === 'true';
 const KEYBINDER_URL = 'http://keybinder:3001';
 const CRON_PATH = '/app/config/cron.json';
 const MEDIA_DIR = '/app/media';
@@ -67,6 +68,7 @@ function getTokenFromRequest(req: IncomingMessage): string | null {
 }
 
 function verifyAuthHeader(req: IncomingMessage): boolean {
+    if (AUTH_DISABLED) return true;
     const auth = req.headers['authorization'] ?? '';
     const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
     return token ? verifyToken(token) : false;
@@ -101,6 +103,13 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     if (req.method === 'OPTIONS') {
         res.writeHead(204);
         res.end();
+        return;
+    }
+
+    // ── /api/config (public) ─────────────────────────────────────────────────
+    if (req.method === 'GET' && req.url === '/api/config') {
+        res.writeHead(200);
+        res.end(JSON.stringify({ authRequired: !AUTH_DISABLED }));
         return;
     }
 
@@ -339,11 +348,13 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 const wss = new WebSocketServer({ noServer: true });
 
 server.on('upgrade', (req, socket, head) => {
-    const token = getTokenFromRequest(req);
-    if (!token || !verifyToken(token)) {
-        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-        socket.destroy();
-        return;
+    if (!AUTH_DISABLED) {
+        const token = getTokenFromRequest(req);
+        if (!token || !verifyToken(token)) {
+            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+            socket.destroy();
+            return;
+        }
     }
     wss.handleUpgrade(req, socket, head, (ws) => {
         wss.emit('connection', ws, req);

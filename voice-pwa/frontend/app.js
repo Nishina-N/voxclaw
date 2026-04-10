@@ -3,6 +3,7 @@ const WS_PROTOCOL = location.protocol === 'https:' ? 'wss:' : 'ws:';
 const TOKEN_KEY = 'voxclaw_token';
 const INTENT_MODE_KEY = 'voxclaw_intent_mode';
 const SPEECH_LANG_KEY = 'voxclaw_speech_lang';
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const UI_LANG_KEY = 'voxclaw_ui_lang';
 const FONT_SIZE_KEY = 'voxclaw_font_size';
 const HISTORY_PAGE = 30;
@@ -138,6 +139,8 @@ let isRecording = false;
 let typingMessageEl = null;
 let activeMicBtn = null;   // mic button currently in use
 let activeInput = null;    // input field currently targeted by mic
+let lastSeenTimestamp = null;
+let oldestTimestamp   = null;
 
 // --- DOM ---
 const chatMessages  = document.getElementById('chat-messages');
@@ -148,12 +151,20 @@ const intentContext = document.getElementById('intent-context');
 const btnTaskMic    = document.getElementById('btn-task-mic');
 const taskAddInput  = document.getElementById('task-add-input');
 
-// 起動時：トークンがあればそのまま接続、なければログイン画面を表示
-if (getToken()) {
-    loginScreen.classList.add('hidden');
-    loadHistory();
-    connectWs();
-}
+// 起動時：認証設定を確認してから接続
+(async () => {
+    let authRequired = true;
+    try {
+        const res = await fetch('/api/config');
+        if (res.ok) authRequired = (await res.json()).authRequired ?? true;
+    } catch { /* ネットワークエラー時はデフォルトで認証あり */ }
+
+    if (!authRequired || getToken()) {
+        loginScreen.classList.add('hidden');
+        loadHistory();
+        connectWs();
+    }
+})()
 
 // bfcache復元時（戻る/進む）: WSが死んでいるので再接続
 window.addEventListener('pageshow', (e) => {
@@ -457,9 +468,6 @@ function arrayBufferToBase64(buffer) {
 }
 
 // --- Chat history ---
-let lastSeenTimestamp = null;
-let oldestTimestamp   = null;
-
 function getShowMoreBtn() {
     return document.getElementById('show-more-btn');
 }
@@ -788,8 +796,6 @@ document.querySelectorAll('.key-item').forEach(item => {
 });
 
 // --- Cron ---
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
 function skillToId(name) {
     return 'cron_' + name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 }

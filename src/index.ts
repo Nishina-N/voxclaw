@@ -26,6 +26,8 @@ dotenv.config();
 
 const POLL_INTERVAL = 2000;
 const CHANNELS_CONFIG_PATH = '/app/config/channels.json';
+const HTTP_API_PORT = parseInt(process.env.HTTP_API_PORT ?? '3001', 10);
+const VOICE_CHANNEL_ID = 'voice';
 
 // Per-channel config written by the agent via write_file
 interface ChannelConfig {
@@ -156,9 +158,6 @@ function startPollingLoop(channel: Channel): void {
 }
 
 // --- HTTP API server ---
-
-const HTTP_API_PORT = parseInt(process.env.HTTP_API_PORT ?? '3001', 10);
-const VOICE_CHANNEL_ID = 'voice';
 
 function startHttpApi(): void {
     const server = http.createServer((req, res) => {

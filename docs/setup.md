@@ -11,7 +11,7 @@
 5. [動作確認](#5-動作確認)
 6. [オプション：Discord 連携](#6-オプションdiscord-連携)
 7. [オプション：Google API 連携](#7-オプションgoogle-api-連携)
-8. [オプション：Cloudflare Tunnel（外部公開）](#8-オプションcloudflare-tunnel外部公開)
+8. [オプション：外部アクセス（Tailscale / Cloudflare Tunnel）](#8-オプション外部アクセス自宅外からスマートフォンで使う)
 9. [オプション：スキル用 APIキー](#9-オプションスキル用-apiキー)
 
 ---
@@ -136,21 +136,54 @@ Docker を起動した状態で、**Voxclaw のチャットに「Googleの認証
 
 ---
 
-## 8. オプション：Cloudflare Tunnel（外部公開）
+## 8. オプション：外部アクセス（自宅外からスマートフォンで使う）
 
-自宅サーバーをドメイン経由で外部公開する場合に使います。スマートフォンからアクセスするのに便利です。
+自宅サーバーに外出先からアクセスする方法は2つあります。
 
-### 8-1. Cloudflare でトンネルを作成する
+---
+
+### 8-A. Tailscale（個人利用向け・ドメイン不要）
+
+Tailscale は WireGuard ベースの VPN です。サーバーとスマートフォンを同じ仮想ネットワークに入れるだけで、ドメインなしでアクセスできます。
+
+**サーバー側のセットアップ：**
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+tailscale up
+```
+
+**スマートフォン側：** App Store / Google Play で「Tailscale」をインストールして同じアカウントでログイン。
+
+**`.env` の設定：**
+
+```env
+AUTH_DISABLED=true   # VPN 内のみのアクセスなので JWT 認証は不要
+```
+
+**アクセス方法：**
+
+Tailscale の管理画面（[https://login.tailscale.com/admin/machines](https://login.tailscale.com/admin/machines)）でサーバーの Tailscale IP（`100.x.x.x`）を確認し、スマートフォンのブラウザで `http://100.x.x.x:3000` にアクセスします。
+
+> **HTTPS について：** マイク使用にはブラウザが HTTPS を要求します。Tailscale の MagicDNS + HTTPS 証明書機能（`tailscale cert`）を使うか、自己署名証明書を用意してください。
+
+---
+
+### 8-B. Cloudflare Tunnel（ドメイン経由で外部公開）
+
+ドメインを持っている場合に使います。インターネット全体からアクセス可能になるため、`AUTH_DISABLED=false`（デフォルト）のまま JWT 認証を有効にしてください。
+
+#### 8-B-1. Cloudflare でトンネルを作成する
 
 [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → **「Access」→「Tunnels」** から新しいトンネルを作成し、トークンを取得します。
 
-### 8-2. .env に追記する
+#### 8-B-2. .env に追記する
 
 ```env
 CLOUDFLARE_TUNNEL_TOKEN=取得したトンネルトークン
 ```
 
-### 8-3. tunnel プロファイルで起動する
+#### 8-B-3. tunnel プロファイルで起動する
 
 ```bash
 docker compose --profile tunnel up -d
