@@ -156,6 +156,7 @@ let lastSeenTimestamp = null;
 let oldestTimestamp   = null;
 let ttsContext = null;
 let ttsNextTime = 0;
+let ttsSources = [];
 
 // --- DOM ---
 const chatMessages  = document.getElementById('chat-messages');
@@ -305,6 +306,7 @@ setupMicButton(btnMic, inputText);
 setupMicButton(btnTaskMic, taskAddInput);
 
 async function startRecording(micBtn, targetInput) {
+    ensureTTSContext(); // prime AudioContext inside user gesture before stopping TTS
     stopTTS();
     try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -358,6 +360,7 @@ function sendMessage() {
     const text = inputText.value.trim();
     if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
 
+    ensureTTSContext(); // prime AudioContext inside user gesture
     appendMessage('user', text);
     inputText.value = '';
     inputText.classList.remove('intent-draft');
@@ -477,26 +480,30 @@ function setTTSEnabled(v) { localStorage.setItem(TTS_ENABLED_KEY, String(v)); }
 function getVoice() { return localStorage.getItem(VOICE_KEY) ?? 'Aoede'; }
 function setVoice(v) { localStorage.setItem(VOICE_KEY, v); }
 
-function getTTSContext() {
+// iOS Safari requires AudioContext to be created inside a user gesture.
+// Call ensureTTSContext() from tap/click handlers to "prime" the context.
+// Never close it — just stop individual sources to cancel playback.
+function ensureTTSContext() {
     if (!ttsContext || ttsContext.state === 'closed') {
         ttsContext = new AudioContext({ sampleRate: TTS_SAMPLE_RATE });
         ttsNextTime = 0;
     }
     if (ttsContext.state === 'suspended') ttsContext.resume();
-    return ttsContext;
 }
 
 function stopTTS() {
-    if (ttsContext && ttsContext.state !== 'closed') {
-        ttsContext.close();
-        ttsContext = null;
-    }
+    for (const src of ttsSources) { try { src.stop(); } catch {} }
+    ttsSources = [];
     ttsNextTime = 0;
 }
 
 function enqueuePCM(base64) {
     if (!getTTSEnabled()) return;
-    const ctx = getTTSContext();
+    // Context must have been primed by a prior user gesture; skip if not ready.
+    if (!ttsContext || ttsContext.state === 'closed') return;
+    if (ttsContext.state === 'suspended') ttsContext.resume();
+
+    const ctx = ttsContext;
     const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
     const int16 = new Int16Array(bytes.buffer);
     const float32 = new Float32Array(int16.length);
@@ -512,6 +519,8 @@ function enqueuePCM(base64) {
     if (ttsNextTime < now) ttsNextTime = now;
     source.start(ttsNextTime);
     ttsNextTime += buffer.duration;
+    ttsSources.push(source);
+    source.onended = () => { ttsSources = ttsSources.filter(s => s !== source); };
 }
 
 function sendVoiceToServer(voice) {
