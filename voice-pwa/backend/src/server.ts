@@ -43,8 +43,9 @@ function writeCron(entries: any[]) {
 //   { type: 'audio_end' }                                  ← user stopped speaking
 //   { type: 'confirm', intent: '...' }                     ← user pressed OK
 // Server → Client:
-//   { type: 'intent', text: '...' }        ← real-time intent from Gemini
-//   { type: 'voxclaw_reply', text: '...' } ← after confirm
+//   { type: 'intent', text: '...' }          ← real-time intent from Gemini
+//   { type: 'voxclaw_reply', text: '...' }   ← after confirm
+//   { type: 'tts_audio', data: '<base64>' }  ← PCM16 24kHz audio chunk for TTS playback
 //   { type: 'error', message: '...' }
 
 // ── JWT helpers ───────────────────────────────────────────────────────────────
@@ -368,6 +369,7 @@ wss.on('connection', (ws: WebSocket) => {
     let sessionCreating: Promise<GeminiLiveSession> | null = null;
     let intentMode: IntentMode = 'standard';
     let speechLanguage: string = '';
+    let voiceCharacter: string = 'Aoede';
 
     function resetSession() {
         geminiSession?.close();
@@ -378,11 +380,21 @@ wss.on('connection', (ws: WebSocket) => {
     async function getOrCreateSession(): Promise<GeminiLiveSession> {
         if (geminiSession) return geminiSession;
         if (sessionCreating) return sessionCreating;
-        sessionCreating = createLiveSession((intent, isFinal, context) => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'intent', text: intent, isFinal, context }));
-            }
-        }, intentMode, speechLanguage || undefined).then(s => {
+        sessionCreating = createLiveSession(
+            (intent, isFinal, context) => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'intent', text: intent, isFinal, context }));
+                }
+            },
+            (base64) => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'tts_audio', data: base64 }));
+                }
+            },
+            intentMode,
+            speechLanguage || undefined,
+            voiceCharacter || undefined,
+        ).then(s => {
             geminiSession = s;
             return s;
         }).catch(err => {
@@ -430,6 +442,14 @@ wss.on('connection', (ws: WebSocket) => {
                 console.log('[ws] speech language changed to:', speechLanguage || '(auto)');
             }
 
+        } else if (msg.type === 'set_voice') {
+            const newVoice: string = typeof msg.voice === 'string' ? msg.voice : 'Aoede';
+            if (newVoice !== voiceCharacter) {
+                voiceCharacter = newVoice;
+                resetSession();
+                console.log('[ws] voice changed to:', voiceCharacter);
+            }
+
         } else if (msg.type === 'confirm') {
             const intent: string = msg.intent;
             if (!intent) return;
@@ -438,6 +458,7 @@ wss.on('connection', (ws: WebSocket) => {
                 const reply = await sendToVoxclaw(intent);
                 console.log('[voxclaw] reply:', reply);
                 ws.send(JSON.stringify({ type: 'voxclaw_reply', text: reply }));
+                geminiSession?.speakText(reply);
             } catch (err: any) {
                 console.error('[confirm] voxclaw error:', err);
                 ws.send(JSON.stringify({ type: 'error', message: err.message ?? 'voxclaw error' }));

@@ -7,6 +7,9 @@ const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const UI_LANG_KEY = 'voxclaw_ui_lang';
 const FONT_SIZE_KEY = 'voxclaw_font_size';
 const HISTORY_PAGE = 30;
+const TTS_SAMPLE_RATE = 24000;
+const TTS_ENABLED_KEY = 'voxclaw_tts_enabled';
+const VOICE_KEY = 'voxclaw_voice';
 
 // --- i18n ---
 const STRINGS = {
@@ -19,6 +22,11 @@ const STRINGS = {
         input_lang_label:      'Input Language',
         input_lang_auto:       'Auto detect',
         input_lang_note:       'Specifying a language may improve recognition accuracy.',
+        tts_section:           'Text-to-Speech',
+        tts_enabled_label:     'Read replies aloud',
+        tts_enabled_on:        'ON',
+        tts_enabled_off:       'OFF',
+        tts_voice_label:       'Voice character',
         display_section:       'Display',
         font_size_label:       'Font Size',
         lang_label:            'Language',
@@ -39,6 +47,11 @@ const STRINGS = {
         input_lang_label:      '入力言語',
         input_lang_auto:       '自動検出',
         input_lang_note:       '「自動検出」以外を選ぶと認識精度が向上することがあります。',
+        tts_section:           '読み上げ',
+        tts_enabled_label:     '読み上げ',
+        tts_enabled_on:        'ON',
+        tts_enabled_off:       'OFF',
+        tts_voice_label:       '音声キャラクター',
         display_section:       'Display',
         font_size_label:       '文字サイズ',
         lang_label:            '言語 / Language',
@@ -141,6 +154,8 @@ let activeMicBtn = null;   // mic button currently in use
 let activeInput = null;    // input field currently targeted by mic
 let lastSeenTimestamp = null;
 let oldestTimestamp   = null;
+let ttsContext = null;
+let ttsNextTime = 0;
 
 // --- DOM ---
 const chatMessages  = document.getElementById('chat-messages');
@@ -183,7 +198,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
-        if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); initIntentModeUI(); initSpeechLangUI(); initFontSizeUI(); initLangUI(); }
+        if (btn.dataset.tab === 'settings') { loadKeys(); loadGoogleStatus(); initIntentModeUI(); initSpeechLangUI(); initTTSUI(); initVoiceUI(); initFontSizeUI(); initLangUI(); }
         if (btn.dataset.tab === 'skills') loadSkills();
         if (btn.dataset.tab === 'cron') loadCronTab();
         if (btn.dataset.tab === 'task') loadTaskTab();
@@ -203,6 +218,7 @@ function connectWs() {
         console.log('[ws] connected');
         sendModeToServer(getIntentMode());
         sendLanguageToServer(getSpeechLanguage());
+        sendVoiceToServer(getVoice());
     });
     ws.addEventListener('close', (e) => {
         if (isRecording) stopRecording();
@@ -243,6 +259,9 @@ function connectWs() {
             appendMessage('voxclaw', msg.text);
             // Advance cursor so poll doesn't re-append this reply from DB
             lastSeenTimestamp = new Date().toISOString();
+
+        } else if (msg.type === 'tts_audio') {
+            enqueuePCM(msg.data);
 
         } else if (msg.type === 'error') {
             removeTyping();
@@ -286,6 +305,7 @@ setupMicButton(btnMic, inputText);
 setupMicButton(btnTaskMic, taskAddInput);
 
 async function startRecording(micBtn, targetInput) {
+    stopTTS();
     try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
@@ -449,6 +469,55 @@ function escapeHtml(str) {
 function linkify(str) {
     return str.replace(/https?:\/\/[^\s<>"']+/g, url =>
         `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
+}
+
+// --- TTS helpers ---
+function getTTSEnabled() { return localStorage.getItem(TTS_ENABLED_KEY) !== 'false'; }
+function setTTSEnabled(v) { localStorage.setItem(TTS_ENABLED_KEY, String(v)); }
+function getVoice() { return localStorage.getItem(VOICE_KEY) ?? 'Aoede'; }
+function setVoice(v) { localStorage.setItem(VOICE_KEY, v); }
+
+function getTTSContext() {
+    if (!ttsContext || ttsContext.state === 'closed') {
+        ttsContext = new AudioContext({ sampleRate: TTS_SAMPLE_RATE });
+        ttsNextTime = 0;
+    }
+    if (ttsContext.state === 'suspended') ttsContext.resume();
+    return ttsContext;
+}
+
+function stopTTS() {
+    if (ttsContext && ttsContext.state !== 'closed') {
+        ttsContext.close();
+        ttsContext = null;
+    }
+    ttsNextTime = 0;
+}
+
+function enqueuePCM(base64) {
+    if (!getTTSEnabled()) return;
+    const ctx = getTTSContext();
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const int16 = new Int16Array(bytes.buffer);
+    const float32 = new Float32Array(int16.length);
+    for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768;
+
+    const buffer = ctx.createBuffer(1, float32.length, TTS_SAMPLE_RATE);
+    buffer.copyToChannel(float32, 0);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    if (ttsNextTime < now) ttsNextTime = now;
+    source.start(ttsNextTime);
+    ttsNextTime += buffer.duration;
+}
+
+function sendVoiceToServer(voice) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'set_voice', voice }));
+    }
 }
 
 function float32ToPcm16(float32) {
@@ -634,6 +703,35 @@ function initSpeechLangUI() {
     select.addEventListener('change', () => {
         setSpeechLanguage(select.value);
         sendLanguageToServer(select.value);
+    });
+}
+
+function initTTSUI() {
+    const toggle = document.getElementById('tts-enabled-toggle');
+    const label  = document.getElementById('tts-enabled-label');
+    if (!toggle || !label) return;
+
+    const enabled = getTTSEnabled();
+    toggle.checked = enabled;
+    label.textContent = enabled ? t('tts_enabled_on') : t('tts_enabled_off');
+
+    toggle.onchange = null;
+    toggle.addEventListener('change', () => {
+        setTTSEnabled(toggle.checked);
+        label.textContent = toggle.checked ? t('tts_enabled_on') : t('tts_enabled_off');
+        if (!toggle.checked) stopTTS();
+    });
+}
+
+function initVoiceUI() {
+    const select = document.getElementById('tts-voice-select');
+    if (!select) return;
+    select.value = getVoice();
+
+    select.onchange = null;
+    select.addEventListener('change', () => {
+        setVoice(select.value);
+        sendVoiceToServer(select.value);
     });
 }
 
