@@ -64,6 +64,7 @@ services:
       - ./functions:/app/functions:ro
       - ./config/cron.json:/app/config/cron.json
       - ./media:/app/media
+      - ./voice-pwa/data:/app/data  # intent pairs for few-shot learning
 
   voice-pwa-frontend:
     build: ./voice-pwa/frontend

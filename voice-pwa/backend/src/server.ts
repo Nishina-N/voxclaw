@@ -17,6 +17,32 @@ const AUTH_DISABLED = process.env.AUTH_DISABLED === 'true';
 const KEYBINDER_URL = 'http://keybinder:3001';
 const CRON_PATH = '/app/config/cron.json';
 const MEDIA_DIR = '/app/media';
+const DATA_DIR = '/app/data';
+const PAIRS_FILE = path.join(DATA_DIR, 'intent-pairs.json');
+const MAX_PAIRS = 50;   // 保存する最大件数
+const INJECT_PAIRS = 20; // システムプロンプトに注入する件数
+
+interface IntentPair {
+    transcription: string;
+    intent: string;
+    timestamp: string;
+}
+
+function loadPairs(): IntentPair[] {
+    try {
+        if (!fs.existsSync(PAIRS_FILE)) return [];
+        return JSON.parse(fs.readFileSync(PAIRS_FILE, 'utf-8')) as IntentPair[];
+    } catch { return []; }
+}
+
+function savePair(transcription: string, intent: string) {
+    const pairs = loadPairs();
+    pairs.push({ transcription, intent, timestamp: new Date().toISOString() });
+    const trimmed = pairs.slice(-MAX_PAIRS);
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(PAIRS_FILE, JSON.stringify(trimmed, null, 2));
+    console.log(`[pairs] saved (${trimmed.length} total):`, transcription, '→', intent);
+}
 
 const MIME_TYPES: Record<string, string> = {
     '.jpg':  'image/jpeg',
@@ -368,21 +394,30 @@ wss.on('connection', (ws: WebSocket) => {
     let sessionCreating: Promise<GeminiLiveSession> | null = null;
     let intentMode: IntentMode = 'standard';
     let speechLanguage: string = '';
+    let lastTranscript: string = '';
 
     function resetSession() {
         geminiSession?.close();
         geminiSession = null;
         sessionCreating = null;
+        lastTranscript = '';
     }
 
     async function getOrCreateSession(): Promise<GeminiLiveSession> {
         if (geminiSession) return geminiSession;
         if (sessionCreating) return sessionCreating;
-        sessionCreating = createLiveSession((intent, isFinal, context) => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'intent', text: intent, isFinal, context }));
-            }
-        }, intentMode, speechLanguage || undefined).then(s => {
+        const examples = loadPairs().slice(-INJECT_PAIRS);
+        sessionCreating = createLiveSession(
+            (intent, isFinal, context) => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'intent', text: intent, isFinal, context }));
+                }
+            },
+            (transcript) => { lastTranscript = transcript; },
+            intentMode,
+            speechLanguage || undefined,
+            examples,
+        ).then(s => {
             geminiSession = s;
             return s;
         }).catch(err => {
@@ -433,6 +468,11 @@ wss.on('connection', (ws: WebSocket) => {
         } else if (msg.type === 'confirm') {
             const intent: string = msg.intent;
             if (!intent) return;
+            // Save (transcription, confirmed intent) pair if voice was used
+            if (lastTranscript) {
+                savePair(lastTranscript, intent);
+                lastTranscript = '';
+            }
             console.log('[confirm] sending to voxclaw:', intent);
             try {
                 const reply = await sendToVoxclaw(intent);
